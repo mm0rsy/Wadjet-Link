@@ -20,6 +20,18 @@ FetchContent_MakeAvailable(googletest)
 # ============================================================================
 add_executable(wadjet_tests
     test_version.cpp
+    # Core tests
+    core/test_types.cpp
+    core/test_result.cpp
+    core/test_byte_order.cpp
+    core/test_timestamp.cpp
+    # Network tests
+    net/test_packet.cpp
+    # PCAP tests
+    pcap/test_pcap.cpp
+    # I/O tests
+    io/test_device.cpp
+    io/test_frame_filter.cpp
 )
 
 target_link_libraries(wadjet_tests
