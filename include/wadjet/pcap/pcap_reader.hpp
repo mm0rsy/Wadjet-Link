@@ -3,6 +3,7 @@
 /// @file pcap_reader.hpp
 /// @brief PCAP file reader
 
+#include "wadjet/core/packet_source.hpp"
 #include "wadjet/core/result.hpp"
 #include "wadjet/net/packet.hpp"
 #include "wadjet/pcap/pcap_file.hpp"
@@ -20,6 +21,7 @@ namespace wadjet::pcap {
 ///
 /// Reads packets from standard PCAP files (libpcap format).
 /// Supports both microsecond and nanosecond timestamp resolution.
+/// Implements IPacketSource for generic packet processing.
 ///
 /// @code
 /// auto reader = PcapReader::open("capture.pcap");
@@ -29,7 +31,7 @@ namespace wadjet::pcap {
 ///     }
 /// }
 /// @endcode
-class PcapReader {
+class PcapReader : public IPacketSource {
 public:
     /// @brief Open a PCAP file for reading
     /// @param path Path to PCAP file
@@ -45,11 +47,17 @@ public:
     PcapReader& operator=(const PcapReader&) = delete;
     PcapReader(PcapReader&&) noexcept = default;
     PcapReader& operator=(PcapReader&&) noexcept = default;
-    ~PcapReader() = default;
+    ~PcapReader() override = default;
 
-    /// @brief Read the next packet
+    /// @brief Read the next packet (IPacketSource interface)
     /// @return Packet if available, nullopt at end of file
-    [[nodiscard]] auto next_packet() -> std::optional<Packet>;
+    [[nodiscard]] auto next_packet() -> std::optional<Packet> override;
+
+    /// @brief Check if more packets are available (IPacketSource interface)
+    [[nodiscard]] bool has_more() const override { return !eof_; }
+
+    /// @brief Get a description of this packet source (IPacketSource interface)
+    [[nodiscard]] std::string description() const override { return description_; }
 
     /// @brief Get the link layer type
     [[nodiscard]] LinkType link_type() const { return link_type_; }
@@ -79,6 +87,8 @@ private:
     std::vector<std::byte> memory_data_;
     std::size_t memory_offset_ = 0;
     bool from_memory_ = false;
+    bool eof_ = false;
+    std::string description_ = "PcapReader";
 
     LinkType link_type_ = LinkType::Ethernet;
     std::uint32_t snaplen_ = 65535;

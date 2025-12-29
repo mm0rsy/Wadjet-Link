@@ -3,6 +3,7 @@
 /// @file pcap_writer.hpp
 /// @brief PCAP file writer
 
+#include "wadjet/core/packet_source.hpp"
 #include "wadjet/core/result.hpp"
 #include "wadjet/net/packet.hpp"
 #include "wadjet/net/packet_view.hpp"
@@ -23,6 +24,7 @@ struct PcapWriterOptions {
 /// @brief PCAP file writer
 ///
 /// Writes packets to standard PCAP files (libpcap format).
+/// Implements IPacketSink for generic packet processing.
 ///
 /// @code
 /// auto writer = PcapWriter::create("output.pcap");
@@ -30,7 +32,7 @@ struct PcapWriterOptions {
 ///     writer->write_packet(packet.view());
 /// }
 /// @endcode
-class PcapWriter {
+class PcapWriter : public IPacketSink {
 public:
     using Options = PcapWriterOptions;
 
@@ -45,12 +47,12 @@ public:
     PcapWriter& operator=(const PcapWriter&) = delete;
     PcapWriter(PcapWriter&&) noexcept = default;
     PcapWriter& operator=(PcapWriter&&) noexcept = default;
-    ~PcapWriter();
+    ~PcapWriter() override;
 
-    /// @brief Write a packet to the file
+    /// @brief Write a packet to the file (IPacketSink interface)
     /// @param view Packet view to write
     /// @return Success or error
-    auto write_packet(const PacketView& view) -> Result<void>;
+    auto write_packet(const PacketView& view) -> Result<void> override;
 
     /// @brief Write a packet to the file
     /// @param packet Packet to write
@@ -59,11 +61,14 @@ public:
         return write_packet(packet.view());
     }
 
-    /// @brief Flush buffered data to disk
-    void flush();
+    /// @brief Get a description of this packet sink (IPacketSink interface)
+    [[nodiscard]] std::string description() const override { return description_; }
 
-    /// @brief Get number of packets written
-    [[nodiscard]] std::size_t packet_count() const { return packet_count_; }
+    /// @brief Flush buffered data to disk (IPacketSink interface)
+    void flush() override;
+
+    /// @brief Get number of packets written (IPacketSink interface)
+    [[nodiscard]] std::size_t packet_count() const override { return packet_count_; }
 
     /// @brief Get total bytes written (excluding header)
     [[nodiscard]] std::size_t bytes_written() const { return bytes_written_; }
@@ -75,6 +80,7 @@ private:
     Options options_;
     std::size_t packet_count_ = 0;
     std::size_t bytes_written_ = 0;
+    std::string description_ = "PcapWriter";
 };
 
 }  // namespace wadjet::pcap

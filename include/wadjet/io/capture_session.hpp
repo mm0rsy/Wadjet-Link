@@ -3,6 +3,7 @@
 /// @file capture_session.hpp
 /// @brief Live packet capture using AF_PACKET
 
+#include "wadjet/core/packet_source.hpp"
 #include "wadjet/core/result.hpp"
 #include "wadjet/io/device.hpp"
 #include "wadjet/io/frame_filter.hpp"
@@ -37,6 +38,7 @@ struct CaptureSessionOptions {
 ///
 /// CaptureSession provides high-performance packet capture using
 /// Linux AF_PACKET sockets with optional ring buffer support.
+/// Implements IFilterablePacketSource for generic packet processing.
 ///
 /// @code
 /// auto session = CaptureSession::create("eth0");
@@ -46,7 +48,7 @@ struct CaptureSessionOptions {
 ///     }
 /// }
 /// @endcode
-class CaptureSession {
+class CaptureSession : public IFilterablePacketSource {
 public:
     using Options = CaptureSessionOptions;
 
@@ -64,17 +66,17 @@ public:
     CaptureSession& operator=(const CaptureSession&) = delete;
     CaptureSession(CaptureSession&&) noexcept;
     CaptureSession& operator=(CaptureSession&&) noexcept;
-    ~CaptureSession();
+    ~CaptureSession() override;
+
+    /// @brief Set a BPF filter (IFilterablePacketSource interface)
+    /// @param expression BPF filter expression (e.g., "udp port 30490")
+    /// @return Success or error
+    auto set_filter(std::string_view expression) -> Result<void> override;
 
     /// @brief Set a BPF filter
     /// @param filter Compiled BPF filter
     /// @return Success or error
     auto set_filter(const FrameFilter& filter) -> Result<void>;
-
-    /// @brief Set a BPF filter from expression
-    /// @param expression BPF filter expression (e.g., "udp port 30490")
-    /// @return Success or error
-    auto set_filter(std::string_view expression) -> Result<void>;
 
     /// @brief Start capturing (non-blocking mode)
     auto start() -> Result<void>;
@@ -95,9 +97,18 @@ public:
         return next_packet_impl(static_cast<int>(ms.count()));
     }
 
-    /// @brief Capture the next packet (with default timeout)
-    [[nodiscard]] auto next_packet() -> std::optional<Packet> {
+    /// @brief Capture the next packet (IPacketSource interface)
+    [[nodiscard]] auto next_packet() -> std::optional<Packet> override {
         return next_packet_impl(options_.timeout_ms);
+    }
+
+    /// @brief Check if more packets are available (IPacketSource interface)
+    /// @note For live capture, this returns true if the session is running
+    [[nodiscard]] bool has_more() const override { return running_; }
+
+    /// @brief Get a description of this packet source (IPacketSource interface)
+    [[nodiscard]] std::string description() const override {
+        return "CaptureSession: " + interface_;
     }
 
     /// @brief Run capture loop with callback

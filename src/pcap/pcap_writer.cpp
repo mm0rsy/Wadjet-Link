@@ -8,6 +8,7 @@ auto PcapWriter::create(const std::filesystem::path& path,
                         Options options) -> Result<PcapWriter> {
     PcapWriter writer;
     writer.options_ = options;
+    writer.description_ = "PcapWriter: " + path.string();
 
     writer.file_.open(path, std::ios::binary | std::ios::trunc);
     if (!writer.file_.is_open()) {

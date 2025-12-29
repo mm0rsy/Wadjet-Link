@@ -9,6 +9,20 @@ skinparam class {
     BorderColor #6A2EAB
 }
 
+namespace wadjet {
+    interface IPacketSource {
+        + next_packet() : optional<Packet>
+        + has_more() : bool
+        + description() : string
+    }
+
+    interface IFilterablePacketSource {
+        + set_filter(expression) : Result<void>
+    }
+
+    IPacketSource <|-- IFilterablePacketSource
+}
+
 namespace wadjet::io {
 
     struct NetworkDevice {
@@ -68,6 +82,8 @@ namespace wadjet::io {
         + stop() : void
         + is_running() : bool
         + next_packet(timeout?) : optional<Packet>
+        + has_more() : bool
+        + description() : string
         + capture(callback, count?) : size_t
         + stats() : CaptureStats
         + interface_name() : string
@@ -90,11 +106,12 @@ namespace wadjet::io {
         + get_default_device() : Result<NetworkDevice>
     }
 
+    wadjet.IFilterablePacketSource <|.. CaptureSession
+
     CaptureSession --> CaptureSessionOptions : uses
     CaptureSession --> CaptureSessionImpl : pimpl
     CaptureSession --> CaptureStats : reports
     CaptureSession --> FrameFilter : uses
-    CaptureSession ..> Packet : creates
 
     FrameFilter --> FrameFilterImpl : pimpl
 

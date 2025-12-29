@@ -9,6 +9,21 @@ skinparam class {
     BorderColor #AB6A2E
 }
 
+namespace wadjet {
+    interface IPacketSource {
+        + next_packet() : optional<Packet>
+        + has_more() : bool
+        + description() : string
+    }
+
+    interface IPacketSink {
+        + write_packet(view) : Result<void>
+        + flush() : void
+        + packet_count() : size_t
+        + description() : string
+    }
+}
+
 namespace wadjet::pcap {
 
     ' Constants
@@ -54,6 +69,8 @@ namespace wadjet::pcap {
         - from_memory_ : bool
         - memory_data_ : ByteSpan
         - memory_offset_ : size_t
+        - eof_ : bool
+        - description_ : string
         - swap_bytes_ : bool
         - nanosecond_ : bool
         - link_type_ : LinkType
@@ -64,6 +81,8 @@ namespace wadjet::pcap {
         + link_type() : LinkType
         + is_nanosecond() : bool
         + next_packet() : optional<Packet>
+        + has_more() : bool
+        + description() : string
         + read_all() : vector<Packet>
         + position() : streampos
         + reset() : void
@@ -74,6 +93,7 @@ namespace wadjet::pcap {
         - options_ : Options
         - packet_count_ : size_t
         - bytes_written_ : size_t
+        - description_ : string
         --
         + {static} create(path, options?) : Result<PcapWriter>
         + write_packet(view) : Result<void>
@@ -81,20 +101,22 @@ namespace wadjet::pcap {
         + flush() : void
         + packet_count() : size_t
         + bytes_written() : size_t
+        + description() : string
     }
+
+    wadjet.IPacketSource <|.. PcapReader
+    wadjet.IPacketSink <|.. PcapWriter
 
     PcapReader --> PcapFileHeader : reads
     PcapReader --> PcapPacketHeader : reads
     PcapReader --> LinkType : uses
-    PcapReader ..> Packet : creates
 
     PcapWriter --> PcapWriterOptions : uses
     PcapWriter --> PcapFileHeader : writes
     PcapWriter --> PcapPacketHeader : writes
     PcapWriter --> LinkType : uses
-    PcapWriter ..> PacketView : reads
 }
 
-note "File format: libpcap (tcpdump)\nSupports both µs and ns precision" as N1
+note "File format: libpcap (tcpdump)\nSupports both µs and ns precision\nImplements IPacketSource/IPacketSink interfaces" as N1
 
 @enduml

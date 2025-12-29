@@ -11,7 +11,18 @@ skinparam class {
 
 namespace wadjet {
 
-    struct MacAddress {
+    abstract class "AddressBase<Derived, N>" as AddressBase <<CRTP>> {
+        + bytes : array<uint8_t, N>
+        --
+        # {static} parse_hex_with_delimiter(str, bytes, delim, width) : void
+        # {static} parse_decimal_with_delimiter(str, bytes, delim) : void
+        # {static} format_hex(bytes, delim) : string
+        # {static} format_decimal(bytes, delim) : string
+        + data() : span<const byte>
+        + operator<=>(other) : auto
+    }
+
+    struct MacAddress <<6 bytes>> {
         + bytes : array<uint8_t, 6>
         --
         + {static} from_bytes(b0..b5) : MacAddress
@@ -19,19 +30,27 @@ namespace wadjet {
         + to_string() : string
         + is_broadcast() : bool
         + is_multicast() : bool
-        + operator==(other) : bool
-        + operator<(other) : bool
+        + is_local() : bool
+        + oui() : uint32_t
     }
 
-    struct IPv4Address {
+    struct IPv4Address <<4 bytes>> {
         + bytes : array<uint8_t, 4>
         --
         + {static} from_bytes(b0..b3) : IPv4Address
+        + {static} from_uint32(value) : IPv4Address
         + {static} from_string(str) : IPv4Address
         + to_string() : string
         + to_uint32() : uint32_t
-        + operator==(other) : bool
+        + is_loopback() : bool
+        + is_broadcast() : bool
+        + is_multicast() : bool
+        + is_private() : bool
+        + is_in_subnet(network, prefix) : bool
     }
+
+    AddressBase <|-- MacAddress : CRTP
+    AddressBase <|-- IPv4Address : CRTP
 
     enum EtherType <<enumeration>> {
         IPv4 = 0x0800

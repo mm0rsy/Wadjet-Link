@@ -7,6 +7,7 @@ namespace wadjet::pcap {
 auto PcapReader::open(const std::filesystem::path& path) -> Result<PcapReader> {
     PcapReader reader;
     reader.from_memory_ = false;
+    reader.description_ = "PcapReader: " + path.string();
 
     reader.file_.open(path, std::ios::binary);
     if (!reader.file_.is_open()) {
@@ -28,6 +29,7 @@ auto PcapReader::from_memory(std::vector<std::byte> data) -> Result<PcapReader> 
     reader.from_memory_ = true;
     reader.memory_data_ = std::move(data);
     reader.memory_offset_ = 0;
+    reader.description_ = "PcapReader: memory buffer";
 
     auto result = reader.read_header();
     if (!result) {
@@ -110,8 +112,13 @@ auto PcapReader::read_bytes(void* dest, std::size_t size) -> bool {
 }
 
 auto PcapReader::next_packet() -> std::optional<Packet> {
+    if (eof_) {
+        return std::nullopt;
+    }
+
     PcapPacketHeader pkt_header{};
     if (!read_bytes(&pkt_header, sizeof(pkt_header))) {
+        eof_ = true;
         return std::nullopt;
     }
 
@@ -129,12 +136,14 @@ auto PcapReader::next_packet() -> std::optional<Packet> {
 
     // Sanity check
     if (pkt_header.incl_len > snaplen_ || pkt_header.incl_len > MAX_FRAME_SIZE * 10) {
+        eof_ = true;
         return std::nullopt;
     }
 
     // Read packet data
     std::vector<std::byte> data(pkt_header.incl_len);
     if (!read_bytes(data.data(), pkt_header.incl_len)) {
+        eof_ = true;
         return std::nullopt;
     }
 
@@ -167,6 +176,7 @@ std::streampos PcapReader::position() const {
 }
 
 void PcapReader::reset() {
+    eof_ = false;
     if (from_memory_) {
         memory_offset_ = sizeof(PcapFileHeader);
     } else {
