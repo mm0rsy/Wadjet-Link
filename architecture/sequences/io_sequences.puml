@@ -1,0 +1,140 @@
+@startuml io_sequences
+!theme plain
+title 𓆓 Wadjet-Link - I/O Module Sequences
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+== enumerate_devices() ==
+
+participant "User" as U
+participant "device.hpp" as D
+participant "Linux Kernel" as K
+
+U -> D: enumerate_devices()
+activate D
+D -> K: getifaddrs()
+K --> D: ifaddrs linked list
+D -> D: create vector<NetworkDevice>
+loop for each interface
+    D -> K: ioctl(SIOCGIFINDEX)
+    K --> D: interface index
+    D -> K: ioctl(SIOCGIFHWADDR)
+    K --> D: MAC address
+    D -> K: ioctl(SIOCGIFMTU)
+    K --> D: MTU
+    D -> K: ioctl(SIOCGIFFLAGS)
+    K --> D: flags (UP, RUNNING, LOOPBACK)
+    D -> D: add NetworkDevice to vector
+end
+D -> K: freeifaddrs()
+D --> U: Result<vector<NetworkDevice>>
+deactivate D
+
+== FrameFilter::compile() ==
+
+participant "FrameFilter" as FF
+participant "libpcap" as LP
+
+U -> FF: compile("udp port 30490")
+activate FF
+FF -> LP: pcap_open_dead(DLT_EN10MB, 65535)
+LP --> FF: pcap_t*
+
+FF -> LP: pcap_compile(pcap, &program, expr, 1, NETMASK_UNKNOWN)
+alt success
+    LP --> FF: 0
+    FF -> LP: pcap_close(pcap)
+    FF -> FF: impl_->valid = true
+    FF --> U: Result::ok(FrameFilter)
+else failure
+    LP --> FF: -1
+    FF -> LP: pcap_geterr(pcap)
+    LP --> FF: error message
+    FF -> LP: pcap_close(pcap)
+    FF --> U: Result::err(error_msg)
+end
+deactivate FF
+
+== CaptureSession::create() ==
+
+participant "CaptureSession" as CS
+
+U -> CS: create("eth0", options)
+activate CS
+CS -> K: socket(AF_PACKET, SOCK_RAW, ETH_P_ALL)
+alt failed (no permission)
+    CS --> U: Result::err("need root")
+else socket created
+    K --> CS: socket_fd
+    
+    CS -> K: ioctl(SIOCGIFINDEX, "eth0")
+    K --> CS: if_index
+    
+    opt promiscuous mode
+        CS -> K: setsockopt(PACKET_ADD_MEMBERSHIP, PROMISC)
+    end
+    
+    CS -> CS: setup ring buffer
+    activate CS
+    CS -> K: setsockopt(PACKET_RX_RING, &req)
+    CS -> K: mmap(ring_size, PROT_READ|WRITE)
+    K --> CS: ring_buffer pointer
+    deactivate CS
+    
+    CS -> K: bind(socket_fd, sockaddr_ll)
+    
+    CS --> U: Result::ok(CaptureSession)
+end
+deactivate CS
+
+== CaptureSession::next_packet() ==
+
+U -> CS: next_packet(100ms)
+activate CS
+CS -> K: poll(socket_fd, POLLIN, timeout)
+alt timeout
+    K --> CS: 0
+    CS --> U: nullopt
+else packet available
+    K --> CS: > 0
+    CS -> CS: frame = ring_buffer[current_frame]
+    CS -> CS: check frame->tp_status
+    alt TP_STATUS_USER
+        CS -> CS: extract packet data
+        CS -> CS: create Timestamp from tp_sec, tp_nsec
+        CS -> CS: create Packet(data, timestamp)
+        CS -> CS: frame->tp_status = TP_STATUS_KERNEL
+        CS -> CS: current_frame = (current_frame + 1) % frame_count
+        CS -> CS: stats.packets_received++
+        CS --> U: optional<Packet>
+    else not ready
+        CS --> U: nullopt
+    end
+end
+deactivate CS
+
+== CaptureSession::set_filter() ==
+
+U -> CS: set_filter(filter)
+activate CS
+CS -> FF: program()
+FF --> CS: bpf_program*
+
+CS -> CS: build sock_fprog
+note right
+    kernel_filter.len = program->bf_len
+    kernel_filter.filter = program->bf_insns
+end note
+
+CS -> K: setsockopt(SO_ATTACH_FILTER, &kernel_filter)
+alt success
+    K --> CS: 0
+    CS --> U: Result::ok()
+else failure
+    K --> CS: -1, errno
+    CS --> U: Result::err(errno message)
+end
+deactivate CS
+
+@enduml

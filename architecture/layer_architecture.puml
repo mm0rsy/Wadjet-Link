@@ -1,0 +1,62 @@
+@startuml layer_architecture
+!theme plain
+title 𓆓 Wadjet-Link - Layered Architecture
+
+skinparam backgroundColor white
+skinparam rectangle {
+    roundCorner 10
+}
+
+rectangle "**Application Layer**\n(User Code / Tests)" as App #E8E8FD {
+}
+
+rectangle "**Protocol Layer**\n(SOME/IP, DoIP, gPTP, UDS)" as Protocol #FDE8E8 {
+    note "Milestone 2-3\n(Planned)" as N1
+}
+
+rectangle "**Packet Layer**\nPacketView | Packet" as Net #E8FDF4 {
+    card "Zero-copy parsing" as ZC
+    card "Header access" as HA
+    card "Mutable buffers" as MB
+}
+
+rectangle "**I/O Layer**" as IO #F4E8FD {
+    card "CaptureSession\n(Live AF_PACKET)" as CS
+    card "PcapReader\n(File input)" as PR
+    card "PcapWriter\n(File output)" as PW
+    card "FrameFilter\n(BPF)" as FF
+}
+
+rectangle "**Core Layer**" as Core #E8F4FD {
+    card "Types" as T
+    card "Result<T,E>" as R
+    card "Timestamp" as TS
+    card "ByteOrder" as BO
+}
+
+rectangle "**System Layer**" as Sys #DDDDDD {
+    card "Linux Kernel\nAF_PACKET" as K
+    card "libpcap" as LP
+    card "File System" as FS
+}
+
+App -down-> Protocol
+App -down-> Net
+Protocol -down-> Net
+Net -down-> IO
+Net -down-> Core
+IO -down-> Core
+IO -down-> Sys
+Core -down-> Sys
+
+legend right
+  | Color | Layer |
+  | <#E8E8FD> | Application |
+  | <#FDE8E8> | Protocol |
+  | <#E8FDF4> | Packet |
+  | <#F4E8FD> | I/O |
+  | <#E8F4FD> | Core |
+  | <#DDDDDD> | System |
+endlegend
+
+@enduml

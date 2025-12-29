@@ -1,0 +1,81 @@
+# Wadjet-Link Architecture Documentation
+
+This folder contains architectural documentation for the Wadjet-Link project using PlantUML diagrams.
+
+## Diagram Index
+
+### System-Level
+
+| Diagram | Description |
+| ------- | ----------- |
+| [component_overview.puml](component_overview.puml) | High-level component architecture |
+| [layer_architecture.puml](layer_architecture.puml) | Layered architecture view |
+
+### Use Cases
+
+| Diagram | Description |
+| ------- | ----------- |
+| [usecase_capture_packets.puml](usecases/usecase_capture_packets.puml) | Live packet capture workflow |
+| [usecase_read_pcap.puml](usecases/usecase_read_pcap.puml) | PCAP file reading workflow |
+| [usecase_write_pcap.puml](usecases/usecase_write_pcap.puml) | PCAP file writing workflow |
+
+### Module Class Diagrams
+
+| Module | Diagram |
+| ------ | ------- |
+| Core | [core_classes.puml](modules/core_classes.puml) |
+| Net | [net_classes.puml](modules/net_classes.puml) |
+| PCAP | [pcap_classes.puml](modules/pcap_classes.puml) |
+| I/O | [io_classes.puml](modules/io_classes.puml) |
+
+### Module Sequence Diagrams
+
+| Module | Diagram |
+| ------ | ------- |
+| Core | [core_sequences.puml](sequences/core_sequences.puml) |
+| Net | [net_sequences.puml](sequences/net_sequences.puml) |
+| PCAP | [pcap_sequences.puml](sequences/pcap_sequences.puml) |
+| I/O | [io_sequences.puml](sequences/io_sequences.puml) |
+
+## Rendering Diagrams
+
+### Using PlantUML CLI
+
+\`\`\`bash
+# Install PlantUML
+sudo apt-get install plantuml
+
+# Render all diagrams to PNG
+plantuml -tpng architecture/**/*.puml
+
+# Render to SVG
+plantuml -tsvg architecture/**/*.puml
+\`\`\`
+
+### Using VS Code
+
+Install the "PlantUML" extension (jebbs.plantuml) for live preview.
+
+### Online
+
+Paste diagram content at https://www.plantuml.com/plantuml/
+
+## Maintenance Policy
+
+**IMPORTANT**: When code changes or extends, the corresponding architecture diagrams MUST be updated:
+
+1. **New classes/interfaces** - Update module class diagram
+2. **New workflows/interactions** - Update sequence diagrams
+3. **New components/modules** - Update component overview
+4. **API changes** - Update all affected diagrams
+
+## Color Scheme
+
+| Color | Meaning |
+| ----- | ------- |
+| #E8F4FD | Core utilities |
+| #E8FDF4 | Network/Packet handling |
+| #FDF4E8 | File I/O (PCAP) |
+| #F4E8FD | Live capture I/O |
+| #FDE8E8 | Protocol decoders |
+| #E8E8FD | Testing framework |

@@ -1,0 +1,74 @@
+@startuml usecase_read_pcap
+!theme plain
+title Use Case: Read Packets from PCAP File
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+skinparam participantPadding 20
+
+actor "User Application" as User
+participant "PcapReader" as PR
+participant "Packet" as P
+participant "PacketView" as PV
+participant "File System" as FS
+
+== Open PCAP File ==
+
+User -> PR: open("/path/to/capture.pcap")
+activate PR
+PR -> FS: ifstream::open()
+FS --> PR: file handle
+PR -> PR: read PcapFileHeader
+PR -> PR: detect byte order (magic)
+PR -> PR: detect precision (µs/ns)
+PR --> User: Result<PcapReader>
+deactivate PR
+
+User -> PR: link_type()
+PR --> User: LinkType::Ethernet
+
+User -> PR: is_nanosecond()
+PR --> User: true/false
+
+== Read Packets ==
+
+loop until EOF
+    User -> PR: next_packet()
+    activate PR
+    PR -> FS: read PcapPacketHeader
+    PR -> FS: read packet data
+    PR -> P: create Packet(data, timestamp)
+    activate P
+    P --> PR: Packet
+    deactivate P
+    PR --> User: optional<Packet>
+    deactivate PR
+    
+    alt packet exists
+        User -> P: view()
+        P --> User: PacketView
+        
+        User -> PV: ethernet_header()
+        PV --> User: EthernetHeader
+        
+        User -> PV: payload()
+        PV --> User: ByteSpan
+    else EOF
+        note right: next_packet() returns nullopt
+    end
+end
+
+== Alternative: Read All ==
+
+User -> PR: reset()
+PR -> FS: seekg(data_start)
+
+User -> PR: read_all()
+activate PR
+loop until EOF
+    PR -> PR: next_packet()
+end
+PR --> User: vector<Packet>
+deactivate PR
+
+@enduml

@@ -1,0 +1,76 @@
+@startuml usecase_capture_packets
+!theme plain
+title Use Case: Live Packet Capture
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+skinparam participantPadding 20
+
+actor "User Application" as User
+participant "CaptureSession" as CS
+participant "FrameFilter" as FF
+participant "NetworkDevice" as ND
+participant "AF_PACKET\n(Kernel)" as Kernel
+participant "PacketView" as PV
+
+== Initialization ==
+
+User -> ND: enumerate_devices()
+activate ND
+ND -> Kernel: getifaddrs() / ioctl()
+Kernel --> ND: device list
+ND --> User: vector<NetworkDevice>
+deactivate ND
+
+User -> FF: compile("udp port 30490")
+activate FF
+FF -> FF: pcap_open_dead()
+FF -> FF: pcap_compile()
+FF --> User: Result<FrameFilter>
+deactivate FF
+
+User -> CS: create("eth0", options)
+activate CS
+CS -> Kernel: socket(AF_PACKET, SOCK_RAW)
+CS -> Kernel: setsockopt(PACKET_RX_RING)
+CS -> Kernel: mmap() ring buffer
+CS -> Kernel: bind() to interface
+CS --> User: Result<CaptureSession>
+deactivate CS
+
+User -> CS: set_filter(filter)
+activate CS
+CS -> Kernel: setsockopt(SO_ATTACH_FILTER)
+CS --> User: Result<void>
+deactivate CS
+
+== Capture Loop ==
+
+User -> CS: start()
+activate CS
+
+loop for each packet
+    CS -> Kernel: poll() on socket
+    Kernel --> CS: packet available
+    CS -> CS: read from ring buffer
+    CS -> PV: create PacketView
+    activate PV
+    PV --> CS: PacketView
+    deactivate PV
+    CS --> User: callback(PacketView)
+    
+    User -> PV: ethernet_header()
+    PV --> User: EthernetHeader
+    
+    User -> PV: ipv4_header()
+    PV --> User: IPv4Header
+    
+    User -> PV: udp_header()
+    PV --> User: UdpHeader
+end
+
+User -> CS: stop()
+CS --> User: void
+deactivate CS
+
+@enduml

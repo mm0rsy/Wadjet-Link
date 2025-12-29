@@ -1,0 +1,106 @@
+@startuml net_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Net Module Sequences
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+== PacketView Header Parsing ==
+
+participant "User" as U
+participant "PacketView" as PV
+participant "byte_order" as BO
+
+U -> PV: PacketView(raw_data, timestamp)
+activate PV
+PV -> PV: store data_ span
+PV -> PV: parse_headers()
+activate PV
+PV -> PV: check size >= 14 (Ethernet)
+PV -> BO: read_be16(data[12..13])
+BO --> PV: ether_type
+alt ether_type == 0x8100 (VLAN)
+    PV -> PV: l3_offset_ = 18
+    PV -> BO: read_be16(data[16..17])
+    BO --> PV: actual ether_type
+else no VLAN
+    PV -> PV: l3_offset_ = 14
+end
+alt ether_type == 0x0800 (IPv4)
+    PV -> BO: read data[l3_offset]
+    BO --> PV: version_ihl
+    PV -> PV: ihl = (version_ihl & 0x0F) * 4
+    PV -> PV: l4_offset_ = l3_offset_ + ihl
+end
+deactivate PV
+PV --> U: PacketView
+deactivate PV
+
+== Accessing Parsed Headers ==
+
+U -> PV: ethernet_header()
+activate PV
+PV -> PV: check size >= 14
+PV -> PV: parse dst MAC [0..5]
+PV -> PV: parse src MAC [6..11]
+PV -> BO: read_be16(data[12..13])
+BO --> PV: ether_type
+PV --> U: optional<EthernetHeader>
+deactivate PV
+
+U -> PV: ipv4_header()
+activate PV
+PV -> PV: check ether_type == IPv4
+PV -> PV: check size >= l3_offset + 20
+PV -> BO: read version, IHL, DSCP, etc.
+PV -> BO: read_be16() for total_length, id
+PV -> BO: read flags, fragment_offset
+PV -> PV: parse TTL, protocol, checksum
+PV -> PV: parse src/dst IPv4Address
+PV --> U: optional<IPv4Header>
+deactivate PV
+
+U -> PV: udp_header()
+activate PV
+PV -> PV: check protocol == UDP
+PV -> PV: check size >= l4_offset + 8
+PV -> BO: read_be16() x 4
+BO --> PV: src_port, dst_port, length, checksum
+PV --> U: optional<UdpHeader>
+deactivate PV
+
+== Packet Construction ==
+
+participant "Packet" as P
+
+U -> P: Packet(data_span, timestamp)
+activate P
+P -> P: data_.assign(span.begin(), span.end())
+P -> P: timestamp_ = timestamp
+P --> U: Packet
+deactivate P
+
+U -> P: view()
+activate P
+P -> PV: PacketView(ByteSpan(data_), timestamp_)
+PV --> P: PacketView
+P --> U: PacketView
+deactivate P
+
+== Zero-Copy Subview ==
+
+U -> PV: subview(14)
+activate PV
+note right: Skip Ethernet header
+PV -> PV: new_data = data_.subspan(14)
+PV --> U: PacketView (L3+ only)
+deactivate PV
+
+U -> PV: subview(14, 20)
+activate PV
+note right: Just IPv4 header
+PV -> PV: new_data = data_.subspan(14, 20)
+PV --> U: PacketView (20 bytes)
+deactivate PV
+
+@enduml

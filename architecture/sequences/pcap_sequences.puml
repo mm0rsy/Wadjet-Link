@@ -1,0 +1,117 @@
+@startuml pcap_sequences
+!theme plain
+title 𓆓 Wadjet-Link - PCAP Module Sequences
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+== PcapReader::open() ==
+
+participant "User" as U
+participant "PcapReader" as PR
+participant "ifstream" as FS
+
+U -> PR: open("/path/to/file.pcap")
+activate PR
+PR -> FS: open(path, binary)
+alt file not found
+    PR --> U: Result::err("Failed to open")
+else file opened
+    PR -> FS: read(24 bytes)
+    FS --> PR: PcapFileHeader
+    
+    PR -> PR: check magic_number
+    alt magic == 0xa1b2c3d4
+        PR -> PR: swap_bytes_ = false
+        PR -> PR: nanosecond_ = false
+    else magic == 0xd4c3b2a1
+        PR -> PR: swap_bytes_ = true
+        PR -> PR: nanosecond_ = false
+    else magic == 0xa1b23c4d
+        PR -> PR: swap_bytes_ = false
+        PR -> PR: nanosecond_ = true
+    else magic == 0x4d3cb2a1
+        PR -> PR: swap_bytes_ = true
+        PR -> PR: nanosecond_ = true
+    else invalid magic
+        PR --> U: Result::err("Invalid PCAP")
+    end
+    
+    PR -> PR: link_type_ = header.network
+    PR -> FS: tellg()
+    FS --> PR: position
+    PR -> PR: data_start_pos_ = position
+    PR --> U: Result::ok(PcapReader)
+end
+deactivate PR
+
+== PcapReader::next_packet() ==
+
+U -> PR: next_packet()
+activate PR
+PR -> FS: read(16 bytes)
+alt EOF
+    PR --> U: nullopt
+else data available
+    FS --> PR: PcapPacketHeader
+    
+    alt swap_bytes_
+        PR -> PR: swap ts_sec, ts_usec, caplen, len
+    end
+    
+    PR -> PR: allocate vector<byte>(caplen)
+    PR -> FS: read(caplen bytes)
+    FS --> PR: packet data
+    
+    alt nanosecond_
+        PR -> PR: ts = Timestamp::from_unix(ts_sec, ts_usec)
+    else microsecond
+        PR -> PR: ts = Timestamp::from_unix_usec(ts_sec, ts_usec)
+    end
+    
+    PR -> PR: create Packet(data, ts)
+    PR --> U: optional<Packet>
+end
+deactivate PR
+
+== PcapWriter::create() ==
+
+participant "PcapWriter" as PW
+
+U -> PW: create("output.pcap", options)
+activate PW
+PW -> FS: open(path, binary | trunc)
+alt failed to create
+    PW --> U: Result::err("Failed to create")
+else file created
+    PW -> PW: build PcapFileHeader
+    note right
+        magic = nanosecond ?
+            0xa1b23c4d : 0xa1b2c3d4
+        version = 2.4
+        network = link_type
+    end note
+    PW -> FS: write(PcapFileHeader)
+    PW --> U: Result::ok(PcapWriter)
+end
+deactivate PW
+
+== PcapWriter::write_packet() ==
+
+U -> PW: write_packet(view)
+activate PW
+PW -> PW: build PcapPacketHeader
+note right
+    ts_sec = view.timestamp().seconds()
+    ts_usec = nanosecond ?
+        nanoseconds() : microseconds()
+    caplen = len = view.size()
+end note
+PW -> FS: write(PcapPacketHeader)
+PW -> FS: write(view.data())
+PW -> PW: packet_count_++
+PW -> PW: bytes_written_ += view.size()
+PW --> U: Result::ok()
+deactivate PW
+
+@enduml

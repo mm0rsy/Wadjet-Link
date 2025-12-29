@@ -1,0 +1,103 @@
+@startuml core_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Core Module Sequences
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+
+== Result<T> Usage Pattern ==
+
+participant "Caller" as C
+participant "Function" as F
+participant "Result<T>" as R
+
+C -> F: call_that_may_fail()
+activate F
+
+alt success
+    F -> R: Result<T>::ok(value)
+    R --> F: Result<T>
+    F --> C: Result<T> (ok)
+    C -> R: is_ok()
+    R --> C: true
+    C -> R: value()
+    R --> C: T&
+else failure
+    F -> R: Result<T>::err(Error{code, msg})
+    R --> F: Result<T>
+    F --> C: Result<T> (err)
+    C -> R: is_ok()
+    R --> C: false
+    C -> R: error()
+    R --> C: Error&
+end
+deactivate F
+
+== MacAddress Parsing ==
+
+participant "User" as U
+participant "MacAddress" as MA
+
+U -> MA: from_string("aa:bb:cc:dd:ee:ff")
+activate MA
+MA -> MA: parse hex pairs
+MA -> MA: validate format
+MA --> U: MacAddress
+deactivate MA
+
+U -> MA: to_string()
+activate MA
+MA -> MA: format as "xx:xx:xx:xx:xx:xx"
+MA --> U: "aa:bb:cc:dd:ee:ff"
+deactivate MA
+
+U -> MA: is_broadcast()
+MA --> U: bytes == {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}
+
+U -> MA: is_multicast()
+MA --> U: (bytes[0] & 0x01) != 0
+
+== Timestamp Operations ==
+
+participant "User" as U2
+participant "Timestamp" as TS
+
+U2 -> TS: now()
+activate TS
+TS -> TS: clock_gettime(CLOCK_REALTIME)
+TS --> U2: Timestamp
+deactivate TS
+
+U2 -> TS: from_unix(1234567890, 500000000)
+activate TS
+TS --> U2: Timestamp{sec=1234567890, nsec=500000000}
+deactivate TS
+
+U2 -> TS: ts1 - ts2
+activate TS
+TS -> TS: compute nanoseconds difference
+TS --> U2: chrono::nanoseconds
+deactivate TS
+
+== Byte Order Conversion ==
+
+participant "User" as U3
+participant "byte_order" as BO
+
+U3 -> BO: read_be32(data)
+activate BO
+note right: data = [0x12, 0x34, 0x56, 0x78]
+BO -> BO: (data[0] << 24) | (data[1] << 16) | ...
+BO --> U3: 0x12345678
+deactivate BO
+
+U3 -> BO: write_be32(buffer, 0x12345678)
+activate BO
+BO -> BO: buffer[0] = (val >> 24) & 0xFF
+BO -> BO: buffer[1] = (val >> 16) & 0xFF
+BO -> BO: buffer[2] = (val >> 8) & 0xFF
+BO -> BO: buffer[3] = val & 0xFF
+note right: buffer = [0x12, 0x34, 0x56, 0x78]
+deactivate BO
+
+@enduml

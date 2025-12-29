@@ -1,0 +1,100 @@
+@startuml pcap_classes
+!theme plain
+title 𓆓 Wadjet-Link - PCAP Module Classes
+
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #FDF4E8
+    BorderColor #AB6A2E
+}
+
+namespace wadjet::pcap {
+
+    ' Constants
+    class "<<constants>>" as Constants {
+        + PCAP_MAGIC_NATIVE = 0xa1b2c3d4
+        + PCAP_MAGIC_SWAPPED = 0xd4c3b2a1
+        + PCAP_MAGIC_NSEC_NATIVE = 0xa1b23c4d
+        + PCAP_MAGIC_NSEC_SWAPPED = 0x4d3cb2a1
+    }
+
+    enum LinkType <<enumeration>> {
+        Null = 0
+        Ethernet = 1
+        Raw = 101
+        Linux_SLL = 113
+    }
+
+    struct PcapFileHeader {
+        + magic_number : uint32_t
+        + version_major : uint16_t
+        + version_minor : uint16_t
+        + thiszone : int32_t
+        + sigfigs : uint32_t
+        + snaplen : uint32_t
+        + network : uint32_t
+    }
+
+    struct PcapPacketHeader {
+        + ts_sec : uint32_t
+        + ts_usec : uint32_t
+        + caplen : uint32_t
+        + len : uint32_t
+    }
+
+    struct PcapWriterOptions {
+        + link_type : LinkType = Ethernet
+        + snaplen : uint32_t = 65535
+        + nanosecond_precision : bool = false
+    }
+
+    class PcapReader {
+        - file_ : ifstream
+        - from_memory_ : bool
+        - memory_data_ : ByteSpan
+        - memory_offset_ : size_t
+        - swap_bytes_ : bool
+        - nanosecond_ : bool
+        - link_type_ : LinkType
+        - data_start_pos_ : streampos
+        --
+        + {static} open(path) : Result<PcapReader>
+        + {static} from_memory(data) : Result<PcapReader>
+        + link_type() : LinkType
+        + is_nanosecond() : bool
+        + next_packet() : optional<Packet>
+        + read_all() : vector<Packet>
+        + position() : streampos
+        + reset() : void
+    }
+
+    class PcapWriter {
+        - file_ : ofstream
+        - options_ : Options
+        - packet_count_ : size_t
+        - bytes_written_ : size_t
+        --
+        + {static} create(path, options?) : Result<PcapWriter>
+        + write_packet(view) : Result<void>
+        + write_packet(packet) : Result<void>
+        + flush() : void
+        + packet_count() : size_t
+        + bytes_written() : size_t
+    }
+
+    PcapReader --> PcapFileHeader : reads
+    PcapReader --> PcapPacketHeader : reads
+    PcapReader --> LinkType : uses
+    PcapReader ..> Packet : creates
+
+    PcapWriter --> PcapWriterOptions : uses
+    PcapWriter --> PcapFileHeader : writes
+    PcapWriter --> PcapPacketHeader : writes
+    PcapWriter --> LinkType : uses
+    PcapWriter ..> PacketView : reads
+}
+
+note "File format: libpcap (tcpdump)\nSupports both µs and ns precision" as N1
+
+@enduml

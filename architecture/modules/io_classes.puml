@@ -1,0 +1,119 @@
+@startuml io_classes
+!theme plain
+title 𓆓 Wadjet-Link - I/O Module Classes
+
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #F4E8FD
+    BorderColor #6A2EAB
+}
+
+namespace wadjet::io {
+
+    struct NetworkDevice {
+        + name : string
+        + description : string
+        + index : int
+        + mac : MacAddress
+        + mtu : int
+        + is_up : bool
+        + is_running : bool
+        + is_loopback : bool
+        + ipv4_addresses : vector<IPv4Address>
+    }
+
+    struct CaptureStats {
+        + packets_received : uint64_t
+        + packets_dropped : uint64_t
+        + packets_filtered : uint64_t
+        + bytes_received : uint64_t
+    }
+
+    struct CaptureSessionOptions {
+        + snaplen : uint32_t = 65535
+        + promiscuous : bool = true
+        + immediate_mode : bool = true
+        + buffer_size : size_t = 2MB
+        + timeout_ms : int = 100
+    }
+
+    class FrameFilter {
+        - impl_ : unique_ptr<Impl>
+        - expression_ : string
+        --
+        + {static} compile(expression, link_type?) : Result<FrameFilter>
+        + {static} accept_all() : FrameFilter
+        + matches(data, len) : bool
+        + expression() : string
+        + program() : const void*
+        + program_length() : size_t
+    }
+
+    class "FrameFilter::Impl" as FrameFilterImpl <<private>> {
+        + program : bpf_program
+        + valid : bool
+    }
+
+    class CaptureSession {
+        - impl_ : unique_ptr<Impl>
+        - interface_ : string
+        - options_ : Options
+        - running_ : bool
+        --
+        + {static} create(interface, options?) : Result<CaptureSession>
+        + set_filter(filter) : Result<void>
+        + set_filter(expression) : Result<void>
+        + start() : Result<void>
+        + stop() : void
+        + is_running() : bool
+        + next_packet(timeout?) : optional<Packet>
+        + capture(callback, count?) : size_t
+        + stats() : CaptureStats
+        + interface_name() : string
+    }
+
+    class "CaptureSession::Impl" as CaptureSessionImpl <<private>> {
+        + socket_fd : int
+        + ring_buffer : void*
+        + ring_size : size_t
+        + frame_size : size_t
+        + frame_count : size_t
+        + current_frame : size_t
+        + stats : CaptureStats
+    }
+
+    ' Device functions (free functions)
+    class "<<functions>>\ndevice.hpp" as DeviceFunctions {
+        + enumerate_devices() : Result<vector<NetworkDevice>>
+        + get_device(name) : Result<NetworkDevice>
+        + get_default_device() : Result<NetworkDevice>
+    }
+
+    CaptureSession --> CaptureSessionOptions : uses
+    CaptureSession --> CaptureSessionImpl : pimpl
+    CaptureSession --> CaptureStats : reports
+    CaptureSession --> FrameFilter : uses
+    CaptureSession ..> Packet : creates
+
+    FrameFilter --> FrameFilterImpl : pimpl
+
+    DeviceFunctions ..> NetworkDevice : creates
+
+    NetworkDevice --> MacAddress : has
+    NetworkDevice --> IPv4Address : has
+}
+
+note right of CaptureSessionImpl
+  Linux-specific:
+  - AF_PACKET socket
+  - PACKET_RX_RING
+  - mmap'd ring buffer
+end note
+
+note right of FrameFilterImpl
+  Uses libpcap for
+  BPF compilation only
+end note
+
+@enduml

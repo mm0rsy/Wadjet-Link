@@ -1,0 +1,121 @@
+@startuml core_classes
+!theme plain
+title 𓆓 Wadjet-Link - Core Module Classes
+
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #E8F4FD
+    BorderColor #2E86AB
+}
+
+namespace wadjet {
+
+    struct MacAddress {
+        + bytes : array<uint8_t, 6>
+        --
+        + {static} from_bytes(b0..b5) : MacAddress
+        + {static} from_string(str) : MacAddress
+        + to_string() : string
+        + is_broadcast() : bool
+        + is_multicast() : bool
+        + operator==(other) : bool
+        + operator<(other) : bool
+    }
+
+    struct IPv4Address {
+        + bytes : array<uint8_t, 4>
+        --
+        + {static} from_bytes(b0..b3) : IPv4Address
+        + {static} from_string(str) : IPv4Address
+        + to_string() : string
+        + to_uint32() : uint32_t
+        + operator==(other) : bool
+    }
+
+    enum EtherType <<enumeration>> {
+        IPv4 = 0x0800
+        ARP = 0x0806
+        VLAN = 0x8100
+        IPv6 = 0x86DD
+        SOME_IP = 0x88F5
+    }
+
+    enum IpProtocol <<enumeration>> {
+        ICMP = 1
+        TCP = 6
+        UDP = 17
+    }
+
+    struct Error {
+        + code : int
+        + message : string
+        --
+        + Error()
+        + Error(msg)
+        + Error(code, msg)
+    }
+
+    class "Result<T, E=Error>" as Result {
+        - data_ : variant<T, E>
+        --
+        + {static} ok(value) : Result<T>
+        + {static} err(error) : Result<T>
+        + is_ok() : bool
+        + is_err() : bool
+        + value() : T&
+        + error() : E&
+        + value_or(default) : T
+        + operator bool() : bool
+        + operator*() : T&
+        + operator->() : T*
+    }
+
+    class "Result<void, E>" as ResultVoid {
+        - error_ : optional<E>
+        --
+        + {static} ok() : Result<void>
+        + {static} err(error) : Result<void>
+        + is_ok() : bool
+        + is_err() : bool
+        + error() : E&
+        + operator bool() : bool
+    }
+
+    class Timestamp {
+        - seconds_ : int64_t
+        - nanoseconds_ : int64_t
+        --
+        + {static} now() : Timestamp
+        + {static} from_unix(sec, nsec) : Timestamp
+        + {static} from_unix_usec(sec, usec) : Timestamp
+        + seconds() : int64_t
+        + nanoseconds() : int64_t
+        + microseconds() : int64_t
+        + to_string() : string
+        + operator-(other) : nanoseconds
+        + operator+(duration) : Timestamp
+        + operator==(other) : bool
+        + operator<(other) : bool
+    }
+
+    class "<<header only>>\nbyte_order" as ByteOrder {
+        + {static} read_be16(data) : uint16_t
+        + {static} read_be32(data) : uint32_t
+        + {static} read_be64(data) : uint64_t
+        + {static} write_be16(data, val) : void
+        + {static} write_be32(data, val) : void
+        + {static} write_be64(data, val) : void
+        + {static} read_le16(data) : uint16_t
+        + {static} read_le32(data) : uint32_t
+        + {static} write_le16(data, val) : void
+        + {static} write_le32(data, val) : void
+    }
+
+    Result ..> Error : uses
+    ResultVoid ..> Error : uses
+}
+
+note "All types in wadjet:: namespace" as N1
+
+@enduml

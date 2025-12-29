@@ -1,0 +1,72 @@
+@startuml usecase_write_pcap
+!theme plain
+title Use Case: Write Packets to PCAP File
+
+skinparam backgroundColor white
+skinparam sequenceArrowThickness 2
+skinparam participantPadding 20
+
+actor "User Application" as User
+participant "PcapWriter" as PW
+participant "Packet" as P
+participant "PacketView" as PV
+participant "File System" as FS
+
+== Create PCAP File ==
+
+User -> PW: create("/path/to/output.pcap", options)
+activate PW
+note right of PW
+  Options:
+  - link_type = Ethernet
+  - snaplen = 65535
+  - nanosecond_precision = true
+end note
+PW -> FS: ofstream::open()
+FS --> PW: file handle
+PW -> PW: write PcapFileHeader
+PW --> User: Result<PcapWriter>
+deactivate PW
+
+== Write Packets ==
+
+loop for each packet to write
+    alt From PacketView
+        User -> PW: write_packet(view)
+        activate PW
+        PW -> PW: build PcapPacketHeader
+        PW -> FS: write header
+        PW -> FS: write view.data()
+        PW -> PW: increment packet_count_
+        PW --> User: Result<void>
+        deactivate PW
+    else From Packet
+        User -> PW: write_packet(packet)
+        activate PW
+        PW -> P: view()
+        P --> PW: PacketView
+        PW -> PW: write_packet(view)
+        PW --> User: Result<void>
+        deactivate PW
+    end
+end
+
+== Finalize ==
+
+User -> PW: flush()
+activate PW
+PW -> FS: flush()
+deactivate PW
+
+User -> PW: packet_count()
+PW --> User: size_t
+
+User -> PW: bytes_written()
+PW --> User: size_t
+
+note right of PW
+  Destructor automatically
+  flushes and closes file
+end note
+
+@enduml

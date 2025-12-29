@@ -1,0 +1,143 @@
+@startuml net_classes
+!theme plain
+title 𓆓 Wadjet-Link - Net Module Classes
+
+skinparam backgroundColor white
+skinparam classAttributeIconSize 0
+skinparam class {
+    BackgroundColor #E8FDF4
+    BorderColor #2EAB6A
+}
+
+namespace wadjet {
+
+    ' Type aliases
+    class "<<type alias>>\nByteSpan" as ByteSpan {
+        span<const byte>
+    }
+
+    class "<<type alias>>\nMutableByteSpan" as MutableByteSpan {
+        span<byte>
+    }
+
+    ' Constants
+    class "<<constants>>" as Constants {
+        + ETHERNET_HEADER_SIZE = 14
+        + VLAN_TAG_SIZE = 4
+        + IPV4_MIN_HEADER_SIZE = 20
+        + UDP_HEADER_SIZE = 8
+        + TCP_MIN_HEADER_SIZE = 20
+    }
+
+    ' Parsed header structs
+    struct EthernetHeader {
+        + dst : MacAddress
+        + src : MacAddress
+        + ether_type : EtherType
+    }
+
+    struct VlanTag {
+        + tpid : uint16_t
+        + pcp : uint8_t
+        + dei : bool
+        + vid : uint16_t
+    }
+
+    struct IPv4Header {
+        + version : uint8_t
+        + ihl : uint8_t
+        + dscp : uint8_t
+        + ecn : uint8_t
+        + total_length : uint16_t
+        + identification : uint16_t
+        + dont_fragment : bool
+        + more_fragments : bool
+        + fragment_offset : uint16_t
+        + ttl : uint8_t
+        + protocol : IpProtocol
+        + checksum : uint16_t
+        + src : IPv4Address
+        + dst : IPv4Address
+    }
+
+    struct UdpHeader {
+        + src_port : uint16_t
+        + dst_port : uint16_t
+        + length : uint16_t
+        + checksum : uint16_t
+    }
+
+    struct TcpHeader {
+        + src_port : uint16_t
+        + dst_port : uint16_t
+        + seq_num : uint32_t
+        + ack_num : uint32_t
+        + data_offset : uint8_t
+        + flags : uint8_t
+        + window : uint16_t
+        + checksum : uint16_t
+        + urgent_ptr : uint16_t
+    }
+
+    class PacketView {
+        - data_ : ByteSpan
+        - timestamp_ : Timestamp
+        - l3_offset_ : size_t
+        - l4_offset_ : size_t
+        --
+        + PacketView(data, timestamp?)
+        + data() : ByteSpan
+        + size() : size_t
+        + empty() : bool
+        + timestamp() : Timestamp
+        + ethernet_header() : optional<EthernetHeader>
+        + has_vlan() : bool
+        + vlan_tag() : optional<VlanTag>
+        + ipv4_header() : optional<IPv4Header>
+        + udp_header() : optional<UdpHeader>
+        + tcp_header() : optional<TcpHeader>
+        + l3_offset() : size_t
+        + l4_offset() : size_t
+        + payload() : ByteSpan
+        + subview(offset, count?) : PacketView
+        + operator[](index) : byte
+    }
+
+    class Packet {
+        - data_ : vector<byte>
+        - timestamp_ : Timestamp
+        --
+        + Packet()
+        + Packet(capacity)
+        + Packet(span, timestamp?)
+        + Packet(view)
+        + data() : ByteSpan
+        + mutable_data() : MutableByteSpan
+        + size() : size_t
+        + capacity() : size_t
+        + empty() : bool
+        + resize(new_size) : void
+        + reserve(capacity) : void
+        + clear() : void
+        + view() : PacketView
+        + timestamp() : Timestamp
+        + set_timestamp(ts) : void
+        + operator[](index) : byte&
+    }
+
+    PacketView --> EthernetHeader : parses
+    PacketView --> VlanTag : parses
+    PacketView --> IPv4Header : parses
+    PacketView --> UdpHeader : parses
+    PacketView --> TcpHeader : parses
+    PacketView --> ByteSpan : uses
+    PacketView --> Timestamp : has
+
+    Packet --> PacketView : creates
+    Packet --> Timestamp : has
+
+    EthernetHeader --> MacAddress : uses
+    IPv4Header --> IPv4Address : uses
+}
+
+@enduml
