@@ -1,0 +1,30 @@
+# Doxyfile for Wadjet-Link
+
+PROJECT_NAME           = "Wadjet-Link"
+PROJECT_NUMBER         = 0.1.0
+PROJECT_BRIEF          = "Automotive Ethernet Validation Framework"
+
+OUTPUT_DIRECTORY       = docs/
+INPUT                  = include/ src/ docs/
+RECURSIVE              = YES
+
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = NO
+EXTRACT_STATIC         = YES
+
+FILE_PATTERNS          = *.hpp *.cpp *.md
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_XML           = YES
+
+HTML_OUTPUT            = html
+HTML_COLORSTYLE        = LIGHT
+
+USE_MDFILE_AS_MAINPAGE = ../README.md
+
+WARN_IF_UNDOCUMENTED   = YES
+WARN_NO_PARAMDOC       = YES
+
+QUIET                  = YES
+WARNINGS               = YES
