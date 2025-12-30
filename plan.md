@@ -621,13 +621,89 @@ Build System:
 
 ---
 
-### Milestone 7 — Rust FFI (Optional Expansion)
+### Milestone 7 — Rust FFI (Optional Expansion) ✅
 
-**Approach:**
+**Goal:** Provide Rust bindings for Wadjet-Link via C ABI layer
 
-- [ ] C ABI layer (`wadjet_c.h`)
-- [ ] bindgen-compatible headers
-- [ ] Rust crate wrapping C API
+**Status:** Completed
+
+**Implementation:**
+
+C ABI Layer:
+- [x] `bindings/c/include/wadjet_c.h` — Complete C header (~600 lines)
+  - Opaque handle types for all C++ classes
+  - Error handling with thread-local messages
+  - All capture, PCAP, packet, and decode APIs
+  - Protocol header structures (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
+  - Utility functions (MAC/IP string conversion, timestamps)
+- [x] `bindings/c/src/wadjet_c.cpp` — Full implementation (~800 lines)
+  - Thread-local error handling
+  - C++ class wrapping with opaque structs
+  - Memory-safe API with explicit create/destroy functions
+- [x] `bindings/c/CMakeLists.txt` — Build configuration
+  - `wadjet_c` shared library
+  - `wadjet_c_static` for Rust linking
+
+Rust FFI Bindings (wadjet-sys crate):
+- [x] `bindings/rust/wadjet-sys/Cargo.toml` — Sys crate configuration
+- [x] `bindings/rust/wadjet-sys/build.rs` — Bindgen build script
+- [x] `bindings/rust/wadjet-sys/src/lib.rs` — Generated bindings
+
+Safe Rust Wrapper (wadjet crate):
+- [x] `bindings/rust/wadjet/Cargo.toml` — Safe wrapper configuration
+- [x] `bindings/rust/wadjet/src/lib.rs` — Main module with init/cleanup/version
+- [x] `bindings/rust/wadjet/src/error.rs` — Error types and Result alias
+- [x] `bindings/rust/wadjet/src/types.rs` — MacAddress, Ipv4Address, Timestamp, etc.
+- [x] `bindings/rust/wadjet/src/capture.rs` — CaptureSession, CaptureOptions
+- [x] `bindings/rust/wadjet/src/packet.rs` — Packet, PacketView
+- [x] `bindings/rust/wadjet/src/pcap.rs` — PcapReader, PcapWriter
+- [x] `bindings/rust/wadjet/src/decode.rs` — DecodeResult, protocol headers
+- [x] `bindings/rust/wadjet/src/device.rs` — DeviceInfo, list_devices
+
+Examples:
+- [x] `examples/list_devices.rs` — Device enumeration
+- [x] `examples/capture.rs` — Live capture with decoding
+- [x] `examples/read_pcap.rs` — PCAP file analysis
+- [x] `examples/filter_pcap.rs` — Protocol filtering
+- [x] `examples/someip_analysis.rs` — SOME/IP traffic analysis
+
+Documentation:
+- [x] `bindings/rust/README.md` — Usage documentation
+
+**Features:**
+- Safe Rust API wrapping unsafe FFI
+- Automatic resource cleanup via Drop trait
+- Builder pattern for capture options
+- Iterator support for PCAP reading
+- Full protocol decoding support
+- Thread-safe send markers
+
+**Example:**
+
+```rust
+use wadjet::{CaptureSession, CaptureOptions, Protocol};
+
+fn main() -> wadjet::Result<()> {
+    wadjet::init()?;
+    
+    let options = CaptureOptions::new()
+        .snaplen(65535)
+        .filter("udp port 30490");
+    
+    let mut session = CaptureSession::open("eth0", &options)?;
+    
+    while let Some(packet) = session.next_packet()? {
+        if let Some(result) = packet.decode() {
+            if result.has_protocol(Protocol::SomeIp) {
+                println!("SOME/IP packet: {}", result.summary());
+            }
+        }
+    }
+    
+    wadjet::cleanup();
+    Ok(())
+}
+```
 
 **Future possibility:**
 
@@ -666,7 +742,7 @@ MVP is complete when:
 
 - [ ] DDS protocol support
 - [ ] TSN awareness (802.1Qbv, etc.)
-- [ ] Rust FFI bindings
+- [x] Rust FFI bindings
 - [ ] UDS over DoIP parsing
 - [x] Packet injection (TX capability via ReplaySession)
 - [ ] Web-based report viewer

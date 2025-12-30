@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+    "wadjet-sys",
+    "wadjet",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Wadjet-Link Contributors"]
+license = "Apache-2.0"
+repository = "https://github.com/your-org/wadjet-link"
+description = "Rust bindings for Wadjet-Link automotive Ethernet validation framework"
+keywords = ["automotive", "ethernet", "someip", "doip", "networking"]
+categories = ["network-programming", "development-tools::testing"]

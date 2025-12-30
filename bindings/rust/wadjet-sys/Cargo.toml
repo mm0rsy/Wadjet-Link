@@ -1,0 +1,23 @@
+[package]
+name = "wadjet-sys"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Low-level FFI bindings for Wadjet-Link C library"
+keywords = ["automotive", "ethernet", "ffi", "bindings"]
+categories = ["external-ffi-bindings"]
+links = "wadjet_c"
+build = "build.rs"
+
+[dependencies]
+
+[build-dependencies]
+bindgen = "0.69"
+pkg-config = "0.3"
+
+[features]
+default = []
+# Use pre-generated bindings instead of running bindgen
+use-pregenerated = []
