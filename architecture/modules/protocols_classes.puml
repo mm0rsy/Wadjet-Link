@@ -240,6 +240,89 @@ package "wadjet::protocols" {
         }
     }
     
+    package "uds" {
+        enum ServiceID {
+            DiagnosticSessionControl
+            ECUReset
+            SecurityAccess
+            CommunicationControl
+            TesterPresent
+            ReadDataByIdentifier
+            WriteDataByIdentifier
+            RoutineControl
+            RequestDownload
+            TransferData
+            RequestTransferExit
+        }
+        
+        enum NRC {
+            GeneralReject
+            ServiceNotSupported
+            SubFunctionNotSupported
+            SecurityAccessDenied
+            InvalidKey
+            ExceededNumberOfAttempts
+            RequestCorrectlyReceivedResponsePending
+        }
+        
+        enum SessionType {
+            DefaultSession
+            ProgrammingSession
+            ExtendedDiagnosticSession
+        }
+        
+        class UdsHeader {
+            +service_id: ServiceID
+            +sub_function: optional<uint8_t>
+            +suppress_positive_response: bool
+            +negative_response_code: optional<NRC>
+            +rejected_service_id: optional<ServiceID>
+            +direction: MessageDirection
+            --
+            +is_request(): bool
+            +is_positive_response(): bool
+            +is_negative_response(): bool
+        }
+        
+        class UdsDecoder {
+            +decode(data): expected<UdsDecodeResult, UdsDecodeError>
+            +{static} is_request(data): bool
+            +{static} is_positive_response(data): bool
+            +{static} is_negative_response(data): bool
+            +{static} looks_like_uds(data): bool
+        }
+        
+        class UdsSession {
+            -ecu_address_: uint16_t
+            -session_type_: SessionType
+            -security_levels_: set<uint8_t>
+            -timing_: TimingParameters
+            -state_: SessionState
+            --
+            +process_message(data, is_request): void
+            +session_type(): SessionType
+            +is_security_unlocked(level): bool
+            +timing(): TimingParameters
+            +reset(): void
+        }
+        
+        class UdsSessionManager {
+            -sessions_: map<uint16_t, UdsSession>
+            --
+            +get_or_create_session(ecu_addr): UdsSession&
+            +find_session(ecu_addr): UdsSession*
+            +session_count(): size_t
+            +clear_all(): void
+        }
+        
+        struct TimingParameters {
+            +p2_server_max: milliseconds
+            +p2_star_server_max: milliseconds
+            +s3_server: milliseconds
+            +{static} default_values(): TimingParameters
+        }
+    }
+    
     ' ============================================
     ' Protocol Dispatcher
     ' ============================================
@@ -294,6 +377,12 @@ TcpDecoder --|> DecoderBase
 SomeIpDecoder --|> DecoderBase
 SomeIpSdDecoder --|> DecoderBase
 DoIPDecoder --|> DecoderBase
+
+UdsSession o-- TimingParameters
+UdsSessionManager o-- "0..*" UdsSession
+UdsHeader --> ServiceID
+UdsHeader --> NRC
+UdsSession --> SessionType
 
 DecodeResultT --> DecodeError
 DecodeContext --> LayerInfo

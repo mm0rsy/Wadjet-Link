@@ -223,5 +223,116 @@ note right of Client4
       std::cout << ip->src_ip.to_string();
   }
 end note
+' ============================================
+' Sequence 5: UDS over DoIP Decoding
+' ============================================
 
+newpage UDS over DoIP Decoding
+
+participant "Client" as Client5
+participant "DoIPDecoder" as DoIP5
+participant "UdsDecoder" as Uds5
+participant "UdsSession" as Session5
+
+Client5 -> DoIP5 : decode(doip_data)
+activate DoIP5
+DoIP5 --> Client5 : DecodeResultT<DoIPHeader>
+deactivate DoIP5
+
+note right of Client5
+  Check payload_type:
+  0x8001 = Diagnostic Message
+  Contains UDS payload
+end note
+
+alt payload_type == DiagnosticMessage
+    Client5 -> DoIP5 : parse_diagnostic_message(payload)
+    activate DoIP5
+    DoIP5 --> Client5 : DiagnosticMessage{source, target, user_data}
+    deactivate DoIP5
+    
+    Client5 -> Uds5 : decode(user_data)
+    activate Uds5
+    
+    note right of Uds5
+      Parse UDS message:
+      - Service ID (SID)
+      - Sub-function (if applicable)
+      - Data parameters
+      - NRC handling
+    end note
+    
+    Uds5 --> Client5 : expected<UdsDecodeResult, UdsDecodeError>
+    deactivate Uds5
+    
+    alt decode successful
+        Client5 -> Session5 : process_message(data, is_request)
+        activate Session5
+        
+        note right of Session5
+          Track session state:
+          - Session type transitions
+          - Security level changes
+          - Timing parameters
+        end note
+        
+        Session5 --> Client5 : void
+        deactivate Session5
+    end
+end
+
+' ============================================
+' Sequence 6: UDS Security Access Flow
+' ============================================
+
+newpage UDS Security Access Sequence
+
+participant "Tester" as Tester
+participant "UdsDecoder" as Decoder6
+participant "UdsSession" as Session6
+participant "ECU" as ECU
+
+Tester -> ECU : SecurityAccess (0x27, 0x01) - Request Seed
+activate ECU
+
+note right of Tester
+  Level 1 seed request
+  Sub-function 0x01 = odd = request seed
+end note
+
+Tester -> Decoder6 : decode(request)
+Decoder6 --> Tester : UdsDecodeResult{SA, level=1, type=RequestSeed}
+
+ECU --> Tester : SecurityAccess Response (0x67, 0x01, seed[4])
+deactivate ECU
+
+Tester -> Decoder6 : decode(response)
+Decoder6 --> Tester : UdsDecodeResult{SA, level=1, seed=0x12345678}
+
+Tester -> Session6 : process_message(response, is_request=false)
+note right of Session6
+  Store seed, await key
+end note
+
+Tester -> ECU : SecurityAccess (0x27, 0x02, key[4]) - Send Key
+activate ECU
+
+note right of Tester
+  Level 2 = level 1 + 1
+  Sub-function 0x02 = even = send key
+end note
+
+alt Key Valid
+    ECU --> Tester : SecurityAccess Response (0x67, 0x02)
+    Tester -> Session6 : process_message(response, is_request=false)
+    note right of Session6
+      Security level 1 unlocked
+      is_security_unlocked(1) = true
+    end note
+else Key Invalid
+    ECU --> Tester : NRC (0x7F, 0x27, 0x35) - Invalid Key
+    Tester -> Decoder6 : decode(nrc_response)
+    Decoder6 --> Tester : UdsDecodeResult{NRC=InvalidKey}
+end
+deactivate ECU
 @enduml

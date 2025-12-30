@@ -33,10 +33,14 @@ This document describes the high-level architecture of Wadjet-Link.
 │  │  │  │Ethernet │→│  IPv4   │→│UDP/TCP  │→│ SOME/IP │→│ SOME/IP-SD  │ │   ││
 │  │  │  │ Parser  │ │ Parser  │ │ Parser  │ │ Parser  │ │   Parser    │ │   ││
 │  │  │  └─────────┘ └─────────┘ └─────────┘ └─────────┘ └─────────────┘ │   ││
-│  │  │                                      ┌─────────┐                  │   ││
-│  │  │                                      │  DoIP   │                  │   ││
-│  │  │                                      │ Parser  │                  │   ││
-│  │  │                                      └─────────┘                  │   ││
+│  │  │                                      ┌─────────┐ ┌─────────────┐ │   ││
+│  │  │                                      │  DoIP   │→│    UDS      │ │   ││
+│  │  │                                      │ Parser  │ │  Decoder    │ │   ││
+│  │  │                                      └─────────┘ └─────────────┘ │   ││
+│  │  │                      ┌─────────┐                                  │   ││
+│  │  │                      │  gPTP   │                                  │   ││
+│  │  │                      │ Parser  │                                  │   ││
+│  │  │                      └─────────┘                                  │   ││
 │  │  └──────────────────────────────────────────────────────────────────┘   ││
 │  └─────────────────────────────────────────────────────────────────────────┘│
 │                                                                              │
@@ -104,6 +108,11 @@ wadjet::
 │   ├── someip::            # SOME/IP header
 │   ├── someip_sd::         # SOME/IP Service Discovery
 │   ├── doip::              # DoIP header
+│   ├── gptp::              # gPTP (IEEE 802.1AS)
+│   ├── uds::               # UDS (ISO 14229)
+│   │   ├── UdsDecoder      # Message decoder
+│   │   ├── UdsSession      # Session state tracking
+│   │   └── UdsSessionManager # Multi-ECU support
 │   └── ProtocolDispatcher  # Full stack decoder
 │
 ├── testing::               # Test utilities
@@ -247,7 +256,7 @@ TPACKET_V3 provides high-performance zero-copy capture:
 | L7 | SOME/IP-SD | ✅ Complete |
 | L7 | DoIP | ✅ Complete |
 | L7 | gPTP (IEEE 802.1AS) | ✅ Complete |
-| L7 | UDS over IP | 🔲 Planned |
+| L7 | UDS (ISO 14229) | ✅ Complete |
 
 ### Decode Tree
 
@@ -260,9 +269,11 @@ Ethernet Frame
 │       │       ├── Port 30490-30491 → SOME/IP
 │       │       │   └── Service ID 0xFFFF → SOME/IP-SD
 │       │       └── Port 13400 → DoIP
+│       │           └── Payload Type 0x8001 → UDS
 │       └── Protocol: 6 (TCP)
 │           └── TCP Segment
 │               └── Port 13400 → DoIP
+│                   └── Payload Type 0x8001 → UDS
 ├── EtherType: 0x8100 (VLAN)
 │   └── VLAN Tag + Inner EtherType
 │       └── (recurse)
@@ -318,6 +329,20 @@ testing::
 │   ├── GptpFromClock(ClockIdentity)
 │   ├── IsGptpEventMessage()
 │   └── IsGptpTwoStep()
+│
+├── UDS Matchers
+│   ├── IsUds()
+│   ├── HasUdsServiceId(ServiceID)
+│   ├── IsUdsRequest()
+│   ├── IsUdsPositiveResponse()
+│   ├── IsUdsNegativeResponse()
+│   ├── HasUdsNrc(NRC)
+│   ├── IsUdsDiagnosticSessionControl()
+│   ├── IsUdsSecurityAccess()
+│   ├── IsUdsReadDataByIdentifier()
+│   ├── IsUdsWriteDataByIdentifier()
+│   ├── IsUdsRoutineControl()
+│   └── IsUdsTesterPresent()
 │
 └── Payload Matchers
     ├── PayloadContains(bytes)
