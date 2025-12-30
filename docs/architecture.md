@@ -246,7 +246,7 @@ TPACKET_V3 provides high-performance zero-copy capture:
 | L7 | SOME/IP | ✅ Complete |
 | L7 | SOME/IP-SD | ✅ Complete |
 | L7 | DoIP | ✅ Complete |
-| L7 | gPTP (IEEE 802.1AS) | 🔲 Planned |
+| L7 | gPTP (IEEE 802.1AS) | ✅ Complete |
 | L7 | UDS over IP | 🔲 Planned |
 
 ### Decode Tree
@@ -266,7 +266,7 @@ Ethernet Frame
 ├── EtherType: 0x8100 (VLAN)
 │   └── VLAN Tag + Inner EtherType
 │       └── (recurse)
-└── EtherType: 0x88F7 (PTP) → gPTP [planned]
+└── EtherType: 0x88F7 (PTP) → gPTP
 ```
 
 ## Testing Architecture
@@ -303,6 +303,21 @@ testing::
 │   ├── HasDoIPPayloadType(PayloadType)
 │   ├── IsDoIPDiagnosticMessage()
 │   └── IsDoIPRoutingActivation*()
+│
+├── gPTP Matchers
+│   ├── IsGptp()
+│   ├── HasGptpMessageType(MessageType)
+│   ├── IsGptpSync()
+│   ├── IsGptpFollowUp()
+│   ├── IsGptpPdelayReq()
+│   ├── IsGptpPdelayResp()
+│   ├── IsGptpAnnounce()
+│   ├── HasGptpDomain(uint8_t)
+│   ├── HasGptpSequenceId(uint16_t)
+│   ├── GptpFromPort(PortIdentity)
+│   ├── GptpFromClock(ClockIdentity)
+│   ├── IsGptpEventMessage()
+│   └── IsGptpTwoStep()
 │
 └── Payload Matchers
     ├── PayloadContains(bytes)

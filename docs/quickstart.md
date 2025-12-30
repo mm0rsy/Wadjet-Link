@@ -163,6 +163,15 @@ int main() {
                       << std::hex << static_cast<int>(doip.payload_type())
                       << std::dec << "\n";
         }
+        
+        // Check for gPTP (IEEE 802.1AS)
+        if (result.has_gptp()) {
+            const auto& gptp = result.gptp();
+            std::cout << "gPTP: Type=" 
+                      << wadjet::protocols::gptp::to_string(gptp.message_type)
+                      << " Domain=" << static_cast<int>(gptp.domain_number)
+                      << "\n";
+        }
     }
     
     return 0;
@@ -218,6 +227,20 @@ TEST(DoIPTest, RoutingActivation) {
     
     EXPECT_THAT(packets[0], wadjet::testing::IsDoIPRoutingActivationRequest());
     EXPECT_THAT(packets[1], wadjet::testing::IsDoIPRoutingActivationResponse());
+}
+
+TEST(GptpTest, SyncMessage) {
+    auto packets = load_pcap("test_fixtures/gptp_sync.pcap");
+    ASSERT_FALSE(packets.empty());
+    
+    auto& packet = packets[0];
+    
+    // Use gPTP matchers
+    EXPECT_THAT(packet, wadjet::testing::IsGptp());
+    EXPECT_THAT(packet, wadjet::testing::IsGptpSync());
+    EXPECT_THAT(packet, wadjet::testing::HasGptpDomain(0));
+    EXPECT_THAT(packet, wadjet::testing::IsGptpEventMessage());
+    EXPECT_THAT(packet, wadjet::testing::IsGptpTwoStep());
 }
 ```
 
