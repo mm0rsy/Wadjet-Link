@@ -17,6 +17,11 @@ add_executable(ecu_bootup ecu_bootup.cpp)
 target_link_libraries(ecu_bootup PRIVATE wadjet)
 target_compile_features(ecu_bootup PRIVATE cxx_std_20)
 
+# gPTP (IEEE 802.1AS) Monitor
+add_executable(gptp_monitor gptp_monitor.cpp)
+target_link_libraries(gptp_monitor PRIVATE wadjet)
+target_compile_features(gptp_monitor PRIVATE cxx_std_20)
+
 # PCAP Regression Testing (requires GoogleTest)
 if(TARGET GTest::gtest AND TARGET GTest::gmock)
     add_executable(pcap_regression pcap_regression.cpp)
