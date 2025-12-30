@@ -227,6 +227,9 @@ struct ClockIdentity {
         return !(*this == other);
     }
 
+    /// @brief Comparison for ordered containers (std::map, std::set)
+    bool operator<(const ClockIdentity& other) const { return bytes < other.bytes; }
+
     /// @brief Convert to string representation
     [[nodiscard]] std::string to_string() const {
         char buf[24];
