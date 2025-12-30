@@ -20,6 +20,7 @@
 #include <wadjet/protocols/someip.hpp>
 #include <wadjet/protocols/tcp.hpp>
 #include <wadjet/protocols/udp.hpp>
+#include <wadjet/protocols/uds/uds.hpp>
 #include <wadjet/version.hpp>
 
 #include <chrono>
@@ -90,6 +91,15 @@ struct wadjet_decode_result {
 
 struct wadjet_device_list {
     std::vector<io::DeviceInfo> devices;
+};
+
+struct wadjet_uds_decoder {
+    protocols::uds::UdsDecoder decoder;
+};
+
+struct wadjet_uds_session {
+    protocols::uds::UdsSession session;
+    explicit wadjet_uds_session(std::uint16_t addr) : session(addr) {}
 };
 
 // ============================================================================
@@ -1035,6 +1045,241 @@ int64_t wadjet_timestamp_diff_ms(
     int64_t start_ms = start->seconds * 1000 + start->nanoseconds / 1000000;
     int64_t end_ms = end->seconds * 1000 + end->nanoseconds / 1000000;
     return end_ms - start_ms;
+}
+
+// ============================================================================
+// UDS (Unified Diagnostic Services) API
+// ============================================================================
+
+wadjet_error_t wadjet_uds_decoder_create(wadjet_uds_decoder_t* decoder) {
+    if (!decoder) {
+        set_last_error("Invalid argument: decoder is NULL");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    auto* handle = new (std::nothrow) wadjet_uds_decoder;
+    if (!handle) {
+        set_last_error("Memory allocation failed");
+        return WADJET_ERR_OUT_OF_MEMORY;
+    }
+
+    *decoder = handle;
+    return WADJET_OK;
+}
+
+void wadjet_uds_decoder_destroy(wadjet_uds_decoder_t decoder) {
+    delete decoder;
+}
+
+wadjet_error_t wadjet_uds_decode(wadjet_uds_decoder_t decoder, const uint8_t* data, size_t length,
+                                 wadjet_uds_header_t* header) {
+    if (!decoder || !data || !header) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    std::span<const std::uint8_t> span(data, length);
+    auto result = decoder->decoder.decode(span);
+
+    if (!result.has_value()) {
+        set_last_error("UDS decode error");
+        return WADJET_ERR_DECODE;
+    }
+
+    const auto& uds_header = result->header;
+
+    // Map to C struct
+    header->service_id =
+        static_cast<wadjet_uds_service_id_t>(static_cast<std::uint8_t>(uds_header.service_id));
+    header->is_request = uds_header.is_request();
+    header->is_positive_response = uds_header.is_positive_response();
+    header->is_negative_response = uds_header.is_negative_response();
+    header->sub_function = uds_header.sub_function.value_or(0);
+    header->suppress_positive_response = uds_header.suppress_positive_response;
+
+    if (uds_header.negative_response_code) {
+        header->nrc = static_cast<wadjet_uds_nrc_t>(
+            static_cast<std::uint8_t>(*uds_header.negative_response_code));
+    } else {
+        header->nrc = static_cast<wadjet_uds_nrc_t>(0);
+    }
+
+    header->rejected_service_id = uds_header.rejected_service_id.value_or(0);
+    header->data = uds_header.data.data();
+    header->data_length = uds_header.data.size();
+
+    return WADJET_OK;
+}
+
+bool wadjet_uds_is_request(const uint8_t* data, size_t length) {
+    if (!data || length == 0)
+        return false;
+    std::span<const std::uint8_t> span(data, length);
+    return protocols::uds::UdsDecoder::is_request(span);
+}
+
+bool wadjet_uds_is_positive_response(const uint8_t* data, size_t length) {
+    if (!data || length == 0)
+        return false;
+    std::span<const std::uint8_t> span(data, length);
+    return protocols::uds::UdsDecoder::is_positive_response(span);
+}
+
+bool wadjet_uds_is_negative_response(const uint8_t* data, size_t length) {
+    if (!data || length == 0)
+        return false;
+    std::span<const std::uint8_t> span(data, length);
+    return protocols::uds::UdsDecoder::is_negative_response(span);
+}
+
+const char* wadjet_uds_service_name(wadjet_uds_service_id_t service_id) {
+    auto sid = static_cast<protocols::uds::ServiceID>(service_id);
+    auto sv = protocols::uds::service_id_string(sid);
+    // Note: string_view from constexpr is null-terminated
+    return sv.data();
+}
+
+const char* wadjet_uds_session_type_name(wadjet_uds_session_type_t session_type) {
+    auto type = static_cast<protocols::uds::SessionType>(session_type);
+    auto sv = protocols::uds::session_type_string(type);
+    return sv.data();
+}
+
+const char* wadjet_uds_nrc_name(wadjet_uds_nrc_t nrc) {
+    auto code = static_cast<protocols::uds::NRC>(nrc);
+    auto sv = protocols::uds::nrc_string(code);
+    return sv.data();
+}
+
+const char* wadjet_uds_nrc_description(wadjet_uds_nrc_t nrc) {
+    auto code = static_cast<protocols::uds::NRC>(nrc);
+    auto sv = protocols::uds::nrc_description(code);
+    return sv.data();
+}
+
+wadjet_error_t wadjet_uds_session_create(uint16_t ecu_address, wadjet_uds_session_t* session) {
+    if (!session) {
+        set_last_error("Invalid argument: session is NULL");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    auto* handle = new (std::nothrow) wadjet_uds_session(ecu_address);
+    if (!handle) {
+        set_last_error("Memory allocation failed");
+        return WADJET_ERR_OUT_OF_MEMORY;
+    }
+
+    *session = handle;
+    return WADJET_OK;
+}
+
+void wadjet_uds_session_destroy(wadjet_uds_session_t session) {
+    delete session;
+}
+
+wadjet_error_t wadjet_uds_session_process(wadjet_uds_session_t session, const uint8_t* data,
+                                          size_t length, bool is_request) {
+    if (!session || !data) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    std::span<const std::uint8_t> span(data, length);
+    bool success = session->session.process_message(span, is_request);
+
+    if (!success) {
+        set_last_error("Failed to process UDS message");
+        return WADJET_ERR_DECODE;
+    }
+
+    return WADJET_OK;
+}
+
+wadjet_uds_session_type_t wadjet_uds_session_get_type(wadjet_uds_session_t session) {
+    if (!session)
+        return WADJET_UDS_SESSION_DEFAULT;
+    return static_cast<wadjet_uds_session_type_t>(
+        static_cast<std::uint8_t>(session->session.session_type()));
+}
+
+bool wadjet_uds_session_is_active(wadjet_uds_session_t session) {
+    if (!session)
+        return false;
+    return session->session.is_active();
+}
+
+bool wadjet_uds_session_security_unlocked(wadjet_uds_session_t session, uint8_t level) {
+    if (!session)
+        return false;
+    return session->session.is_security_unlocked(level);
+}
+
+void wadjet_uds_session_reset(wadjet_uds_session_t session) {
+    if (!session)
+        return;
+    session->session.reset();
+}
+
+wadjet_error_t wadjet_decode_result_uds(wadjet_decode_result_t result,
+                                        wadjet_uds_header_t* header) {
+    if (!result || !header) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    // UDS is typically extracted from DoIP payload, not directly from decode result
+    // Check if we have DoIP with diagnostic message
+    if (!result->result.has_layer<protocols::doip::DoIpHeader>()) {
+        set_last_error("No DoIP layer found");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    const auto* doip = result->result.get_layer<protocols::doip::DoIpHeader>();
+    if (!doip) {
+        set_last_error("Failed to get DoIP header");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    // Check for diagnostic message payload
+    if (!std::holds_alternative<protocols::doip::DiagnosticMessagePayload>(doip->payload)) {
+        set_last_error("DoIP payload is not a diagnostic message");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    const auto& diag = std::get<protocols::doip::DiagnosticMessagePayload>(doip->payload);
+
+    // Decode UDS from user_data
+    protocols::uds::UdsDecoder decoder;
+    auto uds_result = decoder.decode(diag.user_data);
+
+    if (!uds_result.has_value()) {
+        set_last_error("Failed to decode UDS from DoIP payload");
+        return WADJET_ERR_DECODE;
+    }
+
+    const auto& uds_header = uds_result->header;
+
+    // Map to C struct
+    header->service_id =
+        static_cast<wadjet_uds_service_id_t>(static_cast<std::uint8_t>(uds_header.service_id));
+    header->is_request = uds_header.is_request();
+    header->is_positive_response = uds_header.is_positive_response();
+    header->is_negative_response = uds_header.is_negative_response();
+    header->sub_function = uds_header.sub_function.value_or(0);
+    header->suppress_positive_response = uds_header.suppress_positive_response;
+
+    if (uds_header.negative_response_code) {
+        header->nrc = static_cast<wadjet_uds_nrc_t>(
+            static_cast<std::uint8_t>(*uds_header.negative_response_code));
+    } else {
+        header->nrc = static_cast<wadjet_uds_nrc_t>(0);
+    }
+
+    header->rejected_service_id = uds_header.rejected_service_id.value_or(0);
+    header->data = uds_header.data.data();
+    header->data_length = uds_header.data.size();
+
+    return WADJET_OK;
 }
 
 }  // extern "C"

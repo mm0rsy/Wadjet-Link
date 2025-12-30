@@ -423,6 +423,7 @@ typedef enum {
     WADJET_PROTOCOL_SOMEIP_SD = 7,
     WADJET_PROTOCOL_DOIP = 8,
     WADJET_PROTOCOL_GPTP = 9,
+    WADJET_PROTOCOL_UDS = 10,
 } wadjet_protocol_t;
 
 /**
@@ -480,6 +481,96 @@ typedef enum {
     WADJET_GPTP_SIGNALING = 0xC,
     WADJET_GPTP_MANAGEMENT = 0xD,
 } wadjet_gptp_message_type_t;
+
+/**
+ * @brief UDS service identifiers (ISO 14229)
+ */
+typedef enum {
+    WADJET_UDS_DIAGNOSTIC_SESSION_CONTROL = 0x10,
+    WADJET_UDS_ECU_RESET = 0x11,
+    WADJET_UDS_SECURITY_ACCESS = 0x27,
+    WADJET_UDS_COMMUNICATION_CONTROL = 0x28,
+    WADJET_UDS_TESTER_PRESENT = 0x3E,
+    WADJET_UDS_ACCESS_TIMING_PARAMETER = 0x83,
+    WADJET_UDS_SECURED_DATA_TRANSMISSION = 0x84,
+    WADJET_UDS_CONTROL_DTC_SETTING = 0x85,
+    WADJET_UDS_RESPONSE_ON_EVENT = 0x86,
+    WADJET_UDS_LINK_CONTROL = 0x87,
+    WADJET_UDS_READ_DATA_BY_IDENTIFIER = 0x22,
+    WADJET_UDS_READ_MEMORY_BY_ADDRESS = 0x23,
+    WADJET_UDS_READ_SCALING_DATA_BY_IDENTIFIER = 0x24,
+    WADJET_UDS_READ_DATA_BY_PERIODIC_IDENTIFIER = 0x2A,
+    WADJET_UDS_DYNAMICALLY_DEFINE_DATA_IDENTIFIER = 0x2C,
+    WADJET_UDS_WRITE_DATA_BY_IDENTIFIER = 0x2E,
+    WADJET_UDS_WRITE_MEMORY_BY_ADDRESS = 0x3D,
+    WADJET_UDS_CLEAR_DIAGNOSTIC_INFORMATION = 0x14,
+    WADJET_UDS_READ_DTC_INFORMATION = 0x19,
+    WADJET_UDS_INPUT_OUTPUT_CONTROL_BY_IDENTIFIER = 0x2F,
+    WADJET_UDS_ROUTINE_CONTROL = 0x31,
+    WADJET_UDS_REQUEST_DOWNLOAD = 0x34,
+    WADJET_UDS_REQUEST_UPLOAD = 0x35,
+    WADJET_UDS_TRANSFER_DATA = 0x36,
+    WADJET_UDS_REQUEST_TRANSFER_EXIT = 0x37,
+    WADJET_UDS_REQUEST_FILE_TRANSFER = 0x38,
+} wadjet_uds_service_id_t;
+
+/**
+ * @brief UDS session types
+ */
+typedef enum {
+    WADJET_UDS_SESSION_DEFAULT = 0x01,
+    WADJET_UDS_SESSION_PROGRAMMING = 0x02,
+    WADJET_UDS_SESSION_EXTENDED = 0x03,
+    WADJET_UDS_SESSION_SAFETY_SYSTEM = 0x04,
+} wadjet_uds_session_type_t;
+
+/**
+ * @brief UDS reset types
+ */
+typedef enum {
+    WADJET_UDS_RESET_HARD = 0x01,
+    WADJET_UDS_RESET_KEY_OFF_ON = 0x02,
+    WADJET_UDS_RESET_SOFT = 0x03,
+    WADJET_UDS_RESET_ENABLE_RAPID_SHUTDOWN = 0x04,
+    WADJET_UDS_RESET_DISABLE_RAPID_SHUTDOWN = 0x05,
+} wadjet_uds_reset_type_t;
+
+/**
+ * @brief UDS negative response codes (NRC)
+ */
+typedef enum {
+    WADJET_UDS_NRC_GENERAL_REJECT = 0x10,
+    WADJET_UDS_NRC_SERVICE_NOT_SUPPORTED = 0x11,
+    WADJET_UDS_NRC_SUB_FUNCTION_NOT_SUPPORTED = 0x12,
+    WADJET_UDS_NRC_INCORRECT_MESSAGE_LENGTH = 0x13,
+    WADJET_UDS_NRC_RESPONSE_TOO_LONG = 0x14,
+    WADJET_UDS_NRC_BUSY_REPEAT_REQUEST = 0x21,
+    WADJET_UDS_NRC_CONDITIONS_NOT_CORRECT = 0x22,
+    WADJET_UDS_NRC_REQUEST_SEQUENCE_ERROR = 0x24,
+    WADJET_UDS_NRC_NO_RESPONSE_FROM_SUBNET = 0x25,
+    WADJET_UDS_NRC_FAILURE_PREVENTS_EXECUTION = 0x26,
+    WADJET_UDS_NRC_REQUEST_OUT_OF_RANGE = 0x31,
+    WADJET_UDS_NRC_SECURITY_ACCESS_DENIED = 0x33,
+    WADJET_UDS_NRC_INVALID_KEY = 0x35,
+    WADJET_UDS_NRC_EXCEEDED_NUMBER_OF_ATTEMPTS = 0x36,
+    WADJET_UDS_NRC_REQUIRED_TIME_DELAY_NOT_EXPIRED = 0x37,
+    WADJET_UDS_NRC_UPLOAD_DOWNLOAD_NOT_ACCEPTED = 0x70,
+    WADJET_UDS_NRC_TRANSFER_DATA_SUSPENDED = 0x71,
+    WADJET_UDS_NRC_GENERAL_PROGRAMMING_FAILURE = 0x72,
+    WADJET_UDS_NRC_WRONG_BLOCK_SEQUENCE_COUNTER = 0x73,
+    WADJET_UDS_NRC_RESPONSE_PENDING = 0x78,
+    WADJET_UDS_NRC_SUB_FUNCTION_NOT_SUPPORTED_IN_SESSION = 0x7E,
+    WADJET_UDS_NRC_SERVICE_NOT_SUPPORTED_IN_SESSION = 0x7F,
+} wadjet_uds_nrc_t;
+
+/**
+ * @brief UDS routine control types
+ */
+typedef enum {
+    WADJET_UDS_ROUTINE_START = 0x01,
+    WADJET_UDS_ROUTINE_STOP = 0x02,
+    WADJET_UDS_ROUTINE_REQUEST_RESULTS = 0x03,
+} wadjet_uds_routine_control_type_t;
 
 /**
  * @brief Decoded Ethernet header
@@ -606,6 +697,28 @@ typedef struct {
 } wadjet_gptp_header_t;
 
 /**
+ * @brief Decoded UDS header
+ */
+typedef struct {
+    wadjet_uds_service_id_t service_id; /**< Service ID (SID) */
+    bool is_request;                    /**< True if request, false if response */
+    bool is_positive_response;          /**< True if positive response (SID + 0x40) */
+    bool is_negative_response;          /**< True if negative response (0x7F) */
+    uint8_t sub_function;               /**< Sub-function byte (if applicable) */
+    bool suppress_positive_response;    /**< SPRMIB bit set */
+    wadjet_uds_nrc_t nrc;               /**< NRC (only valid if is_negative_response) */
+    uint8_t rejected_service_id;        /**< Rejected SID (only for negative response) */
+    const uint8_t* data;                /**< Pointer to service data */
+    size_t data_length;                 /**< Length of service data */
+} wadjet_uds_header_t;
+
+/** @brief Opaque handle to UDS decoder */
+typedef struct wadjet_uds_decoder* wadjet_uds_decoder_t;
+
+/** @brief Opaque handle to UDS session tracker */
+typedef struct wadjet_uds_session* wadjet_uds_session_t;
+
+/**
  * @brief Decode packet and return result handle
  * @param data Packet data
  * @param length Data length
@@ -725,6 +838,147 @@ size_t wadjet_gptp_clock_identity_to_string(const wadjet_gptp_clock_identity_t* 
  * @return Message type name string (static, do not free)
  */
 const char* wadjet_gptp_message_type_name(wadjet_gptp_message_type_t type);
+
+/* ============================================================================
+ * UDS (Unified Diagnostic Services) API
+ * ============================================================================ */
+
+/**
+ * @brief Create a UDS decoder
+ * @param decoder Output: decoder handle
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_uds_decoder_create(wadjet_uds_decoder_t* decoder);
+
+/**
+ * @brief Destroy a UDS decoder
+ * @param decoder Decoder handle
+ */
+void wadjet_uds_decoder_destroy(wadjet_uds_decoder_t decoder);
+
+/**
+ * @brief Decode UDS message from raw bytes
+ * @param decoder Decoder handle
+ * @param data UDS message data
+ * @param length Data length
+ * @param header Output: decoded UDS header
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_uds_decode(wadjet_uds_decoder_t decoder, const uint8_t* data, size_t length,
+                                 wadjet_uds_header_t* header);
+
+/**
+ * @brief Check if data looks like a UDS request
+ * @param data UDS message data
+ * @param length Data length
+ * @return true if data appears to be a UDS request
+ */
+bool wadjet_uds_is_request(const uint8_t* data, size_t length);
+
+/**
+ * @brief Check if data looks like a UDS positive response
+ * @param data UDS message data
+ * @param length Data length
+ * @return true if data appears to be a positive response
+ */
+bool wadjet_uds_is_positive_response(const uint8_t* data, size_t length);
+
+/**
+ * @brief Check if data looks like a UDS negative response
+ * @param data UDS message data
+ * @param length Data length
+ * @return true if data appears to be a negative response
+ */
+bool wadjet_uds_is_negative_response(const uint8_t* data, size_t length);
+
+/**
+ * @brief Get UDS service name
+ * @param service_id Service ID
+ * @return Service name string (static, do not free)
+ */
+const char* wadjet_uds_service_name(wadjet_uds_service_id_t service_id);
+
+/**
+ * @brief Get UDS session type name
+ * @param session_type Session type
+ * @return Session type name string (static, do not free)
+ */
+const char* wadjet_uds_session_type_name(wadjet_uds_session_type_t session_type);
+
+/**
+ * @brief Get UDS NRC name
+ * @param nrc Negative response code
+ * @return NRC name string (static, do not free)
+ */
+const char* wadjet_uds_nrc_name(wadjet_uds_nrc_t nrc);
+
+/**
+ * @brief Get UDS NRC description
+ * @param nrc Negative response code
+ * @return NRC description string (static, do not free)
+ */
+const char* wadjet_uds_nrc_description(wadjet_uds_nrc_t nrc);
+
+/**
+ * @brief Create a UDS session tracker
+ * @param ecu_address ECU diagnostic address
+ * @param session Output: session handle
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_uds_session_create(uint16_t ecu_address, wadjet_uds_session_t* session);
+
+/**
+ * @brief Destroy a UDS session tracker
+ * @param session Session handle
+ */
+void wadjet_uds_session_destroy(wadjet_uds_session_t session);
+
+/**
+ * @brief Process a UDS message through the session tracker
+ * @param session Session handle
+ * @param data UDS message data
+ * @param length Data length
+ * @param is_request True if this is a request message
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_uds_session_process(wadjet_uds_session_t session, const uint8_t* data,
+                                          size_t length, bool is_request);
+
+/**
+ * @brief Get current session type
+ * @param session Session handle
+ * @return Current session type
+ */
+wadjet_uds_session_type_t wadjet_uds_session_get_type(wadjet_uds_session_t session);
+
+/**
+ * @brief Check if session is active
+ * @param session Session handle
+ * @return true if session is active
+ */
+bool wadjet_uds_session_is_active(wadjet_uds_session_t session);
+
+/**
+ * @brief Check if a security level is unlocked
+ * @param session Session handle
+ * @param level Security level (1-33)
+ * @return true if level is unlocked
+ */
+bool wadjet_uds_session_security_unlocked(wadjet_uds_session_t session, uint8_t level);
+
+/**
+ * @brief Reset session to default state
+ * @param session Session handle
+ */
+void wadjet_uds_session_reset(wadjet_uds_session_t session);
+
+/**
+ * @brief Get UDS header from decode result
+ * @param result Decode result handle
+ * @param header Output: UDS header
+ * @return WADJET_OK if UDS layer present
+ */
+wadjet_error_t wadjet_decode_result_uds(wadjet_decode_result_t result, wadjet_uds_header_t* header);
 
 /**
  * @brief Get payload data after a specific protocol layer

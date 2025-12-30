@@ -11,6 +11,7 @@
 #include "wadjet/protocols/someip_sd.hpp"
 #include "wadjet/protocols/tcp.hpp"
 #include "wadjet/protocols/udp.hpp"
+#include "wadjet/protocols/uds/uds.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -338,4 +339,224 @@ void bind_protocols(py::module_& m) {
                    " seq=" + std::to_string(hdr.sequence_id) +
                    " domain=" + std::to_string(hdr.domain_number) + ">";
         });
+
+    // =========================================================================
+    // UDS (ISO 14229)
+    // =========================================================================
+    py::enum_<uds::ServiceID>(m, "UdsServiceID", "UDS service identifiers")
+        .value("DiagnosticSessionControl", uds::ServiceID::DiagnosticSessionControl)
+        .value("ECUReset", uds::ServiceID::ECUReset)
+        .value("SecurityAccess", uds::ServiceID::SecurityAccess)
+        .value("CommunicationControl", uds::ServiceID::CommunicationControl)
+        .value("TesterPresent", uds::ServiceID::TesterPresent)
+        .value("ControlDTCSetting", uds::ServiceID::ControlDTCSetting)
+        .value("ResponseOnEvent", uds::ServiceID::ResponseOnEvent)
+        .value("LinkControl", uds::ServiceID::LinkControl)
+        .value("ReadDataByIdentifier", uds::ServiceID::ReadDataByIdentifier)
+        .value("ReadMemoryByAddress", uds::ServiceID::ReadMemoryByAddress)
+        .value("WriteDataByIdentifier", uds::ServiceID::WriteDataByIdentifier)
+        .value("WriteMemoryByAddress", uds::ServiceID::WriteMemoryByAddress)
+        .value("ClearDiagnosticInformation", uds::ServiceID::ClearDiagnosticInformation)
+        .value("ReadDTCInformation", uds::ServiceID::ReadDTCInformation)
+        .value("InputOutputControlByIdentifier", uds::ServiceID::InputOutputControlByIdentifier)
+        .value("RoutineControl", uds::ServiceID::RoutineControl)
+        .value("RequestDownload", uds::ServiceID::RequestDownload)
+        .value("RequestUpload", uds::ServiceID::RequestUpload)
+        .value("TransferData", uds::ServiceID::TransferData)
+        .value("RequestTransferExit", uds::ServiceID::RequestTransferExit)
+        .value("RequestFileTransfer", uds::ServiceID::RequestFileTransfer)
+        .export_values();
+
+    py::enum_<uds::SessionType>(m, "UdsSessionType", "UDS session types")
+        .value("DefaultSession", uds::SessionType::DefaultSession)
+        .value("ProgrammingSession", uds::SessionType::ProgrammingSession)
+        .value("ExtendedDiagnosticSession", uds::SessionType::ExtendedDiagnosticSession)
+        .value("SafetySystemDiagnosticSession", uds::SessionType::SafetySystemDiagnosticSession)
+        .export_values();
+
+    py::enum_<uds::ResetType>(m, "UdsResetType", "UDS ECU reset types")
+        .value("HardReset", uds::ResetType::HardReset)
+        .value("KeyOffOnReset", uds::ResetType::KeyOffOnReset)
+        .value("SoftReset", uds::ResetType::SoftReset)
+        .export_values();
+
+    py::enum_<uds::NRC>(m, "UdsNRC", "UDS Negative Response Codes")
+        .value("GeneralReject", uds::NRC::GeneralReject)
+        .value("ServiceNotSupported", uds::NRC::ServiceNotSupported)
+        .value("SubFunctionNotSupported", uds::NRC::SubFunctionNotSupported)
+        .value("IncorrectMessageLengthOrInvalidFormat",
+               uds::NRC::IncorrectMessageLengthOrInvalidFormat)
+        .value("ResponseTooLong", uds::NRC::ResponseTooLong)
+        .value("BusyRepeatRequest", uds::NRC::BusyRepeatRequest)
+        .value("ConditionsNotCorrect", uds::NRC::ConditionsNotCorrect)
+        .value("RequestSequenceError", uds::NRC::RequestSequenceError)
+        .value("RequestOutOfRange", uds::NRC::RequestOutOfRange)
+        .value("SecurityAccessDenied", uds::NRC::SecurityAccessDenied)
+        .value("InvalidKey", uds::NRC::InvalidKey)
+        .value("ExceededNumberOfAttempts", uds::NRC::ExceededNumberOfAttempts)
+        .value("RequiredTimeDelayNotExpired", uds::NRC::RequiredTimeDelayNotExpired)
+        .value("UploadDownloadNotAccepted", uds::NRC::UploadDownloadNotAccepted)
+        .value("TransferDataSuspended", uds::NRC::TransferDataSuspended)
+        .value("GeneralProgrammingFailure", uds::NRC::GeneralProgrammingFailure)
+        .value("WrongBlockSequenceCounter", uds::NRC::WrongBlockSequenceCounter)
+        .value("RequestCorrectlyReceivedResponsePending",
+               uds::NRC::RequestCorrectlyReceivedResponsePending)
+        .value("SubFunctionNotSupportedInActiveSession",
+               uds::NRC::SubFunctionNotSupportedInActiveSession)
+        .value("ServiceNotSupportedInActiveSession", uds::NRC::ServiceNotSupportedInActiveSession)
+        .export_values();
+
+    py::class_<uds::DataIdentifier>(m, "UdsDataIdentifier", "UDS Data Identifier (DID)")
+        .def(py::init<std::uint16_t>())
+        .def_readonly("value", &uds::DataIdentifier::value)
+        .def("__repr__",
+             [](const uds::DataIdentifier& did) {
+                 char buf[32];
+                 std::snprintf(buf, sizeof(buf), "<UdsDataIdentifier 0x%04X>", did.value);
+                 return std::string(buf);
+             })
+        .def("__eq__",
+             [](const uds::DataIdentifier& a, const uds::DataIdentifier& b) { return a == b; })
+        .def("__hash__",
+             [](const uds::DataIdentifier& did) { return std::hash<std::uint16_t>{}(did.value); });
+
+    py::class_<uds::RoutineIdentifier>(m, "UdsRoutineIdentifier", "UDS Routine Identifier")
+        .def(py::init<std::uint16_t>())
+        .def_readonly("value", &uds::RoutineIdentifier::value)
+        .def("__repr__", [](const uds::RoutineIdentifier& rid) {
+            char buf[32];
+            std::snprintf(buf, sizeof(buf), "<UdsRoutineIdentifier 0x%04X>", rid.value);
+            return std::string(buf);
+        });
+
+    py::class_<uds::UdsHeader>(m, "UdsHeader", "Decoded UDS header")
+        .def_readonly("service_id", &uds::UdsHeader::service_id)
+        .def_readonly("sub_function", &uds::UdsHeader::sub_function)
+        .def_readonly("suppress_positive_response", &uds::UdsHeader::suppress_positive_response)
+        .def_readonly("negative_response_code", &uds::UdsHeader::negative_response_code)
+        .def_readonly("rejected_service_id", &uds::UdsHeader::rejected_service_id)
+        .def("is_request", &uds::UdsHeader::is_request)
+        .def("is_positive_response", &uds::UdsHeader::is_positive_response)
+        .def("is_negative_response", &uds::UdsHeader::is_negative_response)
+        .def("service_id_string",
+             [](const uds::UdsHeader& hdr) {
+                 return std::string(uds::service_id_string(hdr.service_id));
+             })
+        .def("__repr__", [](const uds::UdsHeader& hdr) {
+            std::string type =
+                hdr.is_request() ? "Request" : (hdr.is_positive_response() ? "Response" : "NRC");
+            return "<UdsHeader " + std::string(uds::service_id_string(hdr.service_id)) + " " +
+                   type + ">";
+        });
+
+    py::class_<uds::UdsDecoder>(m, "UdsDecoder", "UDS message decoder")
+        .def(py::init<>())
+        .def(
+            "decode",
+            [](uds::UdsDecoder& decoder, py::bytes data) {
+                std::string str = data;
+                std::span<const std::uint8_t> span(
+                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                return decoder.decode(span);
+            },
+            py::arg("data"), "Decode UDS message from bytes")
+        .def_static(
+            "is_request",
+            [](py::bytes data) {
+                std::string str = data;
+                std::span<const std::uint8_t> span(
+                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                return uds::UdsDecoder::is_request(span);
+            },
+            py::arg("data"), "Check if data is a UDS request")
+        .def_static(
+            "is_positive_response",
+            [](py::bytes data) {
+                std::string str = data;
+                std::span<const std::uint8_t> span(
+                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                return uds::UdsDecoder::is_positive_response(span);
+            },
+            py::arg("data"), "Check if data is a UDS positive response")
+        .def_static(
+            "is_negative_response",
+            [](py::bytes data) {
+                std::string str = data;
+                std::span<const std::uint8_t> span(
+                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                return uds::UdsDecoder::is_negative_response(span);
+            },
+            py::arg("data"), "Check if data is a UDS negative response");
+
+    py::class_<uds::UdsDecodeResult>(m, "UdsDecodeResult", "UDS decode result")
+        .def_readonly("header", &uds::UdsDecodeResult::header)
+        .def("__repr__", [](const uds::UdsDecodeResult& result) {
+            return "<UdsDecodeResult service=" +
+                   std::string(uds::service_id_string(result.header.service_id)) + ">";
+        });
+
+    // UDS session tracking
+    py::class_<uds::TimingParameters>(m, "UdsTimingParameters", "UDS timing parameters")
+        .def(py::init<>())
+        .def_readwrite("p2_server_max", &uds::TimingParameters::p2_server_max,
+                       "P2 Server Max (initial response timeout)")
+        .def_readwrite("p2_star_server_max", &uds::TimingParameters::p2_star_server_max,
+                       "P2* Server Max (response pending timeout)")
+        .def_readwrite("s3_server", &uds::TimingParameters::s3_server,
+                       "S3 Server (session timeout)")
+        .def_static("default_values", &uds::TimingParameters::default_values);
+
+    py::enum_<uds::SessionState>(m, "UdsSessionState", "UDS session state")
+        .value("Idle", uds::SessionState::Idle)
+        .value("Active", uds::SessionState::Active)
+        .value("TimedOut", uds::SessionState::TimedOut)
+        .export_values();
+
+    py::class_<uds::UdsSession>(m, "UdsSession", "UDS session tracker")
+        .def(py::init<std::uint16_t>(), py::arg("ecu_address") = 0)
+        .def(
+            "process_message",
+            [](uds::UdsSession& session, py::bytes data, bool is_request) {
+                std::string str = data;
+                std::span<const std::uint8_t> span(
+                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                return session.process_message(span, is_request);
+            },
+            py::arg("data"), py::arg("is_request"), "Process a UDS message")
+        .def("session_type", &uds::UdsSession::session_type, "Get current session type")
+        .def("state", &uds::UdsSession::state, "Get current session state")
+        .def("is_active", &uds::UdsSession::is_active, "Check if session is active")
+        .def("is_security_unlocked", &uds::UdsSession::is_security_unlocked, py::arg("level") = 1,
+             "Check if security level is unlocked")
+        .def("highest_security_level", &uds::UdsSession::highest_security_level,
+             "Get highest unlocked security level")
+        .def("timing", &uds::UdsSession::timing, py::return_value_policy::reference,
+             "Get timing parameters")
+        .def("reset", &uds::UdsSession::reset, "Reset session to default state")
+        .def("refresh_timeout", &uds::UdsSession::refresh_timeout,
+             "Refresh session timeout (simulate TesterPresent)")
+        .def("__repr__", [](const uds::UdsSession& session) {
+            return "<UdsSession type=" +
+                   std::string(uds::session_type_string(session.session_type())) +
+                   " active=" + (session.is_active() ? "true" : "false") + ">";
+        });
+
+    // Helper functions
+    m.def(
+        "uds_service_id_string",
+        [](uds::ServiceID sid) { return std::string(uds::service_id_string(sid)); },
+        py::arg("service_id"), "Get service ID name");
+
+    m.def(
+        "uds_session_type_string",
+        [](uds::SessionType type) { return std::string(uds::session_type_string(type)); },
+        py::arg("session_type"), "Get session type name");
+
+    m.def(
+        "uds_nrc_string", [](uds::NRC nrc) { return std::string(uds::nrc_string(nrc)); },
+        py::arg("nrc"), "Get NRC name");
+
+    m.def(
+        "uds_nrc_description", [](uds::NRC nrc) { return std::string(uds::nrc_description(nrc)); },
+        py::arg("nrc"), "Get NRC description");
 }

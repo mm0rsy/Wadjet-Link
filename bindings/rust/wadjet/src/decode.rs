@@ -467,6 +467,519 @@ impl GptpHeader {
     }
 }
 
+// =============================================================================
+// UDS (ISO 14229) Types
+// =============================================================================
+
+/// UDS service identifiers (ISO 14229)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum UdsServiceId {
+    /// Diagnostic Session Control (0x10)
+    DiagnosticSessionControl = 0x10,
+    /// ECU Reset (0x11)
+    EcuReset = 0x11,
+    /// Security Access (0x27)
+    SecurityAccess = 0x27,
+    /// Communication Control (0x28)
+    CommunicationControl = 0x28,
+    /// Tester Present (0x3E)
+    TesterPresent = 0x3E,
+    /// Control DTC Setting (0x85)
+    ControlDtcSetting = 0x85,
+    /// Response On Event (0x86)
+    ResponseOnEvent = 0x86,
+    /// Link Control (0x87)
+    LinkControl = 0x87,
+    /// Read Data By Identifier (0x22)
+    ReadDataByIdentifier = 0x22,
+    /// Read Memory By Address (0x23)
+    ReadMemoryByAddress = 0x23,
+    /// Write Data By Identifier (0x2E)
+    WriteDataByIdentifier = 0x2E,
+    /// Write Memory By Address (0x3D)
+    WriteMemoryByAddress = 0x3D,
+    /// Clear Diagnostic Information (0x14)
+    ClearDiagnosticInformation = 0x14,
+    /// Read DTC Information (0x19)
+    ReadDtcInformation = 0x19,
+    /// Input Output Control By Identifier (0x2F)
+    InputOutputControlByIdentifier = 0x2F,
+    /// Routine Control (0x31)
+    RoutineControl = 0x31,
+    /// Request Download (0x34)
+    RequestDownload = 0x34,
+    /// Request Upload (0x35)
+    RequestUpload = 0x35,
+    /// Transfer Data (0x36)
+    TransferData = 0x36,
+    /// Request Transfer Exit (0x37)
+    RequestTransferExit = 0x37,
+    /// Request File Transfer (0x38)
+    RequestFileTransfer = 0x38,
+    /// Unknown Service
+    Unknown = 0xFF,
+}
+
+impl From<u8> for UdsServiceId {
+    fn from(value: u8) -> Self {
+        match value {
+            0x10 => UdsServiceId::DiagnosticSessionControl,
+            0x11 => UdsServiceId::EcuReset,
+            0x27 => UdsServiceId::SecurityAccess,
+            0x28 => UdsServiceId::CommunicationControl,
+            0x3E => UdsServiceId::TesterPresent,
+            0x85 => UdsServiceId::ControlDtcSetting,
+            0x86 => UdsServiceId::ResponseOnEvent,
+            0x87 => UdsServiceId::LinkControl,
+            0x22 => UdsServiceId::ReadDataByIdentifier,
+            0x23 => UdsServiceId::ReadMemoryByAddress,
+            0x2E => UdsServiceId::WriteDataByIdentifier,
+            0x3D => UdsServiceId::WriteMemoryByAddress,
+            0x14 => UdsServiceId::ClearDiagnosticInformation,
+            0x19 => UdsServiceId::ReadDtcInformation,
+            0x2F => UdsServiceId::InputOutputControlByIdentifier,
+            0x31 => UdsServiceId::RoutineControl,
+            0x34 => UdsServiceId::RequestDownload,
+            0x35 => UdsServiceId::RequestUpload,
+            0x36 => UdsServiceId::TransferData,
+            0x37 => UdsServiceId::RequestTransferExit,
+            0x38 => UdsServiceId::RequestFileTransfer,
+            _ => UdsServiceId::Unknown,
+        }
+    }
+}
+
+impl UdsServiceId {
+    /// Get the service name
+    pub fn name(&self) -> &'static str {
+        match self {
+            UdsServiceId::DiagnosticSessionControl => "DiagnosticSessionControl",
+            UdsServiceId::EcuReset => "ECUReset",
+            UdsServiceId::SecurityAccess => "SecurityAccess",
+            UdsServiceId::CommunicationControl => "CommunicationControl",
+            UdsServiceId::TesterPresent => "TesterPresent",
+            UdsServiceId::ControlDtcSetting => "ControlDTCSetting",
+            UdsServiceId::ResponseOnEvent => "ResponseOnEvent",
+            UdsServiceId::LinkControl => "LinkControl",
+            UdsServiceId::ReadDataByIdentifier => "ReadDataByIdentifier",
+            UdsServiceId::ReadMemoryByAddress => "ReadMemoryByAddress",
+            UdsServiceId::WriteDataByIdentifier => "WriteDataByIdentifier",
+            UdsServiceId::WriteMemoryByAddress => "WriteMemoryByAddress",
+            UdsServiceId::ClearDiagnosticInformation => "ClearDiagnosticInformation",
+            UdsServiceId::ReadDtcInformation => "ReadDTCInformation",
+            UdsServiceId::InputOutputControlByIdentifier => "InputOutputControlByIdentifier",
+            UdsServiceId::RoutineControl => "RoutineControl",
+            UdsServiceId::RequestDownload => "RequestDownload",
+            UdsServiceId::RequestUpload => "RequestUpload",
+            UdsServiceId::TransferData => "TransferData",
+            UdsServiceId::RequestTransferExit => "RequestTransferExit",
+            UdsServiceId::RequestFileTransfer => "RequestFileTransfer",
+            UdsServiceId::Unknown => "Unknown",
+        }
+    }
+
+    /// Check if this is a request service ID (< 0x40)
+    pub fn is_request(&self) -> bool {
+        (*self as u8) < 0x40
+    }
+}
+
+/// UDS session types
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum UdsSessionType {
+    /// Default session (0x01)
+    Default = 0x01,
+    /// Programming session (0x02)
+    Programming = 0x02,
+    /// Extended diagnostic session (0x03)
+    ExtendedDiagnostic = 0x03,
+    /// Safety system diagnostic session (0x04)
+    SafetySystemDiagnostic = 0x04,
+    /// Unknown session type
+    Unknown = 0xFF,
+}
+
+impl From<u8> for UdsSessionType {
+    fn from(value: u8) -> Self {
+        match value {
+            0x01 => UdsSessionType::Default,
+            0x02 => UdsSessionType::Programming,
+            0x03 => UdsSessionType::ExtendedDiagnostic,
+            0x04 => UdsSessionType::SafetySystemDiagnostic,
+            _ => UdsSessionType::Unknown,
+        }
+    }
+}
+
+impl UdsSessionType {
+    /// Get the session type name
+    pub fn name(&self) -> &'static str {
+        match self {
+            UdsSessionType::Default => "DefaultSession",
+            UdsSessionType::Programming => "ProgrammingSession",
+            UdsSessionType::ExtendedDiagnostic => "ExtendedDiagnosticSession",
+            UdsSessionType::SafetySystemDiagnostic => "SafetySystemDiagnosticSession",
+            UdsSessionType::Unknown => "Unknown",
+        }
+    }
+}
+
+/// UDS ECU reset types
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum UdsResetType {
+    /// Hard reset (0x01)
+    HardReset = 0x01,
+    /// Key off on reset (0x02)
+    KeyOffOnReset = 0x02,
+    /// Soft reset (0x03)
+    SoftReset = 0x03,
+    /// Unknown reset type
+    Unknown = 0xFF,
+}
+
+impl From<u8> for UdsResetType {
+    fn from(value: u8) -> Self {
+        match value {
+            0x01 => UdsResetType::HardReset,
+            0x02 => UdsResetType::KeyOffOnReset,
+            0x03 => UdsResetType::SoftReset,
+            _ => UdsResetType::Unknown,
+        }
+    }
+}
+
+impl UdsResetType {
+    /// Get the reset type name
+    pub fn name(&self) -> &'static str {
+        match self {
+            UdsResetType::HardReset => "HardReset",
+            UdsResetType::KeyOffOnReset => "KeyOffOnReset",
+            UdsResetType::SoftReset => "SoftReset",
+            UdsResetType::Unknown => "Unknown",
+        }
+    }
+}
+
+/// UDS Negative Response Codes (ISO 14229)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum UdsNrc {
+    /// General reject (0x10)
+    GeneralReject = 0x10,
+    /// Service not supported (0x11)
+    ServiceNotSupported = 0x11,
+    /// Sub-function not supported (0x12)
+    SubFunctionNotSupported = 0x12,
+    /// Incorrect message length or invalid format (0x13)
+    IncorrectMessageLengthOrInvalidFormat = 0x13,
+    /// Response too long (0x14)
+    ResponseTooLong = 0x14,
+    /// Busy repeat request (0x21)
+    BusyRepeatRequest = 0x21,
+    /// Conditions not correct (0x22)
+    ConditionsNotCorrect = 0x22,
+    /// Request sequence error (0x24)
+    RequestSequenceError = 0x24,
+    /// Request out of range (0x31)
+    RequestOutOfRange = 0x31,
+    /// Security access denied (0x33)
+    SecurityAccessDenied = 0x33,
+    /// Invalid key (0x35)
+    InvalidKey = 0x35,
+    /// Exceeded number of attempts (0x36)
+    ExceededNumberOfAttempts = 0x36,
+    /// Required time delay not expired (0x37)
+    RequiredTimeDelayNotExpired = 0x37,
+    /// Upload/download not accepted (0x70)
+    UploadDownloadNotAccepted = 0x70,
+    /// Transfer data suspended (0x71)
+    TransferDataSuspended = 0x71,
+    /// General programming failure (0x72)
+    GeneralProgrammingFailure = 0x72,
+    /// Wrong block sequence counter (0x73)
+    WrongBlockSequenceCounter = 0x73,
+    /// Request correctly received, response pending (0x78)
+    RequestCorrectlyReceivedResponsePending = 0x78,
+    /// Sub-function not supported in active session (0x7E)
+    SubFunctionNotSupportedInActiveSession = 0x7E,
+    /// Service not supported in active session (0x7F)
+    ServiceNotSupportedInActiveSession = 0x7F,
+    /// Unknown NRC
+    Unknown = 0x00,
+}
+
+impl From<u8> for UdsNrc {
+    fn from(value: u8) -> Self {
+        match value {
+            0x10 => UdsNrc::GeneralReject,
+            0x11 => UdsNrc::ServiceNotSupported,
+            0x12 => UdsNrc::SubFunctionNotSupported,
+            0x13 => UdsNrc::IncorrectMessageLengthOrInvalidFormat,
+            0x14 => UdsNrc::ResponseTooLong,
+            0x21 => UdsNrc::BusyRepeatRequest,
+            0x22 => UdsNrc::ConditionsNotCorrect,
+            0x24 => UdsNrc::RequestSequenceError,
+            0x31 => UdsNrc::RequestOutOfRange,
+            0x33 => UdsNrc::SecurityAccessDenied,
+            0x35 => UdsNrc::InvalidKey,
+            0x36 => UdsNrc::ExceededNumberOfAttempts,
+            0x37 => UdsNrc::RequiredTimeDelayNotExpired,
+            0x70 => UdsNrc::UploadDownloadNotAccepted,
+            0x71 => UdsNrc::TransferDataSuspended,
+            0x72 => UdsNrc::GeneralProgrammingFailure,
+            0x73 => UdsNrc::WrongBlockSequenceCounter,
+            0x78 => UdsNrc::RequestCorrectlyReceivedResponsePending,
+            0x7E => UdsNrc::SubFunctionNotSupportedInActiveSession,
+            0x7F => UdsNrc::ServiceNotSupportedInActiveSession,
+            _ => UdsNrc::Unknown,
+        }
+    }
+}
+
+impl UdsNrc {
+    /// Get the NRC name
+    pub fn name(&self) -> &'static str {
+        match self {
+            UdsNrc::GeneralReject => "GeneralReject",
+            UdsNrc::ServiceNotSupported => "ServiceNotSupported",
+            UdsNrc::SubFunctionNotSupported => "SubFunctionNotSupported",
+            UdsNrc::IncorrectMessageLengthOrInvalidFormat => "IncorrectMessageLengthOrInvalidFormat",
+            UdsNrc::ResponseTooLong => "ResponseTooLong",
+            UdsNrc::BusyRepeatRequest => "BusyRepeatRequest",
+            UdsNrc::ConditionsNotCorrect => "ConditionsNotCorrect",
+            UdsNrc::RequestSequenceError => "RequestSequenceError",
+            UdsNrc::RequestOutOfRange => "RequestOutOfRange",
+            UdsNrc::SecurityAccessDenied => "SecurityAccessDenied",
+            UdsNrc::InvalidKey => "InvalidKey",
+            UdsNrc::ExceededNumberOfAttempts => "ExceededNumberOfAttempts",
+            UdsNrc::RequiredTimeDelayNotExpired => "RequiredTimeDelayNotExpired",
+            UdsNrc::UploadDownloadNotAccepted => "UploadDownloadNotAccepted",
+            UdsNrc::TransferDataSuspended => "TransferDataSuspended",
+            UdsNrc::GeneralProgrammingFailure => "GeneralProgrammingFailure",
+            UdsNrc::WrongBlockSequenceCounter => "WrongBlockSequenceCounter",
+            UdsNrc::RequestCorrectlyReceivedResponsePending => "RequestCorrectlyReceivedResponsePending",
+            UdsNrc::SubFunctionNotSupportedInActiveSession => "SubFunctionNotSupportedInActiveSession",
+            UdsNrc::ServiceNotSupportedInActiveSession => "ServiceNotSupportedInActiveSession",
+            UdsNrc::Unknown => "Unknown",
+        }
+    }
+
+    /// Get a human-readable description of the NRC
+    pub fn description(&self) -> &'static str {
+        match self {
+            UdsNrc::GeneralReject => "Service was rejected",
+            UdsNrc::ServiceNotSupported => "Service is not supported",
+            UdsNrc::SubFunctionNotSupported => "Sub-function is not supported",
+            UdsNrc::IncorrectMessageLengthOrInvalidFormat => "Incorrect message length or invalid format",
+            UdsNrc::ResponseTooLong => "Response is too long",
+            UdsNrc::BusyRepeatRequest => "Server is busy, try again",
+            UdsNrc::ConditionsNotCorrect => "Conditions not correct for requested service",
+            UdsNrc::RequestSequenceError => "Request sequence error",
+            UdsNrc::RequestOutOfRange => "Request parameter out of range",
+            UdsNrc::SecurityAccessDenied => "Security access denied",
+            UdsNrc::InvalidKey => "Invalid security key",
+            UdsNrc::ExceededNumberOfAttempts => "Exceeded number of security access attempts",
+            UdsNrc::RequiredTimeDelayNotExpired => "Security time delay not expired",
+            UdsNrc::UploadDownloadNotAccepted => "Upload/download not accepted",
+            UdsNrc::TransferDataSuspended => "Transfer data suspended",
+            UdsNrc::GeneralProgrammingFailure => "General programming failure",
+            UdsNrc::WrongBlockSequenceCounter => "Wrong block sequence counter",
+            UdsNrc::RequestCorrectlyReceivedResponsePending => "Response pending",
+            UdsNrc::SubFunctionNotSupportedInActiveSession => "Sub-function not supported in current session",
+            UdsNrc::ServiceNotSupportedInActiveSession => "Service not supported in current session",
+            UdsNrc::Unknown => "Unknown NRC",
+        }
+    }
+}
+
+/// UDS Data Identifier (DID)
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct UdsDataIdentifier(pub u16);
+
+impl UdsDataIdentifier {
+    /// Create a new DID
+    pub fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    /// Get the raw value
+    pub fn value(&self) -> u16 {
+        self.0
+    }
+
+    /// Check if this is an OEM-specific DID (0xF100-0xF1FF)
+    pub fn is_oem_specific(&self) -> bool {
+        (0xF100..=0xF1FF).contains(&self.0)
+    }
+
+    /// Check if this is a vehicle identification DID (0xF190-0xF19F)
+    pub fn is_vehicle_identification(&self) -> bool {
+        (0xF190..=0xF19F).contains(&self.0)
+    }
+}
+
+impl std::fmt::Display for UdsDataIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "0x{:04X}", self.0)
+    }
+}
+
+/// UDS Routine Identifier
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct UdsRoutineIdentifier(pub u16);
+
+impl UdsRoutineIdentifier {
+    /// Create a new routine identifier
+    pub fn new(value: u16) -> Self {
+        Self(value)
+    }
+
+    /// Get the raw value
+    pub fn value(&self) -> u16 {
+        self.0
+    }
+}
+
+impl std::fmt::Display for UdsRoutineIdentifier {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "0x{:04X}", self.0)
+    }
+}
+
+/// UDS header information (ISO 14229)
+#[derive(Debug, Clone)]
+pub struct UdsHeader {
+    /// Service ID
+    pub service_id: UdsServiceId,
+    /// Raw service ID byte
+    pub service_id_raw: u8,
+    /// Sub-function (if applicable)
+    pub sub_function: Option<u8>,
+    /// Suppress positive response flag
+    pub suppress_positive_response: bool,
+    /// Negative response code (for NRC responses)
+    pub negative_response_code: Option<UdsNrc>,
+    /// Rejected service ID (for NRC responses)
+    pub rejected_service_id: Option<UdsServiceId>,
+}
+
+impl UdsHeader {
+    /// Check if this is a request
+    pub fn is_request(&self) -> bool {
+        self.service_id_raw < 0x40 && self.negative_response_code.is_none()
+    }
+
+    /// Check if this is a positive response
+    pub fn is_positive_response(&self) -> bool {
+        self.service_id_raw >= 0x40 && self.service_id_raw != 0x7F
+    }
+
+    /// Check if this is a negative response
+    pub fn is_negative_response(&self) -> bool {
+        self.service_id_raw == 0x7F
+    }
+
+    /// Get the service name
+    pub fn service_name(&self) -> &'static str {
+        self.service_id.name()
+    }
+}
+
+/// UDS decoder for parsing UDS messages
+pub struct UdsDecoder {
+    // Placeholder for future state
+}
+
+impl UdsDecoder {
+    /// Create a new UDS decoder
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    /// Decode a UDS message from bytes
+    pub fn decode(&self, data: &[u8]) -> Option<UdsHeader> {
+        if data.is_empty() {
+            return None;
+        }
+
+        let service_id_raw = data[0];
+
+        // Check for negative response
+        if service_id_raw == 0x7F && data.len() >= 3 {
+            let rejected_sid = UdsServiceId::from(data[1]);
+            let nrc = UdsNrc::from(data[2]);
+            return Some(UdsHeader {
+                service_id: UdsServiceId::Unknown,
+                service_id_raw,
+                sub_function: None,
+                suppress_positive_response: false,
+                negative_response_code: Some(nrc),
+                rejected_service_id: Some(rejected_sid),
+            });
+        }
+
+        // Determine if request or positive response
+        let base_sid = if service_id_raw >= 0x40 && service_id_raw != 0x7F {
+            service_id_raw - 0x40 // Response
+        } else {
+            service_id_raw // Request
+        };
+
+        let service_id = UdsServiceId::from(base_sid);
+
+        // Extract sub-function if present
+        let (sub_function, suppress_positive_response) = if data.len() > 1 {
+            let sf = data[1];
+            // Bit 7 is suppress positive response flag
+            (Some(sf & 0x7F), (sf & 0x80) != 0)
+        } else {
+            (None, false)
+        };
+
+        Some(UdsHeader {
+            service_id,
+            service_id_raw,
+            sub_function,
+            suppress_positive_response,
+            negative_response_code: None,
+            rejected_service_id: None,
+        })
+    }
+
+    /// Check if data represents a UDS request
+    pub fn is_request(data: &[u8]) -> bool {
+        if data.is_empty() {
+            return false;
+        }
+        data[0] < 0x40
+    }
+
+    /// Check if data represents a UDS positive response
+    pub fn is_positive_response(data: &[u8]) -> bool {
+        if data.is_empty() {
+            return false;
+        }
+        data[0] >= 0x40 && data[0] != 0x7F
+    }
+
+    /// Check if data represents a UDS negative response
+    pub fn is_negative_response(data: &[u8]) -> bool {
+        if data.is_empty() {
+            return false;
+        }
+        data[0] == 0x7F
+    }
+}
+
+impl Default for UdsDecoder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// A decoded protocol layer
 #[derive(Debug, Clone)]
 pub struct DecodedLayer {
@@ -481,6 +994,7 @@ pub struct DecodedLayer {
     someip: Option<SomeIpHeader>,
     doip: Option<DoIpHeader>,
     gptp: Option<GptpHeader>,
+    uds: Option<UdsHeader>,
 }
 
 impl DecodedLayer {
@@ -532,6 +1046,11 @@ impl DecodedLayer {
     /// Get gPTP header if this is a gPTP layer
     pub fn gptp(&self) -> Option<&GptpHeader> {
         self.gptp.as_ref()
+    }
+
+    /// Get UDS header if this is a UDS layer
+    pub fn uds(&self) -> Option<&UdsHeader> {
+        self.uds.as_ref()
     }
 }
 
@@ -626,6 +1145,27 @@ impl DecodeResult {
                 (eth, ip4, u, t, sip, dip, gtp)
             };
 
+            // For UDS, we decode from payload if available
+            let uds = if protocol == Protocol::Uds {
+                // Try to get payload at this layer
+                let payload = unsafe {
+                    let ptr = wadjet_sys::wadjet_decode_payload(handle);
+                    let len = wadjet_sys::wadjet_decode_payload_length(handle);
+                    if !ptr.is_null() && len > 0 {
+                        Some(std::slice::from_raw_parts(ptr, len))
+                    } else {
+                        None
+                    }
+                };
+                
+                payload.and_then(|p| {
+                    let decoder = UdsDecoder::new();
+                    decoder.decode(p)
+                })
+            } else {
+                None
+            };
+
             layers.push(DecodedLayer {
                 protocol,
                 offset,
@@ -637,6 +1177,7 @@ impl DecodeResult {
                 someip,
                 doip,
                 gptp,
+                uds,
             });
         }
 
@@ -668,6 +1209,16 @@ impl DecodeResult {
             }
             std::slice::from_raw_parts(ptr, len)
         }
+    }
+
+    /// Decode UDS message from payload
+    pub fn decode_uds(&self) -> Option<UdsHeader> {
+        let payload = self.payload();
+        if payload.is_empty() {
+            return None;
+        }
+        let decoder = UdsDecoder::new();
+        decoder.decode(payload)
     }
 
     /// Get a summary string of the decoded packet
