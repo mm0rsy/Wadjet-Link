@@ -3,16 +3,17 @@
 ///
 /// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
 
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-
+#include "wadjet/protocols/doip.hpp"
 #include "wadjet/protocols/ethernet.hpp"
+#include "wadjet/protocols/gptp/gptp.hpp"
 #include "wadjet/protocols/ipv4.hpp"
-#include "wadjet/protocols/udp.hpp"
-#include "wadjet/protocols/tcp.hpp"
 #include "wadjet/protocols/someip.hpp"
 #include "wadjet/protocols/someip_sd.hpp"
-#include "wadjet/protocols/doip.hpp"
+#include "wadjet/protocols/tcp.hpp"
+#include "wadjet/protocols/udp.hpp"
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 namespace py = pybind11;
 
@@ -259,5 +260,82 @@ void bind_protocols(py::module_& m) {
             return "<DoIPHeader type=" + 
                    std::to_string(static_cast<int>(hdr.payload_type)) +
                    " len=" + std::to_string(hdr.payload_length) + ">";
+        });
+
+    // =========================================================================
+    // gPTP (IEEE 802.1AS)
+    // =========================================================================
+    py::enum_<gptp::MessageType>(m, "GptpMessageType", "gPTP message types")
+        .value("Sync", gptp::MessageType::Sync)
+        .value("Delay_Req", gptp::MessageType::Delay_Req)
+        .value("Pdelay_Req", gptp::MessageType::Pdelay_Req)
+        .value("Pdelay_Resp", gptp::MessageType::Pdelay_Resp)
+        .value("Follow_Up", gptp::MessageType::Follow_Up)
+        .value("Delay_Resp", gptp::MessageType::Delay_Resp)
+        .value("Pdelay_Resp_Follow_Up", gptp::MessageType::Pdelay_Resp_Follow_Up)
+        .value("Announce", gptp::MessageType::Announce)
+        .value("Signaling", gptp::MessageType::Signaling)
+        .value("Management", gptp::MessageType::Management)
+        .export_values();
+
+    py::class_<gptp::ClockIdentity>(m, "ClockIdentity",
+                                    "PTP clock identity (8 bytes, typically EUI-64)")
+        .def_readonly("bytes", &gptp::ClockIdentity::bytes)
+        .def("to_string", &gptp::ClockIdentity::to_string)
+        .def("__repr__", [](const gptp::ClockIdentity& ci) {
+            return "<ClockIdentity " + ci.to_string() + ">";
+        });
+
+    py::class_<gptp::PortIdentity>(m, "PortIdentity",
+                                   "PTP port identity (clock identity + port number)")
+        .def_readonly("clock_identity", &gptp::PortIdentity::clock_identity)
+        .def_readonly("port_number", &gptp::PortIdentity::port_number)
+        .def("__repr__", [](const gptp::PortIdentity& pi) {
+            return "<PortIdentity " + pi.clock_identity.to_string() + ":" +
+                   std::to_string(pi.port_number) + ">";
+        });
+
+    py::class_<gptp::ScaledNs>(m, "ScaledNs", "Scaled nanoseconds (64.16 fixed-point)")
+        .def_readonly("scaled_ns", &gptp::ScaledNs::scaled_ns)
+        .def("to_nanoseconds", &gptp::ScaledNs::to_nanoseconds)
+        .def("__repr__", [](const gptp::ScaledNs& ns) {
+            return "<ScaledNs " + std::to_string(ns.to_nanoseconds()) + "ns>";
+        });
+
+    py::class_<gptp::GptpTimestamp>(m, "GptpTimestamp",
+                                    "PTP timestamp (48-bit seconds + 32-bit nanoseconds)")
+        .def_readonly("seconds_msb", &gptp::GptpTimestamp::seconds_msb)
+        .def_readonly("seconds_lsb", &gptp::GptpTimestamp::seconds_lsb)
+        .def_readonly("nanoseconds", &gptp::GptpTimestamp::nanoseconds)
+        .def("seconds", &gptp::GptpTimestamp::seconds)
+        .def("__repr__", [](const gptp::GptpTimestamp& ts) {
+            return "<GptpTimestamp " + std::to_string(ts.seconds()) + "s " +
+                   std::to_string(ts.nanoseconds) + "ns>";
+        });
+
+    py::class_<gptp::GptpHeader>(m, "GptpHeader", "Decoded gPTP header (IEEE 802.1AS)")
+        .def_readonly("transport_specific", &gptp::GptpHeader::transport_specific)
+        .def_readonly("message_type", &gptp::GptpHeader::message_type)
+        .def_readonly("version", &gptp::GptpHeader::version)
+        .def_readonly("message_length", &gptp::GptpHeader::message_length)
+        .def_readonly("domain_number", &gptp::GptpHeader::domain_number)
+        .def_readonly("flags", &gptp::GptpHeader::flags)
+        .def_readonly("correction_field", &gptp::GptpHeader::correction_field)
+        .def_readonly("source_port_identity", &gptp::GptpHeader::source_port_identity)
+        .def_readonly("sequence_id", &gptp::GptpHeader::sequence_id)
+        .def_readonly("control", &gptp::GptpHeader::control)
+        .def_readonly("log_message_interval", &gptp::GptpHeader::log_message_interval)
+        .def("is_two_step", &gptp::GptpHeader::is_two_step)
+        .def("is_event", &gptp::GptpHeader::is_event)
+        .def("is_general", &gptp::GptpHeader::is_general)
+        .def("message_type_string",
+             [](const gptp::GptpHeader& hdr) {
+                 return std::string(gptp::message_type_to_string(hdr.message_type));
+             })
+        .def("__repr__", [](const gptp::GptpHeader& hdr) {
+            return "<GptpHeader type=" +
+                   std::string(gptp::message_type_to_string(hdr.message_type)) +
+                   " seq=" + std::to_string(hdr.sequence_id) +
+                   " domain=" + std::to_string(hdr.domain_number) + ">";
         });
 }
