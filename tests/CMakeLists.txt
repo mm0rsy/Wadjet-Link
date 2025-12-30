@@ -102,3 +102,25 @@ target_link_libraries(wadjet_testing_framework_tests
 gtest_discover_tests(wadjet_testing_framework_tests
     TEST_PREFIX "testing."
 )
+
+# ============================================================================
+# Scenario Tests (requires yaml-cpp and nlohmann_json)
+# ============================================================================
+if(WADJET_SCENARIO_ENABLED)
+    add_executable(wadjet_scenario_tests
+        scenario/test_scenario_parser.cpp
+        scenario/test_scenario_runner.cpp
+    )
+
+    target_link_libraries(wadjet_scenario_tests
+        PRIVATE
+            wadjet
+            wadjet_warnings
+            wadjet_sanitizers
+            GTest::gtest_main
+    )
+
+    gtest_discover_tests(wadjet_scenario_tests
+        TEST_PREFIX "scenario."
+    )
+endif()

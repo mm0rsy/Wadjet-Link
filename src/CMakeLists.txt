@@ -6,6 +6,26 @@
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PCAP REQUIRED libpcap)
 
+# Find yaml-cpp
+find_package(yaml-cpp QUIET)
+if(NOT yaml-cpp_FOUND)
+    pkg_check_modules(YAML_CPP yaml-cpp)
+endif()
+
+# Find nlohmann_json
+find_package(nlohmann_json QUIET)
+
+# Check if scenario dependencies are available
+set(WADJET_SCENARIO_ENABLED OFF PARENT_SCOPE)
+set(WADJET_SCENARIO_ENABLED OFF)
+if((yaml-cpp_FOUND OR YAML_CPP_FOUND) AND nlohmann_json_FOUND)
+    set(WADJET_SCENARIO_ENABLED ON PARENT_SCOPE)
+    set(WADJET_SCENARIO_ENABLED ON)
+    message(STATUS "Scenario module: ENABLED (yaml-cpp and nlohmann_json found)")
+else()
+    message(STATUS "Scenario module: DISABLED (install yaml-cpp and nlohmann_json to enable)")
+endif()
+
 add_library(wadjet
     # Core modules
     version.cpp
@@ -36,6 +56,17 @@ add_library(wadjet
     protocols/dispatcher.cpp
 )
 
+# Add scenario module sources if dependencies are available
+if(WADJET_SCENARIO_ENABLED)
+    target_sources(wadjet PRIVATE
+        scenario/yaml_parser.cpp
+        scenario/json_parser.cpp
+        scenario/runner.cpp
+        scenario/report.cpp
+    )
+    target_compile_definitions(wadjet PUBLIC WADJET_SCENARIO_ENABLED=1)
+endif()
+
 target_include_directories(wadjet
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
@@ -50,6 +81,17 @@ target_link_libraries(wadjet
         wadjet_sanitizers
         ${PCAP_LIBRARIES}
 )
+
+# Link scenario dependencies
+if(WADJET_SCENARIO_ENABLED)
+    if(yaml-cpp_FOUND)
+        target_link_libraries(wadjet PRIVATE yaml-cpp)
+    else()
+        target_include_directories(wadjet PRIVATE ${YAML_CPP_INCLUDE_DIRS})
+        target_link_libraries(wadjet PRIVATE ${YAML_CPP_LIBRARIES})
+    endif()
+    target_link_libraries(wadjet PRIVATE nlohmann_json::nlohmann_json)
+endif()
 
 # Future: Add subdirectories as they are implemented
 # add_subdirectory(testing)
