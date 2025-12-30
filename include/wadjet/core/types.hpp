@@ -147,6 +147,7 @@ enum class EtherType : std::uint16_t {
     VLAN = 0x8100,
     QinQ = 0x88A8,
     IPv6 = 0x86DD,
+    PTP = 0x88F7,  ///< Precision Time Protocol (gPTP / IEEE 802.1AS)
 };
 
 /// @brief IP protocol numbers

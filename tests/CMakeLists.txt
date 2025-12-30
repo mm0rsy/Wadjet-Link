@@ -36,6 +36,7 @@ add_executable(wadjet_tests
     io/test_replay_session.cpp
     # Protocol tests
     protocols/test_decoders.cpp
+    protocols/test_gptp.cpp
 )
 
 target_link_libraries(wadjet_tests

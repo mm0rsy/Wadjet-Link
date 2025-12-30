@@ -4,13 +4,14 @@
 /// @brief Protocol dispatcher for chaining decoders
 
 #include "wadjet/protocols/decoder.hpp"
+#include "wadjet/protocols/doip.hpp"
 #include "wadjet/protocols/ethernet.hpp"
+#include "wadjet/protocols/gptp/gptp.hpp"
 #include "wadjet/protocols/ipv4.hpp"
-#include "wadjet/protocols/udp.hpp"
-#include "wadjet/protocols/tcp.hpp"
 #include "wadjet/protocols/someip.hpp"
 #include "wadjet/protocols/someip_sd.hpp"
-#include "wadjet/protocols/doip.hpp"
+#include "wadjet/protocols/tcp.hpp"
+#include "wadjet/protocols/udp.hpp"
 
 #include <functional>
 #include <memory>
@@ -22,15 +23,10 @@
 namespace wadjet::protocols {
 
 /// @brief Type alias for decoded header variant
-using DecodedHeaderVariant = std::variant<
-    ethernet::EthernetHeader,
-    ipv4::IPv4Header,
-    udp::UdpHeader,
-    tcp::TcpHeader,
-    someip::SomeIpHeader,
-    someip_sd::SomeIpSdHeader,
-    doip::DoIPHeader
->;
+using DecodedHeaderVariant =
+    std::variant<ethernet::EthernetHeader, ipv4::IPv4Header, udp::UdpHeader, tcp::TcpHeader,
+                 someip::SomeIpHeader, someip_sd::SomeIpSdHeader, doip::DoIPHeader,
+                 gptp::GptpHeader>;
 
 /// @brief Result of a full protocol stack decode
 struct DecodeStackResult {
@@ -126,6 +122,9 @@ private:
                            std::uint16_t src_port,
                            std::uint16_t dst_port) const;
 
+    /// @brief Decode gPTP (IEEE 802.1AS) layer
+    void decode_gptp(DecodeStackResult& result, std::span<const std::byte>& data) const;
+
     DispatcherOptions options_;
 
     // Pre-instantiated decoders
@@ -136,6 +135,7 @@ private:
     someip::SomeIpDecoder someip_decoder_;
     someip_sd::SomeIpSdDecoder someip_sd_decoder_;
     doip::DoIPDecoder doip_decoder_;
+    gptp::GptpDecoder gptp_decoder_;
 };
 
 /// @brief Global dispatcher instance with default options
@@ -186,6 +186,26 @@ template <typename HeaderT>
     return [type](const DecodeStackResult& result) {
         if (auto* hdr = result.get_layer<doip::DoIPHeader>()) {
             return hdr->payload_type == type;
+        }
+        return false;
+    };
+}
+
+/// @brief Create filter for gPTP message type
+[[nodiscard]] inline ProtocolFilter gptp_message(gptp::MessageType type) {
+    return [type](const DecodeStackResult& result) {
+        if (auto* hdr = result.get_layer<gptp::GptpHeader>()) {
+            return hdr->message_type == type;
+        }
+        return false;
+    };
+}
+
+/// @brief Create filter for gPTP domain
+[[nodiscard]] inline ProtocolFilter gptp_domain(std::uint8_t domain) {
+    return [domain](const DecodeStackResult& result) {
+        if (auto* hdr = result.get_layer<gptp::GptpHeader>()) {
+            return hdr->domain_number == domain;
         }
         return false;
     };

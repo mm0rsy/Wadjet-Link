@@ -53,6 +53,7 @@ add_library(wadjet
     protocols/someip.cpp
     protocols/someip_sd.cpp
     protocols/doip.cpp
+    protocols/gptp_decoder.cpp
     protocols/dispatcher.cpp
 )
 

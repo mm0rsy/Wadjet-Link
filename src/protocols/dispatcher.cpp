@@ -58,6 +58,9 @@ DecodeStackResult ProtocolDispatcher::decode(std::span<const std::byte> data) co
                 // Layer 4: Transport (UDP/TCP)
                 decode_transport(result, data, ip.protocol);
             }
+        } else if (eth.ethertype == static_cast<std::uint16_t>(EtherType::PTP)) {
+            // gPTP (IEEE 802.1AS) - directly over Ethernet
+            decode_gptp(result, data);
         }
         // Could add IPv6 support here with ETHERTYPE_IPV6
     }
@@ -254,6 +257,38 @@ void ProtocolDispatcher::decode_application(DecodeStackResult& result,
             }
         }
         // Don't set error for failed heuristic decode
+    }
+}
+
+void ProtocolDispatcher::decode_gptp(DecodeStackResult& result,
+                                     std::span<const std::byte>& data) const {
+    if (data.empty() || result.layers.size() >= options_.max_layers) {
+        return;
+    }
+
+    DecodeContext gptp_ctx;
+    gptp_ctx.data = data;
+    gptp_ctx.layer_info.ethertype = static_cast<std::uint16_t>(EtherType::PTP);
+    auto gptp_result = gptp_decoder_.decode(gptp_ctx);
+
+    if (!gptp_result) {
+        result.error = gptp_result.error();
+        result.complete = false;
+        if (options_.stop_on_error) {
+            return;
+        }
+    } else {
+        result.layers.emplace_back(std::move(*gptp_result));
+
+        const auto& gptp_hdr = std::get<gptp::GptpHeader>(result.layers.back());
+        // gPTP is typically the final layer - no further payload
+        std::size_t consumed = gptp_hdr.message_length;
+        if (consumed <= data.size()) {
+            data = data.subspan(consumed);
+        } else {
+            data = {};
+        }
+        result.payload = data;
     }
 }
 
