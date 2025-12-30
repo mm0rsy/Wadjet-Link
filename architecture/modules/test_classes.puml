@@ -1,0 +1,191 @@
+@startuml test_classes
+!theme plain
+title 𓆓 Wadjet-Link - Test Architecture Class Diagram
+
+skinparam backgroundColor white
+skinparam class {
+    BackgroundColor #E8E8FD
+    BorderColor #4444CC
+    ArrowColor #666666
+}
+skinparam package {
+    BackgroundColor #F8F8FF
+}
+
+package "GoogleTest Framework" #EEEEEE {
+    abstract class "::testing::Test" as GTestBase {
+        #SetUp(): void
+        #TearDown(): void
+    }
+}
+
+package "Unit Tests" {
+    
+    package "tests/core" {
+        class ResultTest
+        class ByteOrderTest
+        class TimestampTest
+    }
+    
+    package "tests/net" {
+        class MacAddressTest
+        class IPv4AddressTest
+        class PacketViewTest
+        class PacketTest
+    }
+    
+    package "tests/pcap" {
+        class PcapReaderTest
+        class PcapWriterTest
+    }
+    
+    package "tests/io" {
+        class DeviceTest
+        class FrameFilterTest
+    }
+    
+    package "tests/protocols" {
+        class EthernetDecoderTest
+        class IPv4DecoderTest
+        class UDPDecoderTest
+        class TCPDecoderTest
+        class SomeIpDecoderTest
+        class DoIPDecoderTest
+        class DecodeContextTest
+        class ProtocolDispatcherTest
+    }
+}
+
+package "Integration Tests" #E8FDE8 {
+    
+    package "tests/integration" {
+        
+        class DecodePipelineTest {
+            -dispatcher: ProtocolDispatcher
+            --
+            +DecodeEthernetIPv4UdpSomeIP()
+            +DecodeEthernetIPv4TcpDoIP()
+            +DecodeStopsOnMalformedIPv4()
+            +DecodeVlanTaggedPacket()
+            +PayloadRemainsAfterDecode()
+            +DecodeMultiplePacketsConsistently()
+        }
+        
+        class PacketBuilder <<helper>> {
+            -data_: vector<uint8_t>
+            --
+            +ethernet(dst, src, ethertype): this
+            +ethernet_ipv4(): this
+            +ethernet_vlan(vid, pcp): this
+            +ipv4(src, dst, protocol, payload_len): this
+            +udp(src_port, dst_port, payload_len): this
+            +tcp(src, dst, seq, ack, flags): this
+            +someip(service, method, client, session, type, len): this
+            +doip(version, type, payload_len): this
+            +payload(bytes): this
+            +build(): span<const byte>
+            +data(): vector<uint8_t>&
+        }
+        
+        class PcapDecodeTest {
+            #fixture: PcapTestFixture
+            --
+            +DecodeSingleSomeIpPacket()
+            +DecodeMultipleSomeIpPackets()
+            +DecodeDoIPPacket()
+            +DecodeMixedProtocols()
+        }
+        
+        class PcapRoundTripTest {
+            #fixture: PcapTestFixture
+            --
+            +WriteAndReadBack()
+            +PreservesTimestamps()
+            +ReaderCountsPackets()
+        }
+        
+        class PcapTestFixture <<helper>> {
+            +temp_dir: path
+            +temp_file: string
+            --
+            +create_temp_pcap(): PcapWriter
+            +write_packet(writer, data): void
+            +read_packets(path): vector<Packet>
+        }
+        
+        class CaptureSessionTest {
+            --
+            +CreateSessionOnLoopback()
+            +CreateWithOptions()
+            +SetBpfFilter()
+            +StatsInitiallyZero()
+            +TimeoutWhenNoPackets()
+            +InvalidInterfaceFails()
+            +InvalidFilterFails()
+            +ComplexFilterWorks()
+        }
+        
+        class LoopbackCaptureTest {
+            -dispatcher: ProtocolDispatcher
+            --
+            +CaptureUdpOnLoopback()
+            +CaptureLoopWithCallback()
+            +DecodesCapturedPackets()
+            +FullPipelineFromCapture()
+        }
+        
+        class UdpReceiver <<helper>> {
+            -port_: uint16_t
+            -sock_: int
+            --
+            +start(): bool
+            +stop(): void
+        }
+    }
+}
+
+' Inheritance
+ResultTest --|> GTestBase
+ByteOrderTest --|> GTestBase
+TimestampTest --|> GTestBase
+MacAddressTest --|> GTestBase
+IPv4AddressTest --|> GTestBase
+PacketViewTest --|> GTestBase
+PacketTest --|> GTestBase
+PcapReaderTest --|> GTestBase
+PcapWriterTest --|> GTestBase
+DeviceTest --|> GTestBase
+FrameFilterTest --|> GTestBase
+EthernetDecoderTest --|> GTestBase
+IPv4DecoderTest --|> GTestBase
+UDPDecoderTest --|> GTestBase
+TCPDecoderTest --|> GTestBase
+SomeIpDecoderTest --|> GTestBase
+DoIPDecoderTest --|> GTestBase
+DecodeContextTest --|> GTestBase
+ProtocolDispatcherTest --|> GTestBase
+DecodePipelineTest --|> GTestBase
+PcapDecodeTest --|> GTestBase
+PcapRoundTripTest --|> GTestBase
+CaptureSessionTest --|> GTestBase
+LoopbackCaptureTest --|> GTestBase
+
+' Helper usage
+DecodePipelineTest ..> PacketBuilder : uses
+PcapDecodeTest ..> PcapTestFixture : uses
+PcapRoundTripTest ..> PcapTestFixture : uses
+LoopbackCaptureTest ..> UdpReceiver : uses
+
+note right of CaptureSessionTest
+    Requires CAP_NET_RAW
+    or root privileges
+end note
+
+legend right
+    | Tests | Count |
+    | Unit Tests | 111 |
+    | Integration Tests | 26 |
+    | **Total** | **137** |
+endlegend
+
+@enduml

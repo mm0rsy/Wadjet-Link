@@ -7,11 +7,17 @@ skinparam rectangle {
     roundCorner 10
 }
 
-rectangle "**Application Layer**\n(User Code / Tests)" as App #E8E8FD {
+rectangle "**Test Layer**\n(GoogleTest)" as Test #E8E8FD {
+    card "Unit Tests (111)" as UT
+    card "Integration Tests (26)" as IT
+    card "PacketBuilder" as PB
+}
+
+rectangle "**Application Layer**\n(User Code / Tests)" as App #F8F8FD {
 }
 
 rectangle "**Protocol Layer**\n(SOME/IP, DoIP, gPTP, UDS)" as Protocol #FDE8E8 {
-    note "Milestone 2-3\n(Planned)" as N1
+    note "Milestone 2 ✅\nEthernet, IPv4, UDP, TCP,\nSOME/IP, DoIP" as N1
 }
 
 rectangle "**Packet Layer**\nPacketView | Packet" as Net #E8FDF4 {
@@ -40,6 +46,9 @@ rectangle "**System Layer**" as Sys #DDDDDD {
     card "File System" as FS
 }
 
+Test -down-> App
+Test -down-> Protocol
+Test -down-> IO
 App -down-> Protocol
 App -down-> Net
 Protocol -down-> Net
@@ -51,7 +60,8 @@ Core -down-> Sys
 
 legend right
   | Color | Layer |
-  | <#E8E8FD> | Application |
+  | <#E8E8FD> | Test |
+  | <#F8F8FD> | Application |
   | <#FDE8E8> | Protocol |
   | <#E8FDF4> | Packet |
   | <#F4E8FD> | I/O |

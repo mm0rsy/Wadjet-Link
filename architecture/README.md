@@ -28,6 +28,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | PCAP | [pcap_classes.puml](modules/pcap_classes.puml) |
 | I/O | [io_classes.puml](modules/io_classes.puml) |
 | Protocols | [protocols_classes.puml](modules/protocols_classes.puml) |
+| Tests | [test_classes.puml](modules/test_classes.puml) |
 
 ### Module Sequence Diagrams
 
@@ -38,6 +39,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | PCAP | [pcap_sequences.puml](sequences/pcap_sequences.puml) |
 | I/O | [io_sequences.puml](sequences/io_sequences.puml) |
 | Protocols | [protocols_sequences.puml](sequences/protocols_sequences.puml) |
+| Tests | [test_sequences.puml](sequences/test_sequences.puml) |
 
 ## Test Architecture
 

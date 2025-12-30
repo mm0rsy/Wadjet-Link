@@ -99,6 +99,21 @@ Dispatcher --> DoIP : chains
 UDS ..> DoIP : uses
 gPTP ..> PacketView : uses
 
+package "Test Framework" {
+    component [Unit Tests\n(111 tests)] as UnitTests <<test>>
+    component [Integration Tests\n(26 tests)] as IntegTests <<test>>
+    component [PacketBuilder\nHelper] as PktBuilder <<test>>
+}
+
+' Test dependencies
+UnitTests --> GTest : uses
+IntegTests --> GTest : uses
+IntegTests --> Dispatcher : tests
+IntegTests --> PcapReader : tests
+IntegTests --> PcapWriter : tests
+IntegTests --> Capture : tests
+PktBuilder --> ByteOrder : uses
+
 note right of Kernel
   Requires:
   - CAP_NET_RAW capability
@@ -109,6 +124,11 @@ note bottom of libpcap
   Used for:
   - BPF filter compilation
   - Not for capture (we use AF_PACKET)
+end note
+
+note bottom of IntegTests
+  Live capture tests require
+  CAP_NET_RAW or sudo
 end note
 
 @enduml

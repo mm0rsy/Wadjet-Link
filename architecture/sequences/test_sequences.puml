@@ -1,0 +1,160 @@
+@startuml test_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Test Execution Sequences
+
+skinparam backgroundColor white
+skinparam sequence {
+    ParticipantBackgroundColor #E8E8FD
+    ParticipantBorderColor #4444CC
+    LifeLineBackgroundColor #FAFAFA
+}
+
+== Unit Test: Protocol Decoder ==
+
+participant "GoogleTest\nRunner" as GT
+participant "EthernetDecoderTest" as Test
+participant "EthernetDecoder" as Decoder
+participant "DecodeContext" as Ctx
+
+GT -> Test: Run test case
+activate Test
+Test -> Test: Create raw packet bytes
+Test -> Ctx: Create context from bytes
+activate Ctx
+Test -> Decoder: decode(context)
+activate Decoder
+Decoder -> Ctx: has_bytes(14)
+Ctx --> Decoder: true
+Decoder -> Ctx: read_bytes(0, 6)
+Ctx --> Decoder: dst_mac
+Decoder -> Ctx: read_bytes(6, 6)
+Ctx --> Decoder: src_mac
+Decoder -> Ctx: read_be16(12)
+Ctx --> Decoder: ethertype
+Decoder --> Test: DecodeResult<EthernetHeader>
+deactivate Decoder
+Test -> Test: EXPECT_EQ assertions
+Test --> GT: Pass/Fail
+deactivate Ctx
+deactivate Test
+
+== Integration Test: Decode Pipeline ==
+
+participant "GoogleTest\nRunner" as GT2
+participant "DecodePipelineTest" as PTest
+participant "PacketBuilder" as PB
+participant "ProtocolDispatcher" as Disp
+
+GT2 -> PTest: Run test case
+activate PTest
+PTest -> PB: Create builder
+activate PB
+PTest -> PB: ethernet_ipv4()
+PTest -> PB: ipv4(src, dst, UDP, len)
+PTest -> PB: udp(30490, 30490, len)
+PTest -> PB: someip(service, method, ...)
+PTest -> PB: payload(bytes)
+PTest -> PB: build()
+PB --> PTest: span<const byte>
+deactivate PB
+
+PTest -> Disp: decode(packet_span)
+activate Disp
+note right: Chains through:\n1. Ethernet\n2. IPv4\n3. UDP\n4. SOME/IP
+Disp --> PTest: DecodeResult
+deactivate Disp
+
+PTest -> PTest: EXPECT_TRUE(result.complete)
+PTest -> PTest: ASSERT_TRUE(result.has_layer<EthernetHeader>())
+PTest -> PTest: ASSERT_TRUE(result.has_layer<SomeIpHeader>())
+PTest --> GT2: Pass/Fail
+deactivate PTest
+
+== Integration Test: PCAP Roundtrip ==
+
+participant "GoogleTest\nRunner" as GT3
+participant "PcapRoundTripTest" as RTest
+participant "PcapWriter" as PW
+participant "PcapReader" as PR
+participant "Filesystem" as FS
+
+GT3 -> RTest: Run test case
+activate RTest
+RTest -> RTest: Create temp file path
+RTest -> PW: create(temp_path)
+activate PW
+PW -> FS: Create file
+FS --> PW: file handle
+PW --> RTest: Result<PcapWriter>
+RTest -> PW: write(packet1)
+RTest -> PW: write(packet2)
+RTest -> PW: close()
+deactivate PW
+
+RTest -> PR: open(temp_path)
+activate PR
+PR -> FS: Open file
+FS --> PR: file handle
+PR --> RTest: Result<PcapReader>
+RTest -> PR: next_packet()
+PR --> RTest: Packet1
+RTest -> PR: next_packet()
+PR --> RTest: Packet2
+RTest -> PR: next_packet()
+PR --> RTest: nullopt
+deactivate PR
+
+RTest -> RTest: Compare original vs read
+RTest -> RTest: EXPECT_EQ assertions
+RTest --> GT3: Pass/Fail
+deactivate RTest
+
+== Integration Test: Live Capture ==
+
+participant "GoogleTest\nRunner" as GT4
+participant "LoopbackCaptureTest" as LTest
+participant "CaptureSession" as Cap
+participant "UdpReceiver" as Recv
+participant "Thread" as Thr
+participant "Linux Kernel" as Kernel
+
+GT4 -> LTest: Run test case
+activate LTest
+note right: Requires CAP_NET_RAW
+
+LTest -> Cap: create("lo")
+activate Cap
+Cap -> Kernel: socket(AF_PACKET, ...)
+Kernel --> Cap: socket fd
+Cap --> LTest: Result<CaptureSession>
+
+LTest -> Cap: set_filter("udp port 55555")
+Cap -> Kernel: setsockopt(BPF_FILTER)
+Cap --> LTest: Result<void>
+
+LTest -> Recv: start()
+activate Recv
+Recv -> Kernel: bind(UDP, 55555)
+Recv --> LTest: true
+
+LTest -> Thr: spawn sender thread
+activate Thr
+Thr -> Kernel: sendto(loopback, payload)
+Kernel --> Thr: sent
+
+LTest -> Cap: next_packet(100ms)
+Cap -> Kernel: recvfrom(timeout)
+note right: Kernel captures packet\non loopback interface
+Kernel --> Cap: raw packet
+Cap --> LTest: Packet
+
+deactivate Thr
+deactivate Recv
+
+LTest -> LTest: EXPECT_TRUE(packet.has_value())
+LTest -> LTest: Verify packet contents
+deactivate Cap
+LTest --> GT4: Pass/Fail
+deactivate LTest
+
+@enduml
