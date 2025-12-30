@@ -32,6 +32,8 @@ add_executable(wadjet_tests
     # I/O tests
     io/test_device.cpp
     io/test_frame_filter.cpp
+    # Protocol tests
+    protocols/test_decoders.cpp
 )
 
 target_link_libraries(wadjet_tests

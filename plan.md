@@ -236,29 +236,31 @@ public:
 
 ---
 
-### Milestone 2 — Protocol Decoders
+### Milestone 2 — Protocol Decoders ✅
 
 **Goal:** Pluggable decoding architecture
 
+**Status:** Completed
+
 **Implementation:**
 
-- [ ] `ProtocolDecoder` abstract base
-- [ ] Ethernet header parser
-- [ ] VLAN parsing (802.1Q)
-- [ ] IPv4 parser
-- [ ] UDP parser
-- [ ] TCP parser
-- [ ] SOME/IP header parsing
-- [ ] SOME/IP Service Discovery parsing
-- [ ] DoIP header parsing
-- [ ] Ethertype dispatch mechanism
+- [x] `ProtocolDecoder` abstract base (IProtocolDecoder + DecoderBase CRTP)
+- [x] Ethernet header parser (with VLAN support)
+- [x] VLAN parsing (802.1Q and QinQ)
+- [x] IPv4 parser (with checksum validation)
+- [x] UDP parser
+- [x] TCP parser (with options parsing)
+- [x] SOME/IP header parsing
+- [x] SOME/IP Service Discovery parsing
+- [x] DoIP header parsing
+- [x] Ethertype dispatch mechanism (ProtocolDispatcher)
 
 **Tests:**
 
-- [ ] Known PCAP fixtures
-- [ ] Malformed frame handling
-- [ ] Boundary conditions
-- [ ] Fuzz testing
+- [x] Known PCAP fixtures (39 new tests)
+- [x] Malformed frame handling
+- [x] Boundary conditions
+- [ ] Fuzz testing (future work)
 
 ---
 
