@@ -1,0 +1,30 @@
+# Example: Basic UDP Traffic Validation
+#
+# Simple scenario to validate UDP packet capture and matching.
+# Good for testing the scenario runner itself.
+
+name: Basic UDP Traffic Test
+description: Capture and validate UDP packets on loopback
+tags:
+  - basic
+  - udp
+  - loopback
+
+timeout: 10s
+
+steps:
+  - capture:
+      interface: lo
+      filter: "udp"
+      promiscuous: false
+
+  - wait: 100ms
+
+  - expect:
+      description: "Any UDP packets"
+      udp: {}
+      within: 5s
+      count: ">= 0"
+      required: false
+
+  - log: "UDP capture test complete"

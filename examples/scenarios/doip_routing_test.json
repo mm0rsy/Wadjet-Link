@@ -1,0 +1,58 @@
+{
+  "name": "DoIP Routing Activation Test",
+  "description": "Verify DoIP routing activation sequence",
+  "version": "1.0",
+  "tags": ["doip", "smoke", "routing"],
+  "timeout": 30000,
+  
+  "steps": [
+    {
+      "capture": {
+        "interface": "eth0",
+        "filter": "tcp port 13400",
+        "timeout": 15000
+      }
+    },
+    
+    {
+      "log": {
+        "message": "Waiting for routing activation...",
+        "level": "info"
+      }
+    },
+    
+    {
+      "expect": {
+        "description": "Should receive routing activation request",
+        "doip": {
+          "type": "routing_activation_request"
+        },
+        "within_ms": 5000,
+        "count": ">= 1"
+      }
+    },
+    
+    {
+      "expect": {
+        "description": "Should receive routing activation response",
+        "doip": {
+          "type": "routing_activation_response"
+        },
+        "within_ms": 5000,
+        "count": ">= 1"
+      }
+    },
+    
+    {
+      "expect": {
+        "description": "Should see diagnostic messages after activation",
+        "doip": {
+          "type": "diagnostic_message"
+        },
+        "within_ms": 10000,
+        "count": ">= 1",
+        "required": false
+      }
+    }
+  ]
+}

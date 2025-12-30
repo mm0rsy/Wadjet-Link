@@ -1,0 +1,37 @@
+# Example: SOME/IP Service Discovery Test
+# 
+# This scenario captures traffic on eth0 and expects to see
+# SOME/IP Service Discovery offers for service 0x1234.
+
+name: SOMEIP Service Discovery Test
+description: Verify service offers appear within timeout
+version: "1.0"
+tags:
+  - someip
+  - smoke
+  - service-discovery
+
+timeout: 30s
+
+steps:
+  - capture:
+      interface: eth0
+      filter: "udp port 30490"
+      timeout: 10s
+
+  - log: "Waiting for service offers..."
+
+  - expect:
+      description: "Service 0x1234 should be offered"
+      someip:
+        service: 0x1234
+        type: notification
+      within: 5s
+      count: ">= 1"
+
+  - expect:
+      description: "Should see at least 3 SD messages"
+      sd:
+        type: offer
+      within: 10s
+      count: ">= 3"
