@@ -16,11 +16,14 @@ add_library(wadjet
     # PCAP I/O
     pcap/pcap_reader.cpp
     pcap/pcap_writer.cpp
+    pcap/pcapng_writer.cpp
     
     # Live capture
     io/device.cpp
     io/frame_filter.cpp
     io/capture_session.cpp
+    io/replay_session.cpp
+    io/pcap_capture_session.cpp
     
     # Protocol decoders
     protocols/ethernet.cpp

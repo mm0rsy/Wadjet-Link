@@ -29,9 +29,11 @@ add_executable(wadjet_tests
     net/test_packet.cpp
     # PCAP tests
     pcap/test_pcap.cpp
+    pcap/test_pcapng.cpp
     # I/O tests
     io/test_device.cpp
     io/test_frame_filter.cpp
+    io/test_replay_session.cpp
     # Protocol tests
     protocols/test_decoders.cpp
 )
