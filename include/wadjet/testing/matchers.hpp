@@ -22,21 +22,22 @@
 
 #pragma once
 
-#include <algorithm>
-#include <array>
-#include <cstdint>
-#include <span>
-#include <sstream>
-#include <iomanip>
-#include <string>
-#include <type_traits>
-#include <vector>
-
-#include <gmock/gmock.h>
-
 #include "wadjet/core/types.hpp"
 #include "wadjet/net/packet.hpp"
 #include "wadjet/protocols/dispatcher.hpp"
+#include "wadjet/protocols/uds/uds.hpp"
+
+#include <gmock/gmock.h>
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <iomanip>
+#include <span>
+#include <sstream>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace wadjet::testing {
 
@@ -1199,6 +1200,436 @@ public:
 
 inline ::testing::PolymorphicMatcher<DecodesSuccessfullyMatcher> DecodesSuccessfully() {
     return ::testing::MakePolymorphicMatcher(DecodesSuccessfullyMatcher());
+}
+
+// =============================================================================
+// UDS (ISO 14229) Matchers
+// =============================================================================
+
+/// @brief Matcher: payload is a UDS request message
+class IsUdsRequestMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+
+        bool is_request = protocols::uds::UdsDecoder::is_request(span);
+        if (listener->IsInterested()) {
+            *listener << (is_request ? "is a UDS request" : "is not a UDS request");
+        }
+        return is_request;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a UDS request"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a UDS request"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsUdsRequestMatcher> IsUdsRequest() {
+    return ::testing::MakePolymorphicMatcher(IsUdsRequestMatcher());
+}
+
+/// @brief Matcher: payload is a UDS positive response message
+class IsUdsPositiveResponseMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+
+        bool is_response = protocols::uds::UdsDecoder::is_positive_response(span);
+        if (listener->IsInterested()) {
+            *listener << (is_response ? "is a UDS positive response"
+                                      : "is not a UDS positive response");
+        }
+        return is_response;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a UDS positive response"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a UDS positive response"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsUdsPositiveResponseMatcher> IsUdsPositiveResponse() {
+    return ::testing::MakePolymorphicMatcher(IsUdsPositiveResponseMatcher());
+}
+
+/// @brief Matcher: payload is a UDS response (positive or negative)
+class IsUdsResponseMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+
+        bool is_response = protocols::uds::UdsDecoder::is_positive_response(span) ||
+                           protocols::uds::UdsDecoder::is_negative_response(span);
+        if (listener->IsInterested()) {
+            *listener << (is_response ? "is a UDS response" : "is not a UDS response");
+        }
+        return is_response;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a UDS response"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a UDS response"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsUdsResponseMatcher> IsUdsResponse() {
+    return ::testing::MakePolymorphicMatcher(IsUdsResponseMatcher());
+}
+
+/// @brief Matcher: payload is a UDS negative response message
+class IsUdsNegativeResponseMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+
+        bool is_nrc = protocols::uds::UdsDecoder::is_negative_response(span);
+        if (listener->IsInterested()) {
+            *listener << (is_nrc ? "is a UDS negative response" : "is not a UDS negative response");
+        }
+        return is_nrc;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a UDS negative response"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a UDS negative response"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsUdsNegativeResponseMatcher> IsUdsNegativeResponse() {
+    return ::testing::MakePolymorphicMatcher(IsUdsNegativeResponseMatcher());
+}
+
+/// @brief Matcher: payload has specific UDS service ID
+class HasUdsServiceMatcher {
+public:
+    explicit HasUdsServiceMatcher(protocols::uds::ServiceID service_id) : expected_(service_id) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+        protocols::uds::UdsDecoder decoder;
+        auto result = decoder.decode(span);
+
+        if (!result.is_ok()) {
+            if (listener->IsInterested()) {
+                *listener << "failed to decode UDS message";
+            }
+            return false;
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "has UDS service "
+                      << protocols::uds::service_id_string(result->header.service_id);
+        }
+        return result->header.service_id == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has UDS service " << protocols::uds::service_id_string(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have UDS service " << protocols::uds::service_id_string(expected_);
+    }
+
+private:
+    protocols::uds::ServiceID expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> HasUdsService(
+    protocols::uds::ServiceID service_id) {
+    return ::testing::MakePolymorphicMatcher(HasUdsServiceMatcher(service_id));
+}
+
+/// @brief Convenience: HasUdsService for DiagnosticSessionControl
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsDiagnosticSessionControl() {
+    return HasUdsService(protocols::uds::ServiceID::DiagnosticSessionControl);
+}
+
+/// @brief Convenience: HasUdsService for ECUReset
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsECUReset() {
+    return HasUdsService(protocols::uds::ServiceID::ECUReset);
+}
+
+/// @brief Convenience: HasUdsService for SecurityAccess
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsSecurityAccess() {
+    return HasUdsService(protocols::uds::ServiceID::SecurityAccess);
+}
+
+/// @brief Convenience: HasUdsService for TesterPresent
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsTesterPresent() {
+    return HasUdsService(protocols::uds::ServiceID::TesterPresent);
+}
+
+/// @brief Convenience: HasUdsService for ReadDataByIdentifier
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsReadDataByIdentifier() {
+    return HasUdsService(protocols::uds::ServiceID::ReadDataByIdentifier);
+}
+
+/// @brief Convenience: HasUdsService for WriteDataByIdentifier
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsWriteDataByIdentifier() {
+    return HasUdsService(protocols::uds::ServiceID::WriteDataByIdentifier);
+}
+
+/// @brief Convenience: HasUdsService for RoutineControl
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsRoutineControl() {
+    return HasUdsService(protocols::uds::ServiceID::RoutineControl);
+}
+
+/// @brief Convenience: HasUdsService for RequestDownload
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsRequestDownload() {
+    return HasUdsService(protocols::uds::ServiceID::RequestDownload);
+}
+
+/// @brief Convenience: HasUdsService for TransferData
+inline ::testing::PolymorphicMatcher<HasUdsServiceMatcher> IsUdsTransferData() {
+    return HasUdsService(protocols::uds::ServiceID::TransferData);
+}
+
+/// @brief Matcher: UDS message contains specific DID
+class HasUdsDIDMatcher {
+public:
+    explicit HasUdsDIDMatcher(protocols::uds::DataIdentifier did) : expected_(did) {}
+    explicit HasUdsDIDMatcher(std::uint16_t did_value) : expected_(did_value) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+        protocols::uds::UdsDecoder decoder;
+        auto result = decoder.decode(span);
+
+        if (!result.is_ok()) {
+            if (listener->IsInterested()) {
+                *listener << "failed to decode UDS message";
+            }
+            return false;
+        }
+
+        // Check ReadDataByIdentifier request
+        if (auto* req = result->template as<protocols::uds::ReadDataByIdentifierRequest>()) {
+            for (const auto& did : req->data_identifiers) {
+                if (did == expected_) {
+                    if (listener->IsInterested()) {
+                        *listener << "contains DID 0x" << std::hex << expected_.value;
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // Check ReadDataByIdentifier response
+        if (auto* resp = result->template as<protocols::uds::ReadDataByIdentifierResponse>()) {
+            for (const auto& record : resp->records) {
+                if (record.did == expected_) {
+                    if (listener->IsInterested()) {
+                        *listener << "contains DID 0x" << std::hex << expected_.value;
+                    }
+                    return true;
+                }
+            }
+        }
+
+        // Check WriteDataByIdentifier request
+        if (auto* req = result->template as<protocols::uds::WriteDataByIdentifierRequest>()) {
+            if (req->data_identifier == expected_) {
+                if (listener->IsInterested()) {
+                    *listener << "contains DID 0x" << std::hex << expected_.value;
+                }
+                return true;
+            }
+        }
+
+        // Check WriteDataByIdentifier response
+        if (auto* resp = result->template as<protocols::uds::WriteDataByIdentifierResponse>()) {
+            if (resp->data_identifier == expected_) {
+                if (listener->IsInterested()) {
+                    *listener << "contains DID 0x" << std::hex << expected_.value;
+                }
+                return true;
+            }
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "does not contain DID 0x" << std::hex << expected_.value;
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "contains UDS DID 0x" << std::hex << expected_.value;
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not contain UDS DID 0x" << std::hex << expected_.value;
+    }
+
+private:
+    protocols::uds::DataIdentifier expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasUdsDIDMatcher> HasUdsDID(
+    protocols::uds::DataIdentifier did) {
+    return ::testing::MakePolymorphicMatcher(HasUdsDIDMatcher(did));
+}
+
+inline ::testing::PolymorphicMatcher<HasUdsDIDMatcher> HasUdsDID(std::uint16_t did_value) {
+    return ::testing::MakePolymorphicMatcher(HasUdsDIDMatcher(did_value));
+}
+
+/// @brief Convenience: Check for VIN DID (0xF190)
+inline ::testing::PolymorphicMatcher<HasUdsDIDMatcher> HasUdsVinDID() {
+    return HasUdsDID(protocols::uds::DID::VIN);
+}
+
+/// @brief Matcher: UDS negative response has specific NRC
+class HasUdsNRCMatcher {
+public:
+    explicit HasUdsNRCMatcher(protocols::uds::NRC nrc) : expected_(nrc) {}
+    explicit HasUdsNRCMatcher(std::uint8_t nrc_value)
+        : expected_(static_cast<protocols::uds::NRC>(nrc_value)) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+        protocols::uds::UdsDecoder decoder;
+        auto result = decoder.decode(span);
+
+        if (!result.is_ok()) {
+            if (listener->IsInterested()) {
+                *listener << "failed to decode UDS message";
+            }
+            return false;
+        }
+
+        if (!result->header.is_negative_response()) {
+            if (listener->IsInterested()) {
+                *listener << "message is not a negative response";
+            }
+            return false;
+        }
+
+        auto nrc = static_cast<protocols::uds::NRC>(*result->header.negative_response_code);
+        if (listener->IsInterested()) {
+            *listener << "has NRC " << protocols::uds::nrc_string(nrc);
+        }
+        return nrc == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has UDS NRC " << protocols::uds::nrc_string(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have UDS NRC " << protocols::uds::nrc_string(expected_);
+    }
+
+private:
+    protocols::uds::NRC expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsNRC(protocols::uds::NRC nrc) {
+    return ::testing::MakePolymorphicMatcher(HasUdsNRCMatcher(nrc));
+}
+
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsNRC(std::uint8_t nrc_value) {
+    return ::testing::MakePolymorphicMatcher(HasUdsNRCMatcher(nrc_value));
+}
+
+/// @brief Convenience: Check for ServiceNotSupported NRC
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsServiceNotSupported() {
+    return HasUdsNRC(protocols::uds::NRC::ServiceNotSupported);
+}
+
+/// @brief Convenience: Check for SecurityAccessDenied NRC
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsSecurityAccessDenied() {
+    return HasUdsNRC(protocols::uds::NRC::SecurityAccessDenied);
+}
+
+/// @brief Convenience: Check for RequestOutOfRange NRC
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsRequestOutOfRange() {
+    return HasUdsNRC(protocols::uds::NRC::RequestOutOfRange);
+}
+
+/// @brief Convenience: Check for ConditionsNotCorrect NRC
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsConditionsNotCorrect() {
+    return HasUdsNRC(protocols::uds::NRC::ConditionsNotCorrect);
+}
+
+/// @brief Convenience: Check for ResponsePending NRC
+inline ::testing::PolymorphicMatcher<HasUdsNRCMatcher> HasUdsResponsePending() {
+    return HasUdsNRC(protocols::uds::NRC::RequestCorrectlyReceivedResponsePending);
+}
+
+/// @brief Matcher: UDS message has specific session type
+class HasUdsSessionTypeMatcher {
+public:
+    explicit HasUdsSessionTypeMatcher(protocols::uds::SessionType session_type)
+        : expected_(session_type) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& data, ::testing::MatchResultListener* listener) const {
+        auto span = detail::get_packet_data(data);
+        protocols::uds::UdsDecoder decoder;
+        auto result = decoder.decode(span);
+
+        if (!result.is_ok()) {
+            if (listener->IsInterested()) {
+                *listener << "failed to decode UDS message";
+            }
+            return false;
+        }
+
+        // Check request
+        if (auto* req = result->template as<protocols::uds::DiagnosticSessionControlRequest>()) {
+            if (listener->IsInterested()) {
+                *listener << "has session type "
+                          << protocols::uds::session_type_string(req->session_type);
+            }
+            return req->session_type == expected_;
+        }
+
+        // Check response
+        if (auto* resp = result->template as<protocols::uds::DiagnosticSessionControlResponse>()) {
+            if (listener->IsInterested()) {
+                *listener << "has session type "
+                          << protocols::uds::session_type_string(resp->session_type);
+            }
+            return resp->session_type == expected_;
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "message is not a DiagnosticSessionControl";
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has UDS session type " << protocols::uds::session_type_string(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have UDS session type " << protocols::uds::session_type_string(expected_);
+    }
+
+private:
+    protocols::uds::SessionType expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> HasUdsSessionType(
+    protocols::uds::SessionType session_type) {
+    return ::testing::MakePolymorphicMatcher(HasUdsSessionTypeMatcher(session_type));
+}
+
+/// @brief Convenience: Check for default session
+inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> IsUdsDefaultSession() {
+    return HasUdsSessionType(protocols::uds::SessionType::DefaultSession);
+}
+
+/// @brief Convenience: Check for programming session
+inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> IsUdsProgrammingSession() {
+    return HasUdsSessionType(protocols::uds::SessionType::ProgrammingSession);
+}
+
+/// @brief Convenience: Check for extended diagnostic session
+inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> IsUdsExtendedSession() {
+    return HasUdsSessionType(protocols::uds::SessionType::ExtendedDiagnosticSession);
 }
 
 }  // namespace wadjet::testing

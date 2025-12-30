@@ -28,17 +28,18 @@
 
 #pragma once
 
+#include "wadjet/net/packet.hpp"
+#include "wadjet/protocols/doip.hpp"
+#include "wadjet/protocols/someip.hpp"
+#include "wadjet/protocols/uds/uds.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <functional>
+#include <optional>
 #include <random>
 #include <vector>
-#include <cstdint>
-#include <array>
-#include <optional>
-#include <functional>
-#include <algorithm>
-
-#include "wadjet/net/packet.hpp"
-#include "wadjet/protocols/someip.hpp"
-#include "wadjet/protocols/doip.hpp"
 
 namespace wadjet::testing::generators {
 
@@ -610,6 +611,222 @@ private:
     std::uint16_t diagnostic_target_ = 0;
 };
 
+/// Builder for UDS (ISO 14229) messages
+class UDSBuilder {
+public:
+    explicit UDSBuilder(Random& rng) : rng_(rng) {
+        service_id_ = protocols::uds::ServiceID::TesterPresent;
+    }
+
+    /// Set the service ID
+    UDSBuilder& with_service_id(protocols::uds::ServiceID sid) {
+        service_id_ = sid;
+        return *this;
+    }
+
+    /// Set the sub-function (if applicable)
+    UDSBuilder& with_sub_function(std::uint8_t sf) {
+        sub_function_ = sf;
+        has_sub_function_ = true;
+        return *this;
+    }
+
+    /// Set suppress positive response flag
+    UDSBuilder& with_suppress_positive_response(bool spr = true) {
+        suppress_positive_response_ = spr;
+        return *this;
+    }
+
+    /// Add payload data
+    UDSBuilder& with_payload(std::vector<std::uint8_t> payload) {
+        payload_ = std::move(payload);
+        return *this;
+    }
+
+    /// Add random payload
+    UDSBuilder& with_random_payload(std::size_t size) {
+        payload_ = rng_.bytes(size);
+        return *this;
+    }
+
+    /// Build as a request
+    UDSBuilder& as_request() {
+        is_response_ = false;
+        is_negative_response_ = false;
+        return *this;
+    }
+
+    /// Build as a positive response
+    UDSBuilder& as_positive_response() {
+        is_response_ = true;
+        is_negative_response_ = false;
+        return *this;
+    }
+
+    /// Build as a negative response with specific NRC
+    UDSBuilder& as_negative_response(protocols::uds::NRC nrc) {
+        is_response_ = true;
+        is_negative_response_ = true;
+        nrc_ = nrc;
+        return *this;
+    }
+
+    /// Build Diagnostic Session Control request
+    UDSBuilder& as_diagnostic_session_control(
+        protocols::uds::SessionType session =
+            protocols::uds::SessionType::ExtendedDiagnosticSession) {
+        service_id_ = protocols::uds::ServiceID::DiagnosticSessionControl;
+        sub_function_ = static_cast<std::uint8_t>(session);
+        has_sub_function_ = true;
+        return *this;
+    }
+
+    /// Build Security Access request seed
+    UDSBuilder& as_security_access_request_seed(std::uint8_t level = 0x01) {
+        service_id_ = protocols::uds::ServiceID::SecurityAccess;
+        sub_function_ = level;  // Odd = request seed
+        has_sub_function_ = true;
+        return *this;
+    }
+
+    /// Build Security Access send key
+    UDSBuilder& as_security_access_send_key(std::uint8_t level, std::vector<std::uint8_t> key) {
+        service_id_ = protocols::uds::ServiceID::SecurityAccess;
+        sub_function_ = level + 1;  // Even = send key
+        has_sub_function_ = true;
+        payload_ = std::move(key);
+        return *this;
+    }
+
+    /// Build Read Data By Identifier request
+    UDSBuilder& as_read_data_by_identifier(const std::vector<std::uint16_t>& dids) {
+        service_id_ = protocols::uds::ServiceID::ReadDataByIdentifier;
+        has_sub_function_ = false;
+        payload_.clear();
+        for (auto did : dids) {
+            payload_.push_back(static_cast<std::uint8_t>(did >> 8));
+            payload_.push_back(static_cast<std::uint8_t>(did & 0xFF));
+        }
+        return *this;
+    }
+
+    /// Build Write Data By Identifier request
+    UDSBuilder& as_write_data_by_identifier(std::uint16_t did, std::vector<std::uint8_t> data) {
+        service_id_ = protocols::uds::ServiceID::WriteDataByIdentifier;
+        has_sub_function_ = false;
+        payload_.clear();
+        payload_.push_back(static_cast<std::uint8_t>(did >> 8));
+        payload_.push_back(static_cast<std::uint8_t>(did & 0xFF));
+        payload_.insert(payload_.end(), data.begin(), data.end());
+        return *this;
+    }
+
+    /// Build ECU Reset request
+    UDSBuilder& as_ecu_reset(
+        protocols::uds::ResetType type = protocols::uds::ResetType::HardReset) {
+        service_id_ = protocols::uds::ServiceID::ECUReset;
+        sub_function_ = static_cast<std::uint8_t>(type);
+        has_sub_function_ = true;
+        return *this;
+    }
+
+    /// Build Tester Present request
+    UDSBuilder& as_tester_present(bool suppress_response = true) {
+        service_id_ = protocols::uds::ServiceID::TesterPresent;
+        sub_function_ = 0x00;
+        has_sub_function_ = true;
+        suppress_positive_response_ = suppress_response;
+        return *this;
+    }
+
+    /// Build Routine Control request
+    UDSBuilder& as_routine_control(protocols::uds::RoutineControlType control_type,
+                                   std::uint16_t routine_id,
+                                   std::vector<std::uint8_t> option_record = {}) {
+        service_id_ = protocols::uds::ServiceID::RoutineControl;
+        sub_function_ = static_cast<std::uint8_t>(control_type);
+        has_sub_function_ = true;
+        payload_.clear();
+        payload_.push_back(static_cast<std::uint8_t>(routine_id >> 8));
+        payload_.push_back(static_cast<std::uint8_t>(routine_id & 0xFF));
+        payload_.insert(payload_.end(), option_record.begin(), option_record.end());
+        return *this;
+    }
+
+    /// Generate a random valid service
+    UDSBuilder& with_random_service() {
+        static const std::vector<protocols::uds::ServiceID> services = {
+            protocols::uds::ServiceID::DiagnosticSessionControl,
+            protocols::uds::ServiceID::ECUReset,
+            protocols::uds::ServiceID::SecurityAccess,
+            protocols::uds::ServiceID::TesterPresent,
+            protocols::uds::ServiceID::ReadDataByIdentifier,
+            protocols::uds::ServiceID::WriteDataByIdentifier,
+            protocols::uds::ServiceID::RoutineControl,
+            protocols::uds::ServiceID::ReadDTCInformation,
+            protocols::uds::ServiceID::ClearDiagnosticInformation,
+        };
+        service_id_ = rng_.pick(services);
+        return *this;
+    }
+
+    /// Generate random DID in specified range
+    UDSBuilder& with_random_did_range(std::uint16_t min_did = 0xF100,
+                                      std::uint16_t max_did = 0xF1FF) {
+        auto did = rng_.integer<std::uint16_t>(min_did, max_did);
+        service_id_ = protocols::uds::ServiceID::ReadDataByIdentifier;
+        has_sub_function_ = false;
+        payload_.clear();
+        payload_.push_back(static_cast<std::uint8_t>(did >> 8));
+        payload_.push_back(static_cast<std::uint8_t>(did & 0xFF));
+        return *this;
+    }
+
+    [[nodiscard]] std::vector<std::uint8_t> build() const {
+        std::vector<std::uint8_t> message;
+
+        if (is_negative_response_) {
+            // Negative response: 0x7F <rejected-sid> <nrc>
+            message.push_back(0x7F);
+            message.push_back(static_cast<std::uint8_t>(service_id_));
+            message.push_back(static_cast<std::uint8_t>(nrc_));
+            return message;
+        }
+
+        // Service ID (with +0x40 for positive response)
+        std::uint8_t sid = static_cast<std::uint8_t>(service_id_);
+        if (is_response_) {
+            sid += 0x40;
+        }
+        message.push_back(sid);
+
+        // Sub-function (if present)
+        if (has_sub_function_) {
+            std::uint8_t sf = sub_function_;
+            if (suppress_positive_response_ && !is_response_) {
+                sf |= 0x80;  // Set SPR bit
+            }
+            message.push_back(sf);
+        }
+
+        // Payload
+        message.insert(message.end(), payload_.begin(), payload_.end());
+
+        return message;
+    }
+
+private:
+    Random& rng_;
+    protocols::uds::ServiceID service_id_;
+    std::uint8_t sub_function_ = 0;
+    bool has_sub_function_ = false;
+    bool suppress_positive_response_ = false;
+    bool is_response_ = false;
+    bool is_negative_response_ = false;
+    protocols::uds::NRC nrc_ = protocols::uds::NRC::GeneralReject;
+    std::vector<std::uint8_t> payload_;
+};
+
 /// Main packet generator class
 class PacketGenerator {
 public:
@@ -632,7 +849,8 @@ public:
     TCPBuilder tcp() { return TCPBuilder(rng_); }
     SOMEIPBuilder someip() { return SOMEIPBuilder(rng_); }
     DoIPBuilder doip() { return DoIPBuilder(rng_); }
-    
+    UDSBuilder uds() { return UDSBuilder(rng_); }
+
     // ==========================================================================
     // Convenience methods for complete packets
     // ==========================================================================
@@ -705,7 +923,81 @@ public:
         auto eth_data = EthernetBuilder(rng_).with_ethertype(0x0800).with_payload(ipv4_data).build();
         return Packet(std::move(eth_data));
     }
-    
+
+    // ==========================================================================
+    // UDS packet generation methods
+    // ==========================================================================
+
+    /// Generate a complete DoIP + UDS packet with random UDS service
+    Packet uds_doip_packet(std::uint16_t source = 0x0E00, std::uint16_t target = 0x0001) {
+        auto uds_data = UDSBuilder(rng_).with_random_service().build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS Diagnostic Session Control request
+    Packet uds_session_control_packet(protocols::uds::SessionType session =
+                                          protocols::uds::SessionType::ExtendedDiagnosticSession,
+                                      std::uint16_t source = 0x0E00,
+                                      std::uint16_t target = 0x0001) {
+        auto uds_data = UDSBuilder(rng_).as_diagnostic_session_control(session).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS Security Access request seed
+    Packet uds_security_request_seed_packet(std::uint8_t level = 0x01,
+                                            std::uint16_t source = 0x0E00,
+                                            std::uint16_t target = 0x0001) {
+        auto uds_data = UDSBuilder(rng_).as_security_access_request_seed(level).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS Read Data By Identifier request
+    Packet uds_read_did_packet(const std::vector<std::uint16_t>& dids,
+                               std::uint16_t source = 0x0E00, std::uint16_t target = 0x0001) {
+        auto uds_data = UDSBuilder(rng_).as_read_data_by_identifier(dids).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS Tester Present request
+    Packet uds_tester_present_packet(std::uint16_t source = 0x0E00, std::uint16_t target = 0x0001,
+                                     bool suppress_response = true) {
+        auto uds_data = UDSBuilder(rng_).as_tester_present(suppress_response).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS ECU Reset request
+    Packet uds_ecu_reset_packet(
+        protocols::uds::ResetType type = protocols::uds::ResetType::HardReset,
+        std::uint16_t source = 0x0E00, std::uint16_t target = 0x0001) {
+        auto uds_data = UDSBuilder(rng_).as_ecu_reset(type).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate DoIP + UDS Negative Response
+    Packet uds_negative_response_packet(protocols::uds::ServiceID rejected_service,
+                                        protocols::uds::NRC nrc,
+                                        std::uint16_t source = 0x0001,    // ECU responding
+                                        std::uint16_t target = 0x0E00) {  // To tester
+        auto uds_data =
+            UDSBuilder(rng_).with_service_id(rejected_service).as_negative_response(nrc).build();
+        return doip_diagnostic_packet(source, target, uds_data);
+    }
+
+    /// Generate random UDS request (any valid service)
+    std::vector<std::uint8_t> random_uds_request() {
+        return UDSBuilder(rng_).with_random_service().as_request().build();
+    }
+
+    /// Generate random DID in OEM-specific range
+    std::vector<std::uint8_t> random_oem_did_request() {
+        return UDSBuilder(rng_).with_random_did_range(0xF100, 0xF1FF).as_request().build();
+    }
+
+    /// Generate random DID in vehicle identification range
+    std::vector<std::uint8_t> random_vehicle_id_request() {
+        return UDSBuilder(rng_).with_random_did_range(0xF190, 0xF19F).as_request().build();
+    }
+
     // ==========================================================================
     // Fuzzing / malformed packet generation
     // ==========================================================================
