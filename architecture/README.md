@@ -43,7 +43,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 
 ## Test Architecture
 
-The project has a comprehensive test suite with **137 tests**:
+The project has a comprehensive test suite with **295 tests**:
 
 ### Unit Tests (111 tests)
 Located in `tests/` subdirectories by module:
@@ -52,6 +52,14 @@ Located in `tests/` subdirectories by module:
 - `tests/pcap/` - PcapReader, PcapWriter
 - `tests/io/` - Device, FrameFilter
 - `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP decoders
+
+### Testing Framework Tests (158 tests)
+Located in `tests/testing/`:
+- `test_matchers.cpp` - gMock-style packet matchers (33 tests)
+- `test_live_capture_fixture.cpp` - LiveCaptureTestFixture integration (24 tests)
+- `test_generators.cpp` - Property-based testing generators (40 tests)
+- `test_record_replay.cpp` - Record-then-assert mode (35 tests)
+- `test_live_assert.cpp` - Live-assert mode (26 tests)
 
 ### Integration Tests (26 tests)
 Located in `tests/integration/`:

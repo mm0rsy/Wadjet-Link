@@ -271,19 +271,52 @@ public:
 
 ---
 
-### Milestone 3 — Live Testing Engine (GoogleTest Integration)
+### Milestone 3 — Live Testing Engine (GoogleTest Integration) ✅
 
 **Goal:** Run GoogleTest cases on live captured traffic — **the core differentiator**
 
+**Status:** Completed
+
 **Features:**
 
-- [ ] `LiveCaptureTestFixture` base class
-- [ ] Time-bounded expectations
-- [ ] Pattern matching over packet streams
-- [ ] gMock-style matchers
-- [ ] Record-then-assert mode
-- [ ] Live-assert mode
-- [ ] Automatic failure trace pcap storage
+- [x] gMock-style matchers (matchers.hpp)
+  - Ethernet: HasEthertype, HasSourceMac, HasDestMac, HasVlan, HasVlanId
+  - IPv4: HasSourceIP, HasDestIP, HasIPProtocol, IsUDP, IsTCP
+  - Ports: HasSourcePort, HasDestPort
+  - SOME/IP: HasSOMEIPServiceId, HasSOMEIPMethodId, HasSOMEIPMessageType, IsSOMEIPRequest/Response/Notification
+  - DoIP: HasDoIPPayloadType, IsDoIPDiagnosticMessage, IsDoIPRoutingActivation*
+  - Payload: PayloadContains, HasPayloadSize, DecodesSuccessfully
+- [x] Unit tests for matchers (33 tests)
+- [x] `LiveCaptureTestFixture` base class
+  - Session setup/teardown with auto PCAP save on failure
+  - BPF filter configuration
+  - Configurable failure directory
+- [x] Time-bounded expectations
+  - `wait_for_packet(predicate, timeout)`
+  - `wait_for_match(matcher, timeout)`
+  - `any_packet_matches(predicate, timeout)`
+- [x] Pattern matching over packet streams
+  - `collect_packets(duration)`
+  - `collect_until(predicate, timeout)`
+  - `count_packets(predicate, duration)`
+- [x] `LoopbackTestFixture` for self-contained tests
+  - `send_udp(port, payload)` helper
+  - `connect_tcp(port)` helper
+- [x] Automatic failure trace pcap storage
+  - `save_on_failure` configuration
+  - `save_failure_pcap()` method
+  - `save_pcap(path)` manual save
+- [x] Convenience macros (macros.hpp)
+  - WADJET_ASSERT/EXPECT_PACKET_MATCHES
+  - WADJET_ASSERT/EXPECT_PACKET
+  - Protocol-specific macros for SOME/IP and DoIP
+- [x] Integration tests for LiveCaptureTestFixture (24 tests)
+
+**Test Summary:**
+- Unit tests: 111
+- Testing framework tests: 158 (33 matchers + 24 live capture + 40 generators + 35 record-replay + 26 live-assert)
+- Integration tests: 26
+- **Total: 295 tests**
 
 **Example API:**
 
@@ -312,10 +345,23 @@ EXPECT_SOMEIP_SERVICE(stream, service_id, timeout);
 EXPECT_DOIP_ROUTING_ACTIVATION(stream, timeout);
 ```
 
-**Advanced (future):**
+**Advanced (now complete):**
 
-- [ ] Property-based testing generators
-- [ ] Deterministic replay
+- [x] Property-based testing generators (generators.hpp)
+  - Random class with seed-based reproducibility
+  - Fluent builders: EthernetBuilder, IPv4Builder, UDPBuilder, TCPBuilder, SOMEIPBuilder, DoIPBuilder
+  - PacketGenerator factory for random protocol packets
+- [x] Record-then-assert mode (record_replay.hpp)
+  - RecordedStream for offline packet analysis
+  - RecordSession for live capture recording
+  - Functional filtering and sequence matching
+  - PCAP save/load support
+- [x] Live-assert mode (live_assert.hpp)
+  - LiveAssertSession for real-time assertions
+  - AssertionRule types: ASSERT_ALL, ASSERT_NEVER, ASSERT_WHEN, EXPECT_WITHIN
+  - Conditional assertions with when().assert_that() pattern
+  - Time-bounded execution with run_for()/run_until()
+- [x] Deterministic replay (via RecordedStream)
 
 ---
 

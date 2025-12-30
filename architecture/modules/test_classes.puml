@@ -17,6 +17,285 @@ package "GoogleTest Framework" #EEEEEE {
         #SetUp(): void
         #TearDown(): void
     }
+    
+    abstract class "::testing::PolymorphicMatcher" as GMockMatcher {
+        +MatchAndExplain(): bool
+        +DescribeTo(): void
+    }
+}
+
+package "Wadjet Testing Framework" #FDE8E8 {
+    
+    struct LiveCaptureConfig {
+        +interface: string
+        +filter: string
+        +save_on_failure: bool
+        +failure_dir: path
+        +max_stored_packets: size_t
+    }
+    
+    class LiveCaptureTestFixture {
+        #config_: LiveCaptureConfig
+        #session_: CaptureSession
+        #dispatcher_: ProtocolDispatcher
+        #captured_packets_: vector<Packet>
+        --
+        #set_interface(iface): void
+        #set_filter(filter): void
+        #set_save_on_failure(save): void
+        #set_failure_dir(dir): void
+        #config(): LiveCaptureConfig&
+        #session(): CaptureSession*
+        #dispatcher(): ProtocolDispatcher&
+        +wait_for_packet(predicate, timeout): optional<Packet>
+        +wait_for_match(matcher, timeout): optional<Packet>
+        +collect_packets(duration): vector<Packet>
+        +collect_until(predicate, timeout): vector<Packet>
+        +count_packets(predicate, duration): size_t
+        +any_packet_matches(predicate, timeout): bool
+        +stored_packets(): vector<Packet>&
+        +save_pcap(path): void
+        #save_failure_pcap(): void
+        #has_capture_capability(): bool
+    }
+    
+    class LoopbackTestFixture {
+        +send_udp(port, payload): bool
+        +connect_tcp(port): bool
+    }
+    
+    package "Matchers" {
+        class HasEthertype
+        class HasSourceMac
+        class HasDestMac
+        class HasVlan
+        class HasVlanId
+        class HasSourceIP
+        class HasDestIP
+        class HasIPProtocol
+        class IsUDP
+        class IsTCP
+        class HasSourcePort
+        class HasDestPort
+        class HasSOMEIPServiceId
+        class HasSOMEIPMethodId
+        class HasSOMEIPMessageType
+        class IsSOMEIPRequest
+        class IsSOMEIPResponse
+        class IsSOMEIPNotification
+        class HasDoIPPayloadType
+        class IsDoIPDiagnosticMessage
+        class PayloadContains
+        class HasPayloadSize
+        class DecodesSuccessfully
+    }
+    
+    package "Generators" #E8FDE8 {
+        class Random {
+            -rng_: mt19937_64
+            -seed_: uint64_t
+            --
+            +Random(seed: uint64_t = 0)
+            +seed(): uint64_t
+            +reseed(seed: uint64_t): void
+            +u8(): uint8_t
+            +u16(): uint16_t
+            +u32(): uint32_t
+            +u64(): uint64_t
+            +range(min, max): uint32_t
+            +bytes(count): vector<byte>
+            +mac_address(): MacAddress
+            +ipv4_address(): IPv4Address
+            +port(): uint16_t
+        }
+        
+        class EthernetBuilder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +EthernetBuilder(random: Random&)
+            +source(mac: MacAddress): this
+            +destination(mac: MacAddress): this
+            +ethertype(type: uint16_t): this
+            +random_source(): this
+            +random_destination(): this
+            +build(): span<const byte>
+        }
+        
+        class IPv4Builder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +IPv4Builder(random: Random&, ethernet: EthernetBuilder&)
+            +source(ip: IPv4Address): this
+            +destination(ip: IPv4Address): this
+            +protocol(proto: uint8_t): this
+            +ttl(ttl: uint8_t): this
+            +random_source(): this
+            +random_destination(): this
+            +build(): span<const byte>
+        }
+        
+        class UDPBuilder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +UDPBuilder(random: Random&, ipv4: IPv4Builder&)
+            +source_port(port: uint16_t): this
+            +dest_port(port: uint16_t): this
+            +payload(data: span<const byte>): this
+            +random_payload(size: size_t): this
+            +build(): span<const byte>
+        }
+        
+        class TCPBuilder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +TCPBuilder(random: Random&, ipv4: IPv4Builder&)
+            +source_port(port: uint16_t): this
+            +dest_port(port: uint16_t): this
+            +seq(seq: uint32_t): this
+            +ack(ack: uint32_t): this
+            +flags(flags: uint8_t): this
+            +payload(data: span<const byte>): this
+            +build(): span<const byte>
+        }
+        
+        class SOMEIPBuilder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +SOMEIPBuilder(random: Random&, udp: UDPBuilder&)
+            +service_id(id: uint16_t): this
+            +method_id(id: uint16_t): this
+            +client_id(id: uint16_t): this
+            +session_id(id: uint16_t): this
+            +message_type(type: MessageType): this
+            +return_code(code: ReturnCode): this
+            +payload(data: span<const byte>): this
+            +build(): span<const byte>
+        }
+        
+        class DoIPBuilder {
+            -data_: vector<byte>
+            -random_: Random*
+            --
+            +DoIPBuilder(random: Random&, tcp: TCPBuilder&)
+            +payload_type(type: PayloadType): this
+            +logical_address(addr: uint16_t): this
+            +target_address(addr: uint16_t): this
+            +payload(data: span<const byte>): this
+            +build(): span<const byte>
+        }
+        
+        class PacketGenerator {
+            -random_: Random
+            --
+            +PacketGenerator(seed: uint64_t = 0)
+            +random(): Random&
+            +ethernet(): EthernetBuilder
+            +ipv4(): IPv4Builder
+            +udp(): UDPBuilder
+            +tcp(): TCPBuilder
+            +someip(): SOMEIPBuilder
+            +doip(): DoIPBuilder
+        }
+    }
+    
+    package "Record-Replay" #E8E8FD {
+        class RecordedStream {
+            -packets_: vector<Packet>
+            --
+            +RecordedStream(packets: vector<Packet>)
+            +size(): size_t
+            +empty(): bool
+            +operator[](index): Packet&
+            +begin(): iterator
+            +end(): iterator
+            +filter(predicate): RecordedStream
+            +filter_matches(matcher): RecordedStream
+            +slice(start, end): RecordedStream
+            +skip(count): RecordedStream
+            +take(count): RecordedStream
+            +all_match(predicate): bool
+            +filter_all_match(matcher): bool
+            +any_matches(predicate): bool
+            +filter_any_matches(matcher): bool
+            +none_match(predicate): bool
+            +count_matches(predicate): size_t
+            +filter_count_matches(matcher): size_t
+            +find_first(predicate): optional<Packet>
+            +filter_find_first(matcher): optional<Packet>
+            +has_sequence(predicates): bool
+            +packets(): vector<Packet>&
+            +save_to_pcap(path): void
+            +{static} load_from_pcap(path): RecordedStream
+        }
+        
+        class RecordSession {
+            -packets_: vector<Packet>
+            -session_: CaptureSession
+            -running_: atomic<bool>
+            --
+            +RecordSession(interface: string, filter: string = "")
+            +start(): void
+            +stop(): RecordedStream
+            +is_running(): bool
+        }
+    }
+    
+    package "Live-Assert" #FDF8E8 {
+        enum AssertionRuleType {
+            ASSERT_ALL
+            ASSERT_NEVER
+            ASSERT_WHEN
+            EXPECT_WITHIN
+        }
+        
+        class AssertionRule {
+            +type: AssertionRuleType
+            +predicate: function<bool(Packet)>
+            +condition: function<bool(Packet)>
+            +timeout: duration
+            +description: string
+            +satisfied: bool
+            --
+            +check(packet: Packet): bool
+            +is_satisfied(): bool
+            +reset_satisfied(): void
+        }
+        
+        class ConditionalAssertionBuilder {
+            -condition_: function<bool(Packet)>
+            -session_: LiveAssertSession*
+            --
+            +ConditionalAssertionBuilder(session, condition)
+            +assert_that(predicate): LiveAssertSession&
+            +assert_matches(matcher): LiveAssertSession&
+        }
+        
+        class LiveAssertSession {
+            -rules_: vector<AssertionRule>
+            -session_: CaptureSession
+            -violations_: vector<Packet>
+            -failure_dir_: path
+            --
+            +LiveAssertSession(interface: string, filter: string = "")
+            +assert_all(predicate, desc): this
+            +assert_all_match(matcher, desc): this
+            +assert_never(predicate, desc): this
+            +assert_never_match(matcher, desc): this
+            +expect_within(predicate, timeout, desc): this
+            +expect_within_match(matcher, timeout, desc): this
+            +when(condition): ConditionalAssertionBuilder
+            +set_failure_dir(dir): this
+            +run_for(duration): bool
+            +run_until(predicate, timeout): bool
+            +violations(): vector<Packet>&
+            +save_violations_pcap(path): void
+        }
+    }
 }
 
 package "Unit Tests" {
@@ -53,6 +332,134 @@ package "Unit Tests" {
         class DoIPDecoderTest
         class DecodeContextTest
         class ProtocolDispatcherTest
+    }
+}
+
+package "Testing Framework Tests" #E8FDF4 {
+    
+    package "tests/testing" {
+        
+        class MatchersTest {
+            #make_packet(data): Packet
+            --
+            +HasEthertype_IPv4()
+            +HasEthertype_VLAN()
+            +HasSourceMac()
+            +HasDestMac()
+            +HasVlan()
+            +HasVlanId()
+            +HasSourceIP()
+            +HasDestIP()
+            +HasIPProtocol_UDP()
+            +HasIPProtocol_TCP()
+            +IsUDP()
+            +IsTCP()
+            +HasSourcePort_UDP()
+            +HasDestPort_UDP()
+            +HasSOMEIPServiceId()
+            +HasSOMEIPMethodId()
+            +HasSOMEIPMessageType()
+            +IsSOMEIPResponse()
+            +PayloadContains_Found()
+            +PayloadContains_NotFound()
+            +HasPayloadSize()
+            +DecodesSuccessfully()
+            +CombinedMatchers_AllOf()
+            +CombinedMatchers_AnyOf()
+            +ComplexQuery()
+            +TooShortPacket_*()
+            +MatcherDescriptions()
+        }
+        
+        class LiveCaptureFixtureTest {
+            --
+            +FixtureSetupSucceeds()
+            +SessionIsRunning()
+            +WaitForPacket_ReceivesWithinTimeout()
+            +WaitForPacket_TimesOutWhenNoPacket()
+            +WaitForPacket_IgnoresNonMatchingPackets()
+            +WaitForMatch_UsesGMockMatcher()
+            +WaitForMatch_WithPortMatcher()
+            +WaitForMatch_WithPayloadMatcher()
+            +WaitForMatch_WithCombinedMatchers()
+            +CollectPackets_GathersAllWithinDuration()
+            +CollectUntil_StopsOnPredicate()
+            +CountPackets_CountsMatchingPackets()
+            +AnyPacketMatches_ReturnsTrue()
+            +AnyPacketMatches_ReturnsFalseOnNoMatch()
+            +StoredPackets_AccumulatesCaptures()
+            +SavePcap_CreatesFile()
+            +ConfigurationIsSet()
+            +WadjetAssertPacket_Succeeds()
+            +WadjetExpectPacket_Succeeds()
+            +ZeroTimeout_ReturnsImmediately()
+            +VeryShortTimeout_DoesNotHang()
+            +CollectPackets_EmptyOnNoTraffic()
+            +DispatcherDecodesCapture()
+        }
+        
+        class GeneratorsTest {
+            --
+            +Random_U8_InRange()
+            +Random_U16_InRange()
+            +Random_U32_InRange()
+            +Random_U64_InRange()
+            +Random_Range_MinMax()
+            +Random_Bytes_CorrectSize()
+            +Random_SeedReproducibility()
+            +EthernetBuilder_SetFields()
+            +EthernetBuilder_RandomFields()
+            +IPv4Builder_SetFields()
+            +IPv4Builder_ValidChecksum()
+            +UDPBuilder_SetFields()
+            +UDPBuilder_Payload()
+            +TCPBuilder_SetFields()
+            +TCPBuilder_Flags()
+            +SOMEIPBuilder_SetFields()
+            +SOMEIPBuilder_MessageTypes()
+            +DoIPBuilder_SetFields()
+            +PacketGenerator_Ethernet()
+            +PacketGenerator_UDP()
+            +PacketGenerator_SOMEIP()
+            +PropertyBased_*()
+        }
+        
+        class RecordReplayTest {
+            --
+            +RecordedStream_Size()
+            +RecordedStream_Empty()
+            +RecordedStream_Filter()
+            +RecordedStream_FilterMatches()
+            +RecordedStream_Slice()
+            +RecordedStream_Skip()
+            +RecordedStream_Take()
+            +RecordedStream_AllMatch()
+            +RecordedStream_AnyMatches()
+            +RecordedStream_NoneMatch()
+            +RecordedStream_CountMatches()
+            +RecordedStream_FindFirst()
+            +RecordedStream_HasSequence()
+            +RecordedStream_Chaining()
+            +RecordSession_StartStop()
+            +RecordSession_Recording()
+            +PCAP_SaveLoad()
+        }
+        
+        class LiveAssertTest {
+            --
+            +AssertionRule_AssertAll()
+            +AssertionRule_AssertNever()
+            +AssertionRule_AssertWhen()
+            +AssertionRule_ExpectWithin()
+            +LiveAssertSession_AssertAll()
+            +LiveAssertSession_AssertNever()
+            +LiveAssertSession_ExpectWithin()
+            +LiveAssertSession_When()
+            +LiveAssertSession_RunFor()
+            +LiveAssertSession_RunUntil()
+            +LiveAssertSession_Violations()
+            +LiveAssertSession_SaveViolations()
+        }
     }
 }
 
@@ -144,7 +551,37 @@ package "Integration Tests" #E8FDE8 {
     }
 }
 
-' Inheritance
+' Inheritance - Testing Framework
+LiveCaptureTestFixture --|> GTestBase
+LoopbackTestFixture --|> LiveCaptureTestFixture
+LiveCaptureTestFixture *-- LiveCaptureConfig
+
+' Matchers implement PolymorphicMatcher pattern
+HasEthertype ..|> GMockMatcher
+HasSourceMac ..|> GMockMatcher
+HasDestMac ..|> GMockMatcher
+HasVlan ..|> GMockMatcher
+HasVlanId ..|> GMockMatcher
+HasSourceIP ..|> GMockMatcher
+HasDestIP ..|> GMockMatcher
+HasIPProtocol ..|> GMockMatcher
+IsUDP ..|> GMockMatcher
+IsTCP ..|> GMockMatcher
+HasSourcePort ..|> GMockMatcher
+HasDestPort ..|> GMockMatcher
+HasSOMEIPServiceId ..|> GMockMatcher
+HasSOMEIPMethodId ..|> GMockMatcher
+HasSOMEIPMessageType ..|> GMockMatcher
+IsSOMEIPRequest ..|> GMockMatcher
+IsSOMEIPResponse ..|> GMockMatcher
+IsSOMEIPNotification ..|> GMockMatcher
+HasDoIPPayloadType ..|> GMockMatcher
+IsDoIPDiagnosticMessage ..|> GMockMatcher
+PayloadContains ..|> GMockMatcher
+HasPayloadSize ..|> GMockMatcher
+DecodesSuccessfully ..|> GMockMatcher
+
+' Inheritance - Unit Tests
 ResultTest --|> GTestBase
 ByteOrderTest --|> GTestBase
 TimestampTest --|> GTestBase
@@ -164,6 +601,15 @@ SomeIpDecoderTest --|> GTestBase
 DoIPDecoderTest --|> GTestBase
 DecodeContextTest --|> GTestBase
 ProtocolDispatcherTest --|> GTestBase
+
+' Testing Framework Tests
+MatchersTest --|> GTestBase
+LiveCaptureFixtureTest --|> LoopbackTestFixture
+GeneratorsTest --|> GTestBase
+RecordReplayTest --|> GTestBase
+LiveAssertTest --|> GTestBase
+
+' Integration Tests
 DecodePipelineTest --|> GTestBase
 PcapDecodeTest --|> GTestBase
 PcapRoundTripTest --|> GTestBase
@@ -175,8 +621,43 @@ DecodePipelineTest ..> PacketBuilder : uses
 PcapDecodeTest ..> PcapTestFixture : uses
 PcapRoundTripTest ..> PcapTestFixture : uses
 LoopbackCaptureTest ..> UdpReceiver : uses
+LiveCaptureFixtureTest ..> HasEthertype : uses
+LiveCaptureFixtureTest ..> IsUDP : uses
+LiveCaptureFixtureTest ..> HasDestPort : uses
+
+' Generator relationships
+PacketGenerator *-- Random : contains
+EthernetBuilder ..> Random : uses
+IPv4Builder ..> Random : uses
+IPv4Builder ..> EthernetBuilder : extends
+UDPBuilder ..> Random : uses
+UDPBuilder ..> IPv4Builder : extends
+TCPBuilder ..> Random : uses
+TCPBuilder ..> IPv4Builder : extends
+SOMEIPBuilder ..> Random : uses
+SOMEIPBuilder ..> UDPBuilder : extends
+DoIPBuilder ..> Random : uses
+DoIPBuilder ..> TCPBuilder : extends
+GeneratorsTest ..> PacketGenerator : tests
+GeneratorsTest ..> Random : tests
+
+' Record-Replay relationships
+RecordSession o-- RecordedStream : produces
+RecordReplayTest ..> RecordedStream : tests
+RecordReplayTest ..> RecordSession : tests
+
+' Live-Assert relationships
+LiveAssertSession *-- AssertionRule : contains
+ConditionalAssertionBuilder ..> LiveAssertSession : builds for
+LiveAssertTest ..> LiveAssertSession : tests
+LiveAssertTest ..> AssertionRule : tests
 
 note right of CaptureSessionTest
+    Requires CAP_NET_RAW
+    or root privileges
+end note
+
+note right of LiveCaptureFixtureTest
     Requires CAP_NET_RAW
     or root privileges
 end note
@@ -184,8 +665,9 @@ end note
 legend right
     | Tests | Count |
     | Unit Tests | 111 |
+    | Testing Framework | 158 |
     | Integration Tests | 26 |
-    | **Total** | **137** |
+    | **Total** | **295** |
 endlegend
 
 @enduml

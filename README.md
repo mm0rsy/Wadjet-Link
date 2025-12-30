@@ -220,8 +220,32 @@ sudo ./build/tests/wadjet_integration_tests
 | Test Suite | Tests | Description |
 |------------|-------|-------------|
 | Unit Tests | 111 | Core, Net, PCAP, I/O, Protocol decoders |
+| Testing Framework | 158 | gMock matchers (33), Live capture fixtures (24), Generators (40), Record-Replay (35), Live-Assert (26) |
 | Integration Tests | 26 | Decode pipeline, PCAP roundtrip, Live capture |
-| **Total** | **137** | |
+| **Total** | **295** | |
+
+### Advanced Testing Features
+
+**Property-Based Testing Generators** (`generators.hpp`)
+
+- Random packet generation with seed-based reproducibility
+- Fluent builders: `EthernetBuilder`, `IPv4Builder`, `UDPBuilder`, `TCPBuilder`, `SOMEIPBuilder`, `DoIPBuilder`
+- Factory class: `PacketGenerator` for random protocol packet creation
+
+**Record-Then-Assert Mode** (`record_replay.hpp`)
+
+- `RecordedStream` for offline packet analysis with functional filtering
+- `RecordSession` for live capture recording
+- Stream operations: `filter()`, `slice()`, `has_sequence()`, `all_match()`, `any_match()`
+- PCAP save/load support
+
+**Live-Assert Mode** (`live_assert.hpp`)
+
+- `LiveAssertSession` for real-time assertion checking
+- Rule types: `ASSERT_ALL`, `ASSERT_NEVER`, `ASSERT_WHEN`, `EXPECT_WITHIN`
+- Conditional assertions: `when(condition).assert_that(assertion)`
+- Time-bounded execution: `run_for()`, `run_until()`
+- Automatic failure PCAP storage
 
 ---
 
