@@ -162,6 +162,83 @@ struct DoIpExpect {
     std::optional<std::uint16_t> target_address;        ///< Target address
 };
 
+/// @brief UDS service type for expectations
+enum class UdsServiceTypeExpect {
+    DiagnosticSessionControl,         ///< 0x10
+    ECUReset,                         ///< 0x11
+    SecurityAccess,                   ///< 0x27
+    CommunicationControl,             ///< 0x28
+    TesterPresent,                    ///< 0x3E
+    ControlDTCSetting,                ///< 0x85
+    ResponseOnEvent,                  ///< 0x86
+    LinkControl,                      ///< 0x87
+    ReadDataByIdentifier,             ///< 0x22
+    ReadMemoryByAddress,              ///< 0x23
+    ReadScalingDataByIdentifier,      ///< 0x24
+    ReadDataByPeriodicIdentifier,     ///< 0x2A
+    DynamicallyDefineDataIdentifier,  ///< 0x2C
+    WriteDataByIdentifier,            ///< 0x2E
+    WriteMemoryByAddress,             ///< 0x3D
+    ClearDiagnosticInformation,       ///< 0x14
+    ReadDTCInformation,               ///< 0x19
+    InputOutputControlByIdentifier,   ///< 0x2F
+    RoutineControl,                   ///< 0x31
+    RequestDownload,                  ///< 0x34
+    RequestUpload,                    ///< 0x35
+    TransferData,                     ///< 0x36
+    RequestTransferExit,              ///< 0x37
+    RequestFileTransfer,              ///< 0x38
+    NegativeResponse,                 ///< 0x7F
+    Any
+};
+
+/// @brief UDS NRC (Negative Response Code) for expectations
+enum class UdsNRCExpect {
+    GeneralReject,                           ///< 0x10
+    ServiceNotSupported,                     ///< 0x11
+    SubFunctionNotSupported,                 ///< 0x12
+    IncorrectMessageLengthOrInvalidFormat,   ///< 0x13
+    ResponseTooLong,                         ///< 0x14
+    BusyRepeatRequest,                       ///< 0x21
+    ConditionsNotCorrect,                    ///< 0x22
+    RequestSequenceError,                    ///< 0x24
+    RequestOutOfRange,                       ///< 0x31
+    SecurityAccessDenied,                    ///< 0x33
+    InvalidKey,                              ///< 0x35
+    ExceededNumberOfAttempts,                ///< 0x36
+    RequiredTimeDelayNotExpired,             ///< 0x37
+    UploadDownloadNotAccepted,               ///< 0x70
+    TransferDataSuspended,                   ///< 0x71
+    GeneralProgrammingFailure,               ///< 0x72
+    WrongBlockSequenceCounter,               ///< 0x73
+    ResponsePending,                         ///< 0x78
+    SubFunctionNotSupportedInActiveSession,  ///< 0x7E
+    ServiceNotSupportedInActiveSession,      ///< 0x7F
+    Any
+};
+
+/// @brief UDS session type for expectations
+enum class UdsSessionTypeExpect {
+    DefaultSession,                 ///< 0x01
+    ProgrammingSession,             ///< 0x02
+    ExtendedDiagnosticSession,      ///< 0x03
+    SafetySystemDiagnosticSession,  ///< 0x04
+    Any
+};
+
+/// @brief UDS expectations
+struct UdsExpect {
+    std::optional<UdsServiceTypeExpect> service;       ///< Service type (0x10, 0x22, etc.)
+    std::optional<bool> is_request;                    ///< true=request, false=response
+    std::optional<bool> is_negative_response;          ///< Check for negative response (0x7F)
+    std::optional<UdsNRCExpect> nrc;                   ///< Negative response code
+    std::optional<UdsSessionTypeExpect> session_type;  ///< Session type for 0x10
+    std::optional<std::vector<std::uint16_t>> data_identifiers;  ///< DIDs for 0x22/0x2E
+    std::optional<std::uint16_t> routine_id;                     ///< Routine ID for 0x31
+    std::optional<std::uint8_t> security_level;                  ///< Security level for 0x27
+    std::optional<std::uint8_t> reset_type;                      ///< Reset type for 0x11
+};
+
 /// @brief Payload content expectations
 struct PayloadExpect {
     std::optional<std::vector<std::uint8_t>> contains;  ///< Payload contains bytes
@@ -202,6 +279,7 @@ struct ExpectStep {
     std::optional<SomeIpExpect> someip;
     std::optional<SomeIpSdExpect> someip_sd;
     std::optional<DoIpExpect> doip;
+    std::optional<UdsExpect> uds;
     std::optional<PayloadExpect> payload;
 
     // Timing and count constraints
