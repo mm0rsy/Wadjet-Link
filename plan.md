@@ -271,7 +271,11 @@ public:
 - [x] Boundary conditions
 - [x] Integration tests (decode pipeline, PCAP roundtrip)
 - [x] Live capture tests (loopback)
-- [ ] Fuzz testing (future work)
+- [x] Fuzz testing with libFuzzer
+  - Fuzz harnesses for all protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP)
+  - Full protocol stack fuzz harness (ProtocolDispatcher)
+  - Seed corpus with valid and edge-case packets
+  - AddressSanitizer and UndefinedBehaviorSanitizer integration
 
 **Test Summary:**
 - Unit tests: 111
