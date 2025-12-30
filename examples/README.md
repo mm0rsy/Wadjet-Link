@@ -9,6 +9,9 @@ This directory contains examples demonstrating Wadjet-Link features.
 | [someip_discovery.cpp](someip_discovery.cpp) | SOME/IP Service Discovery monitor |
 | [doip_routing.cpp](doip_routing.cpp) | DoIP routing activation validator |
 | [ecu_bootup.cpp](ecu_bootup.cpp) | ECU bootup sequence monitor |
+| [uds_monitor.cpp](uds_monitor.cpp) | Real-time UDS diagnostic traffic monitor |
+| [uds_validator.cpp](uds_validator.cpp) | UDS protocol compliance validator |
+| [uds_analysis.py](uds_analysis.py) | Python UDS analysis script |
 | [pcap_regression.cpp](pcap_regression.cpp) | GoogleTest-based PCAP regression tests |
 | [scenarios/](scenarios/) | YAML/JSON test scenarios for `wadjet-run` CLI |
 
@@ -102,12 +105,87 @@ GoogleTest-based regression tests using PCAP files for CI pipelines.
 ```
 
 **Test Categories:**
+
 - SOME/IP message parsing
 - SOME/IP-SD entry parsing
 - DoIP message validation
 - Protocol stack decoding
 - Performance benchmarks
 - Edge case handling
+
+### UDS Diagnostic Traffic Monitor
+
+Monitor real-time UDS (Unified Diagnostic Services) traffic over DoIP.
+
+```bash
+# Live capture
+./uds_monitor eth0
+
+# Analyze PCAP file
+./uds_monitor capture.pcap
+
+# Filter for specific ECU
+./uds_monitor -e 0x1234 eth0
+
+# Summary only (no live output)
+./uds_monitor -s capture.pcap
+```
+
+**Features:**
+
+- Real-time UDS message decoding
+- Session state tracking (Default, Extended, Programming)
+- Security level monitoring
+- DID (Data Identifier) name lookup
+- NRC (Negative Response Code) analysis
+- Multi-ECU discovery and tracking
+- Pretty-printed output with timestamps
+
+### UDS Protocol Validator
+
+Validate UDS protocol compliance against ISO 14229 specification.
+
+```bash
+# Basic validation
+./uds_validator capture.pcap
+
+# Strict mode (more checks)
+./uds_validator --strict capture.pcap
+```
+
+**Features:**
+
+- P2/P2* timing validation
+- S3 session timeout detection
+- Security access sequence validation
+- Service format validation
+- NRC pattern detection
+- ResponsePending count tracking
+- Categorized issue reporting
+
+### UDS Python Analysis Script
+
+Python script for UDS traffic analysis and reporting.
+
+```bash
+# Text report
+python uds_analysis.py capture.pcap
+
+# JSON output
+python uds_analysis.py --json capture.pcap
+
+# Filter by ECU
+python uds_analysis.py --filter-ecu 0x1234 capture.pcap
+```
+
+**Features:**
+
+- Service usage statistics
+- DID read/write frequency analysis
+- NRC breakdown
+- Per-ECU statistics
+- Session transition history
+- JSON export for CI integration
 
 ## YAML/JSON Scenarios
 
@@ -134,6 +212,8 @@ wadjet-run examples/scenarios/ -i eth0 -o junit:results.xml
 | `basic_udp_test.yaml` | Simple UDP packet capture test |
 | `someip_sd_test.yaml` | SOME/IP Service Discovery validation |
 | `doip_routing_test.json` | DoIP routing activation test (JSON format) |
+| `gptp_sync_test.yaml` | gPTP time synchronization test |
+| `uds_flash_test.yaml` | UDS ECU flash programming sequence |
 
 ## Adding New Examples
 

@@ -1,0 +1,387 @@
+# Example: UDS ECU Flash Programming Test
+#
+# This scenario simulates a complete ECU flash programming sequence
+# including session control, security unlock, erase, download, and verification.
+#
+# 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
+
+name: UDS Flash Programming Test
+description: Complete ECU flash programming sequence validation
+version: "1.0"
+tags:
+  - uds
+  - doip
+  - flash
+  - programming
+  - integration
+
+# Test configuration
+config:
+  ecu_address: 0x1234
+  tester_address: 0x0E80
+  doip_port: 13400
+  security_level: 1
+  # Test data (dummy flash block)
+  flash_start_address: 0x00080000
+  flash_size: 0x10000  # 64KB
+  block_size: 0x0FFF   # 4KB blocks
+
+timeout: 120s
+
+# Variables for dynamic test data
+variables:
+  seed: null
+  key: null
+  block_sequence: 1
+  max_block_sequence: 255
+
+steps:
+  # =========================================================================
+  # Phase 1: Connection Setup
+  # =========================================================================
+  - name: "DoIP Vehicle Identification"
+    send:
+      doip:
+        payload_type: vehicle_identification_request
+        source: ${tester_address}
+    expect:
+      doip:
+        payload_type: vehicle_identification_response
+      within: 2s
+
+  - name: "DoIP Routing Activation"
+    send:
+      doip:
+        payload_type: routing_activation_request
+        source: ${tester_address}
+        activation_type: default
+    expect:
+      doip:
+        payload_type: routing_activation_response
+        response_code: success
+      within: 2s
+
+  # =========================================================================
+  # Phase 2: Session Control
+  # =========================================================================
+  - name: "Enter Extended Session"
+    send:
+      uds:
+        service: diagnostic_session_control
+        subfunction: 0x03  # Extended diagnostic session
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: diagnostic_session_control_response
+        subfunction: 0x03
+      within: 100ms
+
+  - name: "Verify Extended Session"
+    send:
+      uds:
+        service: read_data_by_identifier
+        did: 0xF186  # Active diagnostic session
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: read_data_by_identifier_response
+        did: 0xF186
+        data: [0x03]  # Extended session active
+      within: 100ms
+
+  # =========================================================================
+  # Phase 3: Security Access
+  # =========================================================================
+  - name: "Request Security Seed"
+    send:
+      uds:
+        service: security_access
+        subfunction: 0x01  # Request seed (level 1)
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: security_access_response
+        subfunction: 0x01
+      within: 100ms
+    capture:
+      seed: payload[1:]
+
+  - name: "Calculate and Send Security Key"
+    # In a real test, this would invoke a key calculation algorithm
+    compute:
+      key: "key_algorithm(${seed}, level=1)"
+    send:
+      uds:
+        service: security_access
+        subfunction: 0x02  # Send key (level 1)
+        data: ${key}
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: security_access_response
+        subfunction: 0x02
+      within: 100ms
+
+  # =========================================================================
+  # Phase 4: Enter Programming Session
+  # =========================================================================
+  - name: "Enter Programming Session"
+    send:
+      uds:
+        service: diagnostic_session_control
+        subfunction: 0x02  # Programming session
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: diagnostic_session_control_response
+        subfunction: 0x02
+      within: 100ms
+
+  - name: "Disable DTC Setting"
+    send:
+      uds:
+        service: control_dtc_setting
+        subfunction: 0x02  # Off
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: control_dtc_setting_response
+      within: 100ms
+
+  - name: "Disable Normal Communication"
+    send:
+      uds:
+        service: communication_control
+        subfunction: 0x03  # Disable Rx and Tx
+        communication_type: 0x01  # Normal communication
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: communication_control_response
+      within: 100ms
+
+  # =========================================================================
+  # Phase 5: Pre-Programming Checks
+  # =========================================================================
+  - name: "Check Programming Pre-Conditions"
+    send:
+      uds:
+        service: routine_control
+        subfunction: 0x01  # Start routine
+        routine_id: 0xFF00  # Check programming pre-conditions
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: routine_control_response
+        subfunction: 0x01
+        routine_id: 0xFF00
+        status: success
+      within: 500ms
+
+  # =========================================================================
+  # Phase 6: Memory Erase
+  # =========================================================================
+  - name: "Erase Flash Memory"
+    send:
+      uds:
+        service: routine_control
+        subfunction: 0x01  # Start routine
+        routine_id: 0xFF01  # Erase memory
+        data:
+          memory_address: ${flash_start_address}
+          memory_size: ${flash_size}
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: routine_control_response
+        subfunction: 0x01
+        routine_id: 0xFF01
+      within: 30s  # Erase can take time
+      allow_pending: true  # Allow 0x78 ResponsePending
+
+  # =========================================================================
+  # Phase 7: Download Request
+  # =========================================================================
+  - name: "Request Download"
+    send:
+      uds:
+        service: request_download
+        data_format: 0x00  # No compression, no encryption
+        address_length_format: 0x44  # 4 bytes address, 4 bytes length
+        memory_address: ${flash_start_address}
+        memory_size: ${flash_size}
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: request_download_response
+        max_block_length: ">= ${block_size}"
+      within: 500ms
+
+  # =========================================================================
+  # Phase 8: Data Transfer
+  # =========================================================================
+  - name: "Transfer Data Loop"
+    loop:
+      count: 16  # 16 x 4KB = 64KB
+      steps:
+        - name: "Transfer Block ${block_sequence}"
+          send:
+            uds:
+              service: transfer_data
+              block_sequence: ${block_sequence}
+              data: "read_binary('flash_data.bin', offset=${block_sequence - 1} * ${block_size}, length=${block_size})"
+              target: ${ecu_address}
+              source: ${tester_address}
+          expect:
+            uds:
+              service: transfer_data_response
+              block_sequence: ${block_sequence}
+            within: 500ms
+          
+        - increment:
+            variable: block_sequence
+            wrap: ${max_block_sequence}
+
+  # =========================================================================
+  # Phase 9: Transfer Exit
+  # =========================================================================
+  - name: "Request Transfer Exit"
+    send:
+      uds:
+        service: request_transfer_exit
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: request_transfer_exit_response
+      within: 500ms
+
+  # =========================================================================
+  # Phase 10: Verification
+  # =========================================================================
+  - name: "Check Programming Integrity"
+    send:
+      uds:
+        service: routine_control
+        subfunction: 0x01  # Start routine
+        routine_id: 0xFF02  # Check programming integrity
+        data:
+          checksum: "crc32('flash_data.bin')"
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: routine_control_response
+        subfunction: 0x01
+        routine_id: 0xFF02
+        status: success
+      within: 10s
+      allow_pending: true
+
+  # =========================================================================
+  # Phase 11: Cleanup and Reset
+  # =========================================================================
+  - name: "Enable DTC Setting"
+    send:
+      uds:
+        service: control_dtc_setting
+        subfunction: 0x01  # On
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: control_dtc_setting_response
+      within: 100ms
+
+  - name: "Enable Normal Communication"
+    send:
+      uds:
+        service: communication_control
+        subfunction: 0x00  # Enable Rx and Tx
+        communication_type: 0x01
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: communication_control_response
+      within: 100ms
+
+  - name: "ECU Hard Reset"
+    send:
+      uds:
+        service: ecu_reset
+        subfunction: 0x01  # Hard reset
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: ecu_reset_response
+        subfunction: 0x01
+      within: 500ms
+
+  # =========================================================================
+  # Phase 12: Post-Reset Verification
+  # =========================================================================
+  - name: "Wait for ECU Reboot"
+    wait: 5s
+
+  - name: "Verify ECU Boot"
+    retry:
+      count: 5
+      delay: 1s
+      steps:
+        - send:
+            uds:
+              service: tester_present
+              subfunction: 0x00
+              target: ${ecu_address}
+              source: ${tester_address}
+          expect:
+            uds:
+              service: tester_present_response
+            within: 100ms
+
+  - name: "Read New Software Version"
+    send:
+      uds:
+        service: read_data_by_identifier
+        did: 0xF189  # Software version
+        target: ${ecu_address}
+        source: ${tester_address}
+    expect:
+      uds:
+        service: read_data_by_identifier_response
+        did: 0xF189
+      within: 100ms
+
+# Assertions to validate at end of test
+assertions:
+  - name: "No negative responses except ResponsePending"
+    condition: "nrc_count(exclude=[0x78]) == 0"
+  
+  - name: "All data blocks transferred"
+    condition: "transfer_data_count == 16"
+  
+  - name: "Programming completed successfully"
+    condition: "routine_0xFF02_passed == true"
+
+# Cleanup actions (run even on failure)
+cleanup:
+  - name: "Return to Default Session"
+    send:
+      uds:
+        service: diagnostic_session_control
+        subfunction: 0x01  # Default session
+        target: ${ecu_address}
+        source: ${tester_address}
+    ignore_errors: true
