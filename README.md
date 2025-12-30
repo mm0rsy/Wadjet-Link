@@ -21,14 +21,56 @@ Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstruct
 
 ## Key Features
 
+### 🔍 Packet Capture & Analysis
 - **Zero-Latency Capture** — High-fidelity sniffing of 100/1000Base-T1 traffic using AF_PACKET
-- **Protocol Decoding** — Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP
-- **GoogleTest Integration** — Assert on live traffic with custom matchers
-- **Passive Monitoring** — Read-only mode, no impact on functional safety (ASIL)
-- **Forensic Logging** — Automatic pcap storage on test failures
 - **Zero-Copy Parsing** — Efficient packet inspection without data duplication
+- **BPF Filtering** — Hardware-accelerated packet filtering
+- **PCAP Support** — Read and write standard pcap/pcapng files
+- **Hardware Timestamping** — Nanosecond precision when available
 
-## Quick Example
+### 📡 Protocol Decoding
+- **Ethernet** — 802.1Q VLAN and QinQ support
+- **IPv4** — Header parsing with checksum validation
+- **UDP/TCP** — Full header parsing with TCP options
+- **SOME/IP** — Service-oriented middleware protocol
+- **SOME/IP-SD** — Service Discovery messages
+- **DoIP** — Diagnostics over IP (ISO 13400)
+
+### 🧪 Testing Framework
+- **GoogleTest Integration** — Assert on live traffic with custom matchers
+- **gMock-Style Matchers** — `HasSOMEIPServiceId()`, `HasDoIPPayloadType()`, etc.
+- **Property-Based Testing** — Random packet generators with reproducible seeds
+- **Record-Then-Assert** — Capture traffic, then analyze offline
+- **Live-Assert Mode** — Real-time assertion checking during capture
+- **Forensic Logging** — Automatic pcap storage on test failures
+
+### 🤖 Test Automation
+- **YAML/JSON Scenarios** — Define test cases in human-readable format
+- **CLI Runner** — `wadjet-run` command-line tool
+- **Multiple Report Formats** — JUnit XML, JSON, TAP, Text
+- **Tag-Based Filtering** — Run subsets of tests (smoke, regression, etc.)
+- **CI/CD Ready** — Jenkins, GitLab CI, GitHub Actions integration
+
+### 🛡️ Safety & Compliance
+- **Passive Monitoring** — Read-only mode, no impact on functional safety (ASIL)
+- **Deterministic Replay** — Reproduce issues from saved captures
+- **Comprehensive Logging** — Full audit trail for compliance
+
+## Use Cases
+
+| Use Case | Description |
+|----------|-------------|
+| **ECU Integration Testing** | Validate SOME/IP service discovery and communication between ECUs |
+| **DoIP Diagnostics Validation** | Test vehicle diagnostics protocols and routing activation |
+| **Protocol Conformance** | Verify implementation against AUTOSAR specifications |
+| **Regression Testing** | Automated test suites with PCAP fixtures for CI/CD |
+| **Network Traffic Analysis** | Capture and decode automotive Ethernet traffic |
+| **Issue Reproduction** | Replay saved captures to reproduce timing-sensitive bugs |
+| **Performance Monitoring** | Measure service discovery times and response latencies |
+
+## Quick Examples
+
+### C++ GoogleTest Integration
 
 ```cpp
 #include <wadjet/wadjet.hpp>
@@ -44,6 +86,47 @@ TEST_F(SOMEIPServiceDiscovery, ServiceOffersAppearWithin100ms) {
     auto found = wait_for_someip_service(*session, 0x1234, 100ms);
     ASSERT_TRUE(found);
 }
+```
+
+### YAML Test Scenario
+
+```yaml
+# someip_service_test.yaml
+name: SOME/IP Service Discovery Test
+description: Verify service offers appear within timeout
+tags: [smoke, someip]
+
+steps:
+  - capture:
+      interface: eth0
+      filter: "udp port 30490"
+
+  - expect:
+      description: "Service 0x1234 should be offered"
+      timeout_ms: 250
+      count: ">= 1"
+      someip:
+        service_id: 0x1234
+        message_type: notification
+```
+
+### CLI Scenario Runner
+
+```bash
+# Run a single test scenario
+wadjet-run test.yaml
+
+# Run all scenarios in a directory with JUnit output
+wadjet-run --dir scenarios/ -f junit -o results.xml
+
+# Run only smoke tests
+wadjet-run --dir scenarios/ -t smoke
+
+# Dry-run to validate scenarios without execution
+wadjet-run --dry-run --dir scenarios/
+
+# List available scenarios
+wadjet-run --list --dir scenarios/
 ```
 
 ---
@@ -220,9 +303,10 @@ sudo ./build/tests/wadjet_integration_tests
 | Test Suite | Tests | Description |
 |------------|-------|-------------|
 | Unit Tests | 111 | Core, Net, PCAP, I/O, Protocol decoders |
-| Testing Framework | 158 | gMock matchers (33), Live capture fixtures (24), Generators (40), Record-Replay (35), Live-Assert (26) |
+| Testing Framework | 158 | gMock matchers, Live capture fixtures, Generators, Record-Replay, Live-Assert |
+| Scenario Tests | 41 | YAML/JSON parsers, Runner, Report generators |
 | Integration Tests | 26 | Decode pipeline, PCAP roundtrip, Live capture |
-| **Total** | **295** | |
+| **Total** | **378** | |
 
 ### Advanced Testing Features
 
@@ -251,22 +335,29 @@ sudo ./build/tests/wadjet_integration_tests
 
 ## Project Structure
 
-```
+```text
 wadjet-link/
 ├── include/wadjet/          # Public headers
 │   ├── core/                # Core types and utilities
 │   ├── net/                 # Packet classes
 │   ├── pcap/                # PCAP file I/O
 │   ├── io/                  # Live capture
-│   └── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
+│   ├── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
+│   ├── testing/             # GoogleTest fixtures, matchers, generators
+│   └── scenario/            # YAML/JSON scenario types and runner
 ├── src/                     # Implementation
+├── tools/                   # CLI tools (wadjet-run)
 ├── tests/                   # Test suites
 │   ├── core/                # Core unit tests
 │   ├── net/                 # Packet unit tests
 │   ├── pcap/                # PCAP unit tests
 │   ├── io/                  # I/O unit tests
 │   ├── protocols/           # Protocol decoder unit tests
+│   ├── testing/             # Testing framework tests
+│   ├── scenario/            # Scenario parser and runner tests
 │   └── integration/         # Integration & E2E tests
+├── examples/
+│   └── scenarios/           # Example YAML/JSON test scenarios
 ├── architecture/            # PlantUML diagrams
 ├── docs/                    # Documentation
 ├── pcap_samples/            # Test fixtures

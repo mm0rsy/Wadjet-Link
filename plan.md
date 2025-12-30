@@ -328,8 +328,9 @@ public:
 **Test Summary:**
 - Unit tests: 111
 - Testing framework tests: 158 (33 matchers + 24 live capture + 40 generators + 35 record-replay + 26 live-assert)
+- Scenario tests: 41 (21 parser + 20 runner/reports)
 - Integration tests: 26
-- **Total: 295 tests**
+- **Total: 378 tests**
 
 **Example API:**
 
@@ -378,9 +379,11 @@ EXPECT_DOIP_ROUTING_ACTIVATION(stream, timeout);
 
 ---
 
-### Milestone 4 — Automation & Test Scenario Language
+### Milestone 4 — Automation & Test Scenario Language ✅
 
 **Goal:** YAML/JSON-driven test scenarios
+
+**Status:** Completed
 
 **Example Scenario:**
 
@@ -408,11 +411,74 @@ steps:
 
 **Implementation:**
 
-- [ ] YAML parser
-- [ ] JSON parser
-- [ ] `ScenarioRunner` class
-- [ ] CLI runner (`wadjet-run`)
-- [ ] Report output (JUnit XML, JSON)
+- [x] Scenario data model (scenario_types.hpp)
+  - Scenario, Step variants (CaptureStep, SendStep, WaitStep, ExpectStep, LogStep)
+  - Protocol expectations (EthernetExpect, IPv4Expect, UDPExpect, TCPExpect, SomeIpExpect, SomeIpSdExpect, DoIpExpect)
+  - CountExpression with comparison operators (==, !=, <, <=, >, >=)
+  - ScenarioResult and ExpectResult for test outcomes
+- [x] YAML parser (yaml_parser.cpp)
+  - Full scenario parsing with yaml-cpp
+  - Duration parsing with unit support (ms, s, m, h)
+  - Step type parsing (capture, send, wait, expect, log)
+  - Protocol expectation parsing for all supported protocols
+- [x] JSON parser (json_parser.cpp)
+  - Full scenario parsing with nlohmann_json
+  - Same feature parity as YAML parser
+  - auto-detection of scenario file format
+- [x] `ScenarioRunner` class (runner.hpp/cpp)
+  - Packet capture and matching engine
+  - ExpectStepMatcher for all protocol expectations
+  - Dry-run mode for validation
+  - Verbose output with callbacks
+  - Stop-on-failure option
+  - Tag-based filtering
+- [x] CLI runner (`wadjet-run`)
+  - Full command-line interface
+  - Interface selection and timeout configuration
+  - Multiple output formats
+  - Batch execution with directory scanning
+  - Tag filtering and dry-run mode
+- [x] Report output (report.hpp/cpp)
+  - JUnit XML (CI integration)
+  - JSON (programmatic analysis)
+  - Text (human-readable)
+  - TAP (Test Anything Protocol)
+
+**Files Created:**
+- `include/wadjet/scenario/scenario_types.hpp` - Data model
+- `include/wadjet/scenario/parser.hpp` - Parser interface
+- `include/wadjet/scenario/runner.hpp` - Runner interface
+- `include/wadjet/scenario/report.hpp` - Report generator interface
+- `include/wadjet/scenario/scenario.hpp` - Main include header
+- `src/scenario/yaml_parser.cpp` - YAML implementation
+- `src/scenario/json_parser.cpp` - JSON implementation
+- `src/scenario/runner.cpp` - ScenarioRunner implementation
+- `src/scenario/report.cpp` - Report generators
+- `tools/wadjet-run.cpp` - CLI tool
+- `tests/scenario/test_scenario_parser.cpp` - Parser tests
+- `tests/scenario/test_scenario_runner.cpp` - Runner tests
+
+**Example YAML scenarios in `examples/scenarios/`:**
+- `someip_sd_test.yaml` - SOME/IP Service Discovery test
+- `doip_routing_test.json` - DoIP routing activation test
+- `basic_udp_test.yaml` - Basic UDP capture test
+
+**CLI Usage:**
+
+```bash
+# Run a single scenario
+wadjet-run scenario.yaml -i eth0 -o junit:results.xml
+
+# Run all scenarios in a directory
+wadjet-run examples/scenarios/ --interface eth0 --format text
+
+# Dry-run with verbose output
+wadjet-run test.yaml --dry-run --verbose
+
+# Filter by tags
+wadjet-run examples/ --tags smoke,fast
+```
+
 
 ---
 
@@ -491,7 +557,7 @@ MVP is complete when:
 - [x] SOME/IP decode works
 - [x] GoogleTest can assert on live traffic
 - [x] README shows usage example
-- [x] At least 20 unit tests exist (295+ tests)
+- [x] At least 20 unit tests exist (378 tests)
 - [x] CI pipeline passes
 
 ---
