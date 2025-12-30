@@ -25,6 +25,23 @@ struct CaptureStats {
     std::uint64_t bytes_received = 0;     ///< Total bytes received
 };
 
+/// @brief Timestamp source for packet capture
+enum class TimestampSource {
+    Software,  ///< Software timestamp (kernel receive time)
+    Hardware,  ///< Hardware timestamp from NIC (if available)
+    System,    ///< System hardware clock (if available)
+    Auto       ///< Automatically select best available
+};
+
+/// @brief Hardware timestamp capabilities
+struct HardwareTimestampCaps {
+    bool supports_tx_hardware = false;   ///< TX hardware timestamping
+    bool supports_tx_software = false;   ///< TX software timestamping
+    bool supports_rx_hardware = false;   ///< RX hardware timestamping
+    bool supports_rx_software = false;   ///< RX software timestamping
+    bool supports_raw_hardware = false;  ///< Raw hardware clock
+};
+
 /// @brief Capture session options
 struct CaptureSessionOptions {
     std::uint32_t snaplen = 65535;     ///< Max bytes to capture per packet
@@ -32,6 +49,11 @@ struct CaptureSessionOptions {
     bool immediate_mode = true;        ///< Minimize latency
     std::size_t buffer_size = 2 * 1024 * 1024;  ///< Ring buffer size
     int timeout_ms = 100;              ///< Poll timeout in milliseconds
+    TimestampSource timestamp_source = TimestampSource::Auto;  ///< Timestamp source
+    bool use_tpacket_v3 = false;          ///< Use TPACKET_V3 for better performance (experimental)
+    std::size_t block_size = 128 * 1024;  ///< Block size for TPACKET_V3 (must be page-aligned)
+    int retire_timeout_ms = 100;          ///< Block retire timeout for TPACKET_V3
+    bool use_ring_buffer = true;          ///< Use mmap ring buffer (disable for ASAN testing)
 };
 
 /// @brief Live packet capture session using Linux AF_PACKET
@@ -115,8 +137,7 @@ public:
     /// @param callback Function called for each packet
     /// @param max_packets Maximum packets to capture (0 = unlimited)
     /// @return Number of packets captured
-    auto capture_loop(const PacketCallback& callback,
-                      std::size_t max_packets = 0) -> std::size_t;
+    auto capture_loop(const PacketCallback& callback, std::size_t max_packets = 0) -> std::size_t;
 
     /// @brief Get capture statistics
     [[nodiscard]] auto stats() const -> CaptureStats;
@@ -127,16 +148,29 @@ public:
     /// @brief Get the socket file descriptor
     [[nodiscard]] int fd() const;
 
+    /// @brief Query hardware timestamp capabilities for an interface
+    /// @param interface Network interface name
+    /// @return Capabilities struct or error
+    static auto query_hw_timestamp_caps(const std::string& interface)
+        -> Result<HardwareTimestampCaps>;
+
+    /// @brief Get the active timestamp source
+    [[nodiscard]] TimestampSource active_timestamp_source() const { return active_ts_source_; }
+
 private:
     CaptureSession();
 
     auto next_packet_impl(int timeout_ms) -> std::optional<Packet>;
+    auto next_packet_v2(int timeout_ms) -> std::optional<Packet>;
+    auto next_packet_v3(int timeout_ms) -> std::optional<Packet>;
+    auto configure_timestamps() -> Result<void>;
 
     struct Impl;
     std::unique_ptr<Impl> impl_;
     std::string interface_;
     Options options_;
     bool running_ = false;
+    TimestampSource active_ts_source_ = TimestampSource::Software;
 };
 
 }  // namespace wadjet::io
