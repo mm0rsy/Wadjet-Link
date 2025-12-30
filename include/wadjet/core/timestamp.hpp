@@ -53,6 +53,18 @@ public:
     /// @brief Get microseconds component (0-999999)
     [[nodiscard]] std::int64_t microseconds() const { return nanoseconds() / 1000; }
 
+    /// @brief Get total nanoseconds since epoch
+    [[nodiscard]] std::int64_t total_nanoseconds() const {
+        return std::chrono::duration_cast<std::chrono::nanoseconds>(time_point_.time_since_epoch())
+            .count();
+    }
+
+    /// @brief Get total microseconds since epoch
+    [[nodiscard]] std::int64_t total_microseconds() const {
+        return std::chrono::duration_cast<std::chrono::microseconds>(time_point_.time_since_epoch())
+            .count();
+    }
+
     /// @brief Get the underlying time point
     [[nodiscard]] TimePoint time_point() const { return time_point_; }
 
