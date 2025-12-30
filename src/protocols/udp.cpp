@@ -49,12 +49,9 @@ UdpDecoder::Result UdpDecoder::decode_impl(const DecodeContext& ctx) const {
     // Note: Full UDP checksum validation requires IP pseudo-header
     // For now, we just mark it as valid if checksum is 0 (optional in UDP over IPv4)
     // or if validation is disabled
-    if (options_.validate_checksum && header.checksum != 0) {
-        // TODO: Implement full checksum validation with pseudo-header
-        header.checksum_valid = true;
-    } else {
-        header.checksum_valid = true;
-    }
+    // TODO: Implement full checksum validation with pseudo-header
+    (void)options_.validate_checksum;  // Suppress unused warning until implemented
+    header.checksum_valid = (header.checksum == 0) || !options_.validate_checksum;
 
     // Create context for next layer
     auto next_ctx = ctx.sub_context(HEADER_SIZE);
