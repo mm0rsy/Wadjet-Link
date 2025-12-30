@@ -57,3 +57,5 @@ docs/xml/
 # OS files
 .DS_Store
 Thumbs.db
+
+build-nosanit/
