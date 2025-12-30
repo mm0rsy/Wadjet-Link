@@ -1,0 +1,227 @@
+@startuml protocols_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Protocol Decoder Sequences
+
+skinparam backgroundColor white
+skinparam sequence {
+    ParticipantBackgroundColor #FDE8E8
+    ParticipantBorderColor #CC4444
+}
+
+' ============================================
+' Sequence 1: Full Protocol Stack Decoding
+' ============================================
+
+newpage Full Protocol Stack Decoding
+
+participant "Client" as Client
+participant "ProtocolDispatcher" as Dispatcher
+participant "EthernetDecoder" as EthDec
+participant "IPv4Decoder" as IpDec
+participant "UdpDecoder" as UdpDec
+participant "SomeIpDecoder" as SomeipDec
+
+Client -> Dispatcher : decode(packet_data)
+activate Dispatcher
+
+Dispatcher -> EthDec : decode(eth_ctx)
+activate EthDec
+EthDec --> Dispatcher : DecodeResultT<EthernetHeader>
+deactivate EthDec
+
+note right of Dispatcher
+  Check ethertype:
+  0x0800 = IPv4
+  0x86DD = IPv6
+end note
+
+Dispatcher -> IpDec : decode(ip_ctx)
+activate IpDec
+IpDec --> Dispatcher : DecodeResultT<IPv4Header>
+deactivate IpDec
+
+note right of Dispatcher
+  Check IP protocol:
+  17 = UDP
+  6 = TCP
+end note
+
+Dispatcher -> UdpDec : decode(udp_ctx)
+activate UdpDec
+UdpDec --> Dispatcher : DecodeResultT<UdpHeader>
+deactivate UdpDec
+
+note right of Dispatcher
+  Check UDP port:
+  30490 = SOME/IP-SD
+  30491+ = SOME/IP
+  13400 = DoIP
+end note
+
+Dispatcher -> SomeipDec : decode(someip_ctx)
+activate SomeipDec
+SomeipDec --> Dispatcher : DecodeResultT<SomeIpHeader>
+deactivate SomeipDec
+
+Dispatcher --> Client : DecodeStackResult
+deactivate Dispatcher
+
+note right of Client
+  DecodeStackResult contains:
+  - layers[]: EthernetHeader, IPv4Header, UdpHeader, SomeIpHeader
+  - payload: remaining data
+  - complete: true
+end note
+
+' ============================================
+' Sequence 2: Single Decoder Operation
+' ============================================
+
+newpage Single Decoder Operation (CRTP Pattern)
+
+participant "Client" as Client2
+participant "IPv4Decoder" as Decoder
+participant "DecoderBase<IPv4Decoder, IPv4Header>" as Base
+participant "DecodeContext" as Ctx
+
+Client2 -> Decoder : decode(context)
+activate Decoder
+
+Decoder -> Base : decode(context)
+activate Base
+
+Base -> Ctx : has_bytes(MIN_HEADER_SIZE)
+Ctx --> Base : true
+
+Base -> Decoder : decode_impl(context)
+activate Decoder #DarkSalmon
+
+note right of Decoder
+  Parse IPv4 header:
+  - Version & IHL
+  - Total length
+  - Identification
+  - Flags & Fragment offset
+  - TTL & Protocol
+  - Checksum
+  - Source & Dest IP
+end note
+
+Decoder -> Ctx : read_be16(offset)
+Ctx --> Decoder : value
+
+alt checksum validation enabled
+    Decoder -> Decoder : calculate_checksum(header_data)
+    alt checksum invalid
+        Decoder --> Base : make_error(InvalidChecksum, msg)
+    end
+end
+
+Decoder -> Ctx : sub_context(header_size)
+Ctx --> Decoder : next_context
+
+Decoder --> Base : make_success(header, next_context)
+deactivate Decoder
+
+Base --> Decoder : DecodeResultT<IPv4Header>
+deactivate Base
+
+Decoder --> Client2 : DecodeResultT<IPv4Header>
+deactivate Decoder
+
+' ============================================
+' Sequence 3: Error Handling
+' ============================================
+
+newpage Decoder Error Handling
+
+participant "Client" as Client3
+participant "ProtocolDispatcher" as Dispatcher3
+participant "EthernetDecoder" as EthDec3
+participant "IPv4Decoder" as IpDec3
+
+Client3 -> Dispatcher3 : decode(malformed_data)
+activate Dispatcher3
+
+Dispatcher3 -> EthDec3 : decode(ctx)
+activate EthDec3
+EthDec3 --> Dispatcher3 : Success(EthernetHeader)
+deactivate EthDec3
+
+note right of Dispatcher3
+  Ethernet decoded OK
+  ethertype = 0x0800 (IPv4)
+end note
+
+Dispatcher3 -> IpDec3 : decode(ip_ctx)
+activate IpDec3
+
+IpDec3 -> IpDec3 : check version
+note right of IpDec3
+  Version = 6, but
+  ethertype said IPv4!
+end note
+
+IpDec3 --> Dispatcher3 : Error(InvalidVersion, "Not IPv4")
+deactivate IpDec3
+
+alt options.stop_on_error == true
+    Dispatcher3 --> Client3 : DecodeStackResult{error, layers=[Ethernet]}
+else options.stop_on_error == false
+    Dispatcher3 --> Client3 : DecodeStackResult{error, layers=[Ethernet], complete=false}
+end
+deactivate Dispatcher3
+
+note right of Client3
+  Client can check:
+  - result.complete
+  - result.error.has_value()
+  - result.error->code
+  - result.error->message
+end note
+
+' ============================================
+' Sequence 4: Layer Access
+' ============================================
+
+newpage Accessing Decoded Layers
+
+participant "Client" as Client4
+participant "DecodeStackResult" as Result
+participant "variant<...Headers>" as Variant
+
+Client4 -> Result : has_layer<SomeIpHeader>()
+activate Result
+
+loop for each layer in layers
+    Result -> Variant : holds_alternative<SomeIpHeader>()
+    Variant --> Result : bool
+end
+
+Result --> Client4 : true/false
+deactivate Result
+
+Client4 -> Result : get_layer<IPv4Header>()
+activate Result
+
+loop for each layer in layers
+    Result -> Variant : get_if<IPv4Header>()
+    alt found
+        Variant --> Result : const IPv4Header*
+        Result --> Client4 : const IPv4Header*
+    else not found
+        Variant --> Result : nullptr
+    end
+end
+
+Result --> Client4 : nullptr (if not found)
+deactivate Result
+
+note right of Client4
+  Example usage:
+  if (auto* ip = result.get_layer<IPv4Header>()) {
+      std::cout << ip->src_ip.to_string();
+  }
+end note
+
+@enduml

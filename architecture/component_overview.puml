@@ -38,12 +38,20 @@ package "Wadjet-Link Library" {
         component [FrameFilter\nBPF Compiler] as Filter <<io>>
     }
     
-    package "Protocol Decoders" <<Rectangle>> #EEEEEE {
-        component [SOME/IP\n(Planned)] as SOMEIP <<protocol>>
-        component [DoIP\n(Planned)] as DoIP <<protocol>>
-        component [gPTP\n(Planned)] as gPTP <<protocol>>
-        component [UDS\n(Planned)] as UDS <<protocol>>
+    package "Protocol Decoders" <<Rectangle>> {
+        component [Ethernet\n(802.1Q/QinQ)] as Ethernet <<protocol>>
+        component [IPv4\n(Checksum)] as IPv4 <<protocol>>
+        component [UDP/TCP\n(Options)] as Transport <<protocol>>
+        component [SOME/IP] as SOMEIP <<protocol>>
+        component [SOME/IP-SD] as SOMEIPSD <<protocol>>
+        component [DoIP] as DoIP <<protocol>>
+        component [ProtocolDispatcher\n(Stack Chaining)] as Dispatcher <<protocol>>
     }
+}
+
+package "Planned Protocols" #EEEEEE {
+    component [gPTP\n(IEEE 802.1AS)] as gPTP
+    component [UDS over IP] as UDS
 }
 
 package "External Dependencies" {
@@ -74,11 +82,22 @@ Filter --> libpcap
 Device --> Kernel
 Capture --> Kernel
 
-' Protocol dependencies (planned)
-SOMEIP ..> PacketView : uses
-DoIP ..> PacketView : uses
-gPTP ..> PacketView : uses
+' Protocol dependencies
+Ethernet --> PacketView : parses
+IPv4 --> PacketView : parses
+Transport --> PacketView : parses
+SOMEIP --> PacketView : parses
+SOMEIPSD --> SOMEIP : extends
+DoIP --> PacketView : parses
+Dispatcher --> Ethernet : chains
+Dispatcher --> IPv4 : chains
+Dispatcher --> Transport : chains
+Dispatcher --> SOMEIP : chains
+Dispatcher --> DoIP : chains
+
+' Planned protocol dependencies
 UDS ..> DoIP : uses
+gPTP ..> PacketView : uses
 
 note right of Kernel
   Requires:

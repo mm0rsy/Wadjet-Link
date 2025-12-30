@@ -27,6 +27,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | Net | [net_classes.puml](modules/net_classes.puml) |
 | PCAP | [pcap_classes.puml](modules/pcap_classes.puml) |
 | I/O | [io_classes.puml](modules/io_classes.puml) |
+| Protocols | [protocols_classes.puml](modules/protocols_classes.puml) |
 
 ### Module Sequence Diagrams
 
@@ -36,6 +37,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | Net | [net_sequences.puml](sequences/net_sequences.puml) |
 | PCAP | [pcap_sequences.puml](sequences/pcap_sequences.puml) |
 | I/O | [io_sequences.puml](sequences/io_sequences.puml) |
+| Protocols | [protocols_sequences.puml](sequences/protocols_sequences.puml) |
 
 ## Rendering Diagrams
 

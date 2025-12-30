@@ -22,7 +22,7 @@ Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstruct
 ## Key Features
 
 - **Zero-Latency Capture** — High-fidelity sniffing of 100/1000Base-T1 traffic using AF_PACKET
-- **Protocol Decoding** — SOME/IP, DoIP, gPTP, UDS over IP
+- **Protocol Decoding** — Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP
 - **GoogleTest Integration** — Assert on live traffic with custom matchers
 - **Passive Monitoring** — Read-only mode, no impact on functional safety (ASIL)
 - **Forensic Logging** — Automatic pcap storage on test failures
@@ -212,7 +212,7 @@ wadjet-link/
 │   ├── net/                 # Packet classes
 │   ├── pcap/                # PCAP file I/O
 │   ├── io/                  # Live capture
-│   └── protocols/           # Protocol decoders (planned)
+│   └── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
 ├── src/                     # Implementation
 ├── tests/                   # Unit tests
 ├── architecture/            # PlantUML diagrams

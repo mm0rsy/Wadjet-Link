@@ -1,0 +1,315 @@
+@startuml protocols_classes
+!theme plain
+title 𓆓 Wadjet-Link - Protocol Decoders Class Diagram
+
+skinparam backgroundColor white
+skinparam class {
+    BackgroundColor #FDE8E8
+    BorderColor #CC4444
+    ArrowColor #666666
+}
+
+package "wadjet::protocols" {
+    
+    ' ============================================
+    ' Core Decoder Framework
+    ' ============================================
+    
+    enum DecodeErrorCode {
+        Ok
+        BufferTooSmall
+        InvalidHeader
+        InvalidVersion
+        InvalidLength
+        InvalidChecksum
+        UnsupportedProtocol
+        MalformedData
+    }
+    
+    class DecodeError {
+        +code: DecodeErrorCode
+        +offset: size_t
+        +message: string
+    }
+    
+    class DecodeContext {
+        +data: span<const byte>
+        +original_offset: size_t
+        +timestamp: Timestamp
+        +layer_info: LayerInfo
+        --
+        +has_bytes(n): bool
+        +read_be16(offset): uint16_t
+        +read_be32(offset): uint32_t
+        +read_u8(offset): uint8_t
+        +read_bytes(offset, len): span
+        +sub_context(offset): DecodeContext
+    }
+    
+    struct LayerInfo {
+        +ethertype: uint16_t
+        +ip_protocol: uint8_t
+        +src_port: uint16_t
+        +dst_port: uint16_t
+    }
+    
+    class "DecodeResultT<T>" as DecodeResultT {
+        -value_: optional<T>
+        -error_: optional<DecodeError>
+        -next_context_: optional<DecodeContext>
+        --
+        +operator bool(): bool
+        +operator*(): T&
+        +operator->(): T*
+        +error(): DecodeError
+        +next_context(): DecodeContext
+    }
+    
+    interface IProtocolDecoder {
+        {abstract} +name(): string_view
+        {abstract} +can_decode(ctx): bool
+        {abstract} +decode_any(ctx): DecodeResultT<any>
+    }
+    
+    abstract class "DecoderBase<Derived, HeaderT>" as DecoderBase {
+        #options_: Options
+        --
+        +decode(ctx): DecodeResultT<HeaderT>
+        #make_error(code, msg, offset): DecodeResultT
+        #make_success(header, next_ctx): DecodeResultT
+        {abstract} #decode_impl(ctx): DecodeResultT<HeaderT>
+    }
+    
+    ' ============================================
+    ' Protocol Headers
+    ' ============================================
+    
+    package "ethernet" {
+        class EthernetHeader {
+            +dst_mac: MacAddress
+            +src_mac: MacAddress
+            +ethertype: uint16_t
+            +vlan_tags: vector<VlanTag>
+            --
+            +has_vlan(): bool
+            +is_qinq(): bool
+            +header_size(): size_t
+            +to_string(): string
+        }
+        
+        struct VlanTag {
+            +tpid: uint16_t
+            +pcp: uint8_t
+            +dei: bool
+            +vid: uint16_t
+        }
+        
+        class EthernetDecoder {
+            +decode(ctx): DecodeResultT<EthernetHeader>
+        }
+    }
+    
+    package "ipv4" {
+        class IPv4Header {
+            +version: uint8_t
+            +ihl: uint8_t
+            +dscp: uint8_t
+            +ecn: uint8_t
+            +total_length: uint16_t
+            +identification: uint16_t
+            +flags: IPv4Flags
+            +fragment_offset: uint16_t
+            +ttl: uint8_t
+            +protocol: uint8_t
+            +checksum: uint16_t
+            +src_ip: IPv4Address
+            +dst_ip: IPv4Address
+            +checksum_valid: bool
+            --
+            +header_size(): size_t
+            +is_fragmented(): bool
+            +to_string(): string
+        }
+        
+        class IPv4Decoder {
+            +Options: validate_checksum, allow_bad_checksum
+            --
+            +decode(ctx): DecodeResultT<IPv4Header>
+            -calculate_checksum(data): uint16_t
+        }
+    }
+    
+    package "udp" {
+        class UdpHeader {
+            +src_port: uint16_t
+            +dst_port: uint16_t
+            +length: uint16_t
+            +checksum: uint16_t
+            --
+            +header_size(): size_t
+            +payload_size(): size_t
+            +to_string(): string
+        }
+        
+        class UdpDecoder {
+            +decode(ctx): DecodeResultT<UdpHeader>
+        }
+    }
+    
+    package "tcp" {
+        class TcpHeader {
+            +src_port: uint16_t
+            +dst_port: uint16_t
+            +seq_num: uint32_t
+            +ack_num: uint32_t
+            +data_offset: uint8_t
+            +flags: TcpFlags
+            +window: uint16_t
+            +checksum: uint16_t
+            +urgent_ptr: uint16_t
+            +options: vector<TcpOption>
+            --
+            +header_size(): size_t
+            +to_string(): string
+        }
+        
+        class TcpDecoder {
+            +decode(ctx): DecodeResultT<TcpHeader>
+            -parse_options(data): vector<TcpOption>
+        }
+    }
+    
+    package "someip" {
+        class SomeIpHeader {
+            +service_id: uint16_t
+            +method_id: uint16_t
+            +length: uint32_t
+            +client_id: uint16_t
+            +session_id: uint16_t
+            +protocol_version: uint8_t
+            +interface_version: uint8_t
+            +message_type: MessageType
+            +return_code: ReturnCode
+            --
+            +is_request(): bool
+            +is_response(): bool
+            +is_notification(): bool
+            +is_service_discovery(): bool
+            +header_size(): size_t
+            +to_string(): string
+        }
+        
+        class SomeIpDecoder {
+            +decode(ctx): DecodeResultT<SomeIpHeader>
+        }
+    }
+    
+    package "someip_sd" {
+        class SomeIpSdHeader {
+            +flags: uint8_t
+            +entries: vector<SdEntry>
+            +options: vector<SdOption>
+            --
+            +reboot_flag(): bool
+            +unicast_flag(): bool
+            +header_size(): size_t
+            +payload_size(): size_t
+        }
+        
+        class SomeIpSdDecoder {
+            +decode(ctx): DecodeResultT<SomeIpSdHeader>
+        }
+    }
+    
+    package "doip" {
+        class DoIPHeader {
+            +version: uint8_t
+            +inverse_version: uint8_t
+            +payload_type: PayloadType
+            +payload_length: uint32_t
+            --
+            +is_valid_version(): bool
+            +header_size(): size_t
+            +to_string(): string
+        }
+        
+        class DoIPDecoder {
+            +decode(ctx): DecodeResultT<DoIPHeader>
+            +parse_routing_activation_request(data): optional<RoutingActivationRequest>
+            +parse_diagnostic_message(data): optional<DiagnosticMessage>
+        }
+    }
+    
+    ' ============================================
+    ' Protocol Dispatcher
+    ' ============================================
+    
+    class ProtocolDispatcher {
+        -options_: DispatcherOptions
+        -eth_decoder_: EthernetDecoder
+        -ipv4_decoder_: IPv4Decoder
+        -udp_decoder_: UdpDecoder
+        -tcp_decoder_: TcpDecoder
+        -someip_decoder_: SomeIpDecoder
+        -someip_sd_decoder_: SomeIpSdDecoder
+        -doip_decoder_: DoIPDecoder
+        --
+        +decode(data): DecodeStackResult
+        +decode_from_ip(data): DecodeStackResult
+        -decode_transport(result, data, protocol): void
+        -decode_application(result, data, src, dst): void
+    }
+    
+    struct DispatcherOptions {
+        +stop_on_error: bool
+        +decode_application: bool
+        +max_layers: size_t
+        +validate_ipv4_checksum: bool
+    }
+    
+    class DecodeStackResult {
+        +layers: vector<DecodedHeaderVariant>
+        +payload: span<const byte>
+        +error: optional<DecodeError>
+        +complete: bool
+        --
+        +has_layer<T>(): bool
+        +get_layer<T>(): const T*
+        +get_all_layers<T>(): vector<const T*>
+    }
+}
+
+' ============================================
+' Relationships
+' ============================================
+
+DecoderBase ..|> IProtocolDecoder
+DecoderBase --> DecodeResultT
+DecoderBase --> DecodeContext
+
+EthernetDecoder --|> DecoderBase
+IPv4Decoder --|> DecoderBase
+UdpDecoder --|> DecoderBase
+TcpDecoder --|> DecoderBase
+SomeIpDecoder --|> DecoderBase
+SomeIpSdDecoder --|> DecoderBase
+DoIPDecoder --|> DecoderBase
+
+DecodeResultT --> DecodeError
+DecodeContext --> LayerInfo
+
+ProtocolDispatcher --> DecodeStackResult
+ProtocolDispatcher --> DispatcherOptions
+ProtocolDispatcher o-- EthernetDecoder
+ProtocolDispatcher o-- IPv4Decoder
+ProtocolDispatcher o-- UdpDecoder
+ProtocolDispatcher o-- TcpDecoder
+ProtocolDispatcher o-- SomeIpDecoder
+ProtocolDispatcher o-- SomeIpSdDecoder
+ProtocolDispatcher o-- DoIPDecoder
+
+EthernetHeader o-- VlanTag
+SomeIpSdHeader o-- "0..*" SdEntry
+SomeIpSdHeader o-- "0..*" SdOption
+
+@enduml
