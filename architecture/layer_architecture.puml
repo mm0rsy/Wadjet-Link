@@ -7,10 +7,23 @@ skinparam rectangle {
     roundCorner 10
 }
 
+rectangle "**CLI Tools Layer**\n(wadjet-run)" as CLI #F8FDF8 {
+    card "Scenario Runner CLI" as SRCLI
+}
+
 rectangle "**Test Layer**\n(GoogleTest)" as Test #E8E8FD {
-    card "Unit Tests (111)" as UT
+    card "Unit Tests (378)" as UT
     card "Integration Tests (26)" as IT
+    card "Scenario Tests (41)" as ST
     card "PacketBuilder" as PB
+}
+
+rectangle "**Scenario Layer**\n(YAML/JSON Scenarios)" as Scenario #FDF8E8 {
+    card "ScenarioRunner" as SR
+    card "YamlParser" as YP
+    card "JsonParser" as JP
+    card "ReportGenerators" as RG
+    note "Milestone 4 ✅\nJUnit, JSON, TAP, Text" as N2
 }
 
 rectangle "**Application Layer**\n(User Code / Tests)" as App #F8F8FD {
@@ -44,11 +57,18 @@ rectangle "**System Layer**" as Sys #DDDDDD {
     card "Linux Kernel\nAF_PACKET" as K
     card "libpcap" as LP
     card "File System" as FS
+    card "yaml-cpp" as YAML
+    card "nlohmann_json" as JSON
 }
 
+CLI -down-> Scenario
+Scenario -down-> Protocol
+Scenario -down-> IO
+Scenario -down-> Sys
 Test -down-> App
 Test -down-> Protocol
 Test -down-> IO
+Test -down-> Scenario
 App -down-> Protocol
 App -down-> Net
 Protocol -down-> Net
@@ -60,7 +80,9 @@ Core -down-> Sys
 
 legend right
   | Color | Layer |
+  | <#F8FDF8> | CLI |
   | <#E8E8FD> | Test |
+  | <#FDF8E8> | Scenario |
   | <#F8F8FD> | Application |
   | <#FDE8E8> | Protocol |
   | <#E8FDF4> | Packet |

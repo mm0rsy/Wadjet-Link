@@ -11,6 +11,7 @@ skinparam component {
     BackgroundColor<<io>> #F4E8FD
     BackgroundColor<<protocol>> #FDE8E8
     BackgroundColor<<test>> #E8E8FD
+    BackgroundColor<<scenario>> #FDF8E8
 }
 
 package "Wadjet-Link Library" {
@@ -54,10 +55,23 @@ package "Planned Protocols" #EEEEEE {
     component [UDS over IP] as UDS
 }
 
+package "Scenario Module" #FDF8E8 {
+    component [YAML Parser\nyaml-cpp] as YamlParser <<scenario>>
+    component [JSON Parser\nnlohmann_json] as JsonParser <<scenario>>
+    component [ScenarioRunner\nExecution Engine] as ScenarioRunner <<scenario>>
+    component [ReportGenerators\n(JUnit, JSON, TAP, Text)] as Reports <<scenario>>
+}
+
+package "CLI Tools" {
+    component [wadjet-run\nScenario Runner] as WadjetRun
+}
+
 package "External Dependencies" {
     component [libpcap] as libpcap
     component [Linux Kernel\nAF_PACKET] as Kernel
     component [GoogleTest] as GTest
+    component [yaml-cpp] as YamlCpp
+    component [nlohmann_json] as NlohmannJson
 }
 
 ' Core dependencies
@@ -99,19 +113,35 @@ Dispatcher --> DoIP : chains
 UDS ..> DoIP : uses
 gPTP ..> PacketView : uses
 
+' Scenario module dependencies
+YamlParser --> YamlCpp : uses
+JsonParser --> NlohmannJson : uses
+ScenarioRunner --> Capture : captures
+ScenarioRunner --> PcapReader : reads
+ScenarioRunner --> PcapWriter : writes
+ScenarioRunner --> Dispatcher : matches
+WadjetRun --> YamlParser : parses
+WadjetRun --> JsonParser : parses
+WadjetRun --> ScenarioRunner : runs
+WadjetRun --> Reports : generates
+
 package "Test Framework" {
-    component [Unit Tests\n(111 tests)] as UnitTests <<test>>
+    component [Unit Tests\n(378 tests)] as UnitTests <<test>>
     component [Integration Tests\n(26 tests)] as IntegTests <<test>>
+    component [Scenario Tests\n(41 tests)] as ScenarioTests <<test>>
     component [PacketBuilder\nHelper] as PktBuilder <<test>>
 }
 
 ' Test dependencies
 UnitTests --> GTest : uses
 IntegTests --> GTest : uses
+ScenarioTests --> GTest : uses
 IntegTests --> Dispatcher : tests
 IntegTests --> PcapReader : tests
 IntegTests --> PcapWriter : tests
 IntegTests --> Capture : tests
+ScenarioTests --> ScenarioRunner : tests
+ScenarioTests --> Reports : tests
 PktBuilder --> ByteOrder : uses
 
 note right of Kernel

@@ -18,6 +18,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | [usecase_capture_packets.puml](usecases/usecase_capture_packets.puml) | Live packet capture workflow |
 | [usecase_read_pcap.puml](usecases/usecase_read_pcap.puml) | PCAP file reading workflow |
 | [usecase_write_pcap.puml](usecases/usecase_write_pcap.puml) | PCAP file writing workflow |
+| [usecase_run_scenarios.puml](usecases/usecase_run_scenarios.puml) | Test scenario runner use cases |
 
 ### Module Class Diagrams
 
@@ -28,6 +29,7 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | PCAP | [pcap_classes.puml](modules/pcap_classes.puml) |
 | I/O | [io_classes.puml](modules/io_classes.puml) |
 | Protocols | [protocols_classes.puml](modules/protocols_classes.puml) |
+| Scenario | [scenario_classes.puml](modules/scenario_classes.puml) |
 | Tests | [test_classes.puml](modules/test_classes.puml) |
 
 ### Module Sequence Diagrams
@@ -39,14 +41,17 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | PCAP | [pcap_sequences.puml](sequences/pcap_sequences.puml) |
 | I/O | [io_sequences.puml](sequences/io_sequences.puml) |
 | Protocols | [protocols_sequences.puml](sequences/protocols_sequences.puml) |
+| Scenario | [scenario_sequences.puml](sequences/scenario_sequences.puml) |
 | Tests | [test_sequences.puml](sequences/test_sequences.puml) |
 
 ## Test Architecture
 
-The project has a comprehensive test suite with **295 tests**:
+The project has a comprehensive test suite with **378 tests**:
 
 ### Unit Tests (111 tests)
+
 Located in `tests/` subdirectories by module:
+
 - `tests/core/` - Result, ByteOrder, Timestamp
 - `tests/net/` - Packet, PacketView, MacAddress, IPv4Address
 - `tests/pcap/` - PcapReader, PcapWriter
@@ -54,18 +59,36 @@ Located in `tests/` subdirectories by module:
 - `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP decoders
 
 ### Testing Framework Tests (158 tests)
+
 Located in `tests/testing/`:
+
 - `test_matchers.cpp` - gMock-style packet matchers (33 tests)
 - `test_live_capture_fixture.cpp` - LiveCaptureTestFixture integration (24 tests)
 - `test_generators.cpp` - Property-based testing generators (40 tests)
 - `test_record_replay.cpp` - Record-then-assert mode (35 tests)
 - `test_live_assert.cpp` - Live-assert mode (26 tests)
 
+### Scenario Tests (41 tests)
+
+Located in `tests/scenario/`:
+
+- `test_scenario_parser.cpp` - YAML/JSON parser tests (21 tests)
+- `test_scenario_runner.cpp` - Runner and report generator tests (20 tests)
+
 ### Integration Tests (26 tests)
+
 Located in `tests/integration/`:
+
 - `test_decode_pipeline.cpp` - Full Ethernet→IPv4→UDP/TCP→SOME/IP/DoIP decode chain
 - `test_pcap_decode.cpp` - PCAP read/write + decode integration
 - `test_capture_session.cpp` - Live loopback capture (requires CAP_NET_RAW)
+
+### Skipped Tests (42 tests)
+
+Some tests require elevated privileges or specific hardware:
+
+- Live capture tests - Require `CAP_NET_RAW` or root
+- Hardware timestamp tests - Require NIC support
 
 ## Rendering Diagrams
 
@@ -108,4 +131,6 @@ Paste diagram content at https://www.plantuml.com/plantuml/
 | #FDF4E8 | File I/O (PCAP) |
 | #F4E8FD | Live capture I/O |
 | #FDE8E8 | Protocol decoders |
+| #FDF8E8 | Scenario module |
 | #E8E8FD | Testing framework |
+| #F8FDF8 | CLI tools |
