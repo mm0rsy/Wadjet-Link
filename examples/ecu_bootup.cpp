@@ -94,7 +94,7 @@ struct BootupEvent {
 
 class BootupMonitor {
 public:
-    void process_packet(const net::PacketView& view, steady_clock::time_point capture_time) {
+    void process_packet(const PacketView& view, steady_clock::time_point capture_time) {
         if (!start_time_) {
             start_time_ = capture_time;
         }
@@ -102,7 +102,7 @@ public:
 
         // Decode the packet stack
         auto result = decode_packet(view.data());
-        if (!result.success()) {
+        if (!result.complete) {
             return;
         }
 
@@ -183,7 +183,7 @@ private:
 
         switch (doip_header->payload_type) {
             case doip::PayloadType::VehicleAnnouncementOrIdentificationResponse: {
-                auto payload = result.payload_after<doip::DoIPHeader>();
+                auto payload = result.payload;
                 std::string vin = "???";
                 if (payload.size() >= 17) {
                     vin = std::string(reinterpret_cast<const char*>(payload.data()), 17);
@@ -193,7 +193,7 @@ private:
             }
 
             case doip::PayloadType::RoutingActivationResponse: {
-                auto payload = result.payload_after<doip::DoIPHeader>();
+                auto payload = result.payload;
                 if (payload.size() >= 5 &&
                     static_cast<doip::RoutingActivationResponseCode>(payload[4]) ==
                         doip::RoutingActivationResponseCode::SuccessfullyActivated) {
@@ -203,7 +203,7 @@ private:
             }
 
             case doip::PayloadType::DiagnosticMessage: {
-                auto payload = result.payload_after<doip::DoIPHeader>();
+                auto payload = result.payload;
                 if (payload.size() >= 4) {
                     std::uint16_t src = (static_cast<std::uint16_t>(payload[0]) << 8) |
                                         static_cast<std::uint16_t>(payload[1]);
@@ -403,7 +403,7 @@ int main(int argc, char* argv[]) {
 
         auto reader_result = pcap::PcapReader::open(source);
         if (!reader_result) {
-            std::cerr << "Error opening PCAP file: " << reader_result.error().message() << "\n";
+            std::cerr << "Error opening PCAP file: " << reader_result.error().message << "\n";
             return 1;
         }
 
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
         auto start = steady_clock::now();
         while (auto packet = reader.next_packet()) {
             // Use packet timestamp to simulate time progression
-            auto packet_time = start + microseconds(packet->timestamp().time_since_epoch().count());
+            auto packet_time = start + microseconds(packet->timestamp().total_microseconds());
             monitor.process_packet(packet->view(), packet_time);
         }
     } else {
@@ -426,8 +426,8 @@ int main(int argc, char* argv[]) {
 
         auto session_result = io::CaptureSession::create(source, opts);
         if (!session_result) {
-            std::cerr << "Error creating capture session: "
-                      << session_result.error().message() << "\n";
+            std::cerr << "Error creating capture session: " << session_result.error().message
+                      << "\n";
             return 1;
         }
 
@@ -436,8 +436,7 @@ int main(int argc, char* argv[]) {
         // Start capture
         auto start_result = session.start();
         if (!start_result) {
-            std::cerr << "Error starting capture: "
-                      << start_result.error().message() << "\n";
+            std::cerr << "Error starting capture: " << start_result.error().message << "\n";
             return 1;
         }
 

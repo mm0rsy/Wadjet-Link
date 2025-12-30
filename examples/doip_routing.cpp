@@ -362,10 +362,10 @@ private:
 
 class DoIPPacketProcessor {
 public:
-    void process_packet(const net::PacketView& view) {
+    void process_packet(const PacketView& view) {
         // Decode the packet stack
         auto result = decode_packet(view.data());
-        if (!result.success()) {
+        if (!result.complete) {
             return;
         }
 
@@ -376,8 +376,8 @@ public:
 
         const auto* doip_header = result.get_layer<doip::DoIPHeader>();
 
-        // Get the DoIP payload
-        auto payload = result.payload_after<doip::DoIPHeader>();
+        // Get the DoIP payload (remaining data after all decoded headers)
+        auto payload = result.payload;
 
         tracker_.process_header(*doip_header, payload);
     }
@@ -426,7 +426,7 @@ int main(int argc, char* argv[]) {
 
         auto reader_result = pcap::PcapReader::open(source);
         if (!reader_result) {
-            std::cerr << "Error opening PCAP file: " << reader_result.error().message() << "\n";
+            std::cerr << "Error opening PCAP file: " << reader_result.error().message << "\n";
             return 1;
         }
 
@@ -445,8 +445,8 @@ int main(int argc, char* argv[]) {
 
         auto session_result = io::CaptureSession::create(source, opts);
         if (!session_result) {
-            std::cerr << "Error creating capture session: "
-                      << session_result.error().message() << "\n";
+            std::cerr << "Error creating capture session: " << session_result.error().message
+                      << "\n";
             return 1;
         }
 
@@ -455,15 +455,13 @@ int main(int argc, char* argv[]) {
         // Set BPF filter for DoIP port
         auto filter_result = session.set_filter("tcp port 13400");
         if (!filter_result) {
-            std::cerr << "Warning: Could not set filter: "
-                      << filter_result.error().message() << "\n";
+            std::cerr << "Warning: Could not set filter: " << filter_result.error().message << "\n";
         }
 
         // Start capture
         auto start_result = session.start();
         if (!start_result) {
-            std::cerr << "Error starting capture: "
-                      << start_result.error().message() << "\n";
+            std::cerr << "Error starting capture: " << start_result.error().message << "\n";
             return 1;
         }
 

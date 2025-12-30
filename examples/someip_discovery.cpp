@@ -133,12 +133,12 @@ private:
 
 class SdPacketProcessor {
 public:
-    void process_packet(const net::PacketView& view) {
+    void process_packet(const PacketView& view) {
         packet_count_++;
 
         // Decode the packet stack
         auto result = decode_packet(view.data());
-        if (!result.success()) {
+        if (!result.complete) {
             return;
         }
 
@@ -295,7 +295,7 @@ int main(int argc, char* argv[]) {
 
         auto reader_result = pcap::PcapReader::open(source);
         if (!reader_result) {
-            std::cerr << "Error opening PCAP file: " << reader_result.error().message() << "\n";
+            std::cerr << "Error opening PCAP file: " << reader_result.error().message << "\n";
             return 1;
         }
 
@@ -314,8 +314,8 @@ int main(int argc, char* argv[]) {
 
         auto session_result = io::CaptureSession::create(source, opts);
         if (!session_result) {
-            std::cerr << "Error creating capture session: "
-                      << session_result.error().message() << "\n";
+            std::cerr << "Error creating capture session: " << session_result.error().message
+                      << "\n";
             return 1;
         }
 
@@ -324,15 +324,13 @@ int main(int argc, char* argv[]) {
         // Set BPF filter for SD port
         auto filter_result = session.set_filter("udp port 30490");
         if (!filter_result) {
-            std::cerr << "Warning: Could not set filter: "
-                      << filter_result.error().message() << "\n";
+            std::cerr << "Warning: Could not set filter: " << filter_result.error().message << "\n";
         }
 
         // Start capture
         auto start_result = session.start();
         if (!start_result) {
-            std::cerr << "Error starting capture: "
-                      << start_result.error().message() << "\n";
+            std::cerr << "Error starting capture: " << start_result.error().message << "\n";
             return 1;
         }
 

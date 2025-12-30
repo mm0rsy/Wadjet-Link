@@ -71,7 +71,7 @@ protected:
 
         auto result = pcap::PcapReader::open(path);
         if (!result) {
-            ADD_FAILURE() << "Failed to open PCAP: " << result.error().message();
+            ADD_FAILURE() << "Failed to open PCAP: " << result.error().message;
             return std::nullopt;
         }
 
@@ -79,8 +79,8 @@ protected:
     }
 
     /// @brief Read all packets from a PCAP file
-    std::vector<net::Packet> read_all_packets(const std::string& filename) {
-        std::vector<net::Packet> packets;
+    std::vector<Packet> read_all_packets(const std::string& filename) {
+        std::vector<Packet> packets;
         auto reader = load_pcap(filename);
         if (reader) {
             packets = reader->read_all();
@@ -90,9 +90,8 @@ protected:
 
     /// @brief Filter packets matching a predicate
     template <typename Predicate>
-    std::vector<net::Packet> filter_packets(const std::vector<net::Packet>& packets,
-                                             Predicate pred) {
-        std::vector<net::Packet> filtered;
+    std::vector<Packet> filter_packets(const std::vector<Packet>& packets, Predicate pred) {
+        std::vector<Packet> filtered;
         std::copy_if(packets.begin(), packets.end(), std::back_inserter(filtered), pred);
         return filtered;
     }
@@ -242,7 +241,7 @@ TEST_F(PcapRegressionTest, DoIPRoutingActivationSequence) {
 
         if (result.has_layer<doip::DoIPHeader>()) {
             const auto* header = result.get_layer<doip::DoIPHeader>();
-            auto payload = result.payload_after<doip::DoIPHeader>();
+            auto payload = result.payload;
 
             if (header->payload_type == doip::PayloadType::RoutingActivationRequest) {
                 saw_request = true;
@@ -378,7 +377,7 @@ TEST_F(PcapRegressionTest, DecodingPerformance) {
     int decoded = 0;
     for (const auto& packet : packets) {
         auto result = decode_packet(packet.data());
-        if (result.success()) {
+        if (result.complete) {
             decoded++;
         }
     }
@@ -411,7 +410,7 @@ TEST_F(PcapRegressionTest, MalformedPacketHandling) {
     // Test with empty packet
     std::vector<std::byte> empty;
     result = decode_packet(empty);
-    EXPECT_FALSE(result.success()) << "Should fail on empty packet";
+    EXPECT_FALSE(result.complete) << "Should fail on empty packet";
 
     // Test with random data
     std::vector<std::byte> random(100);
