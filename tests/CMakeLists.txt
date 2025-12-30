@@ -16,7 +16,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(googletest)
 
 # ============================================================================
-# Test executable
+# Test executable (Unit Tests)
 # ============================================================================
 add_executable(wadjet_tests
     test_version.cpp
@@ -46,3 +46,28 @@ target_link_libraries(wadjet_tests
 
 include(GoogleTest)
 gtest_discover_tests(wadjet_tests)
+
+# ============================================================================
+# Integration Tests executable
+# ============================================================================
+add_executable(wadjet_integration_tests
+    # Pipeline integration tests
+    integration/test_decode_pipeline.cpp
+    # PCAP decode tests
+    integration/test_pcap_decode.cpp
+    # Capture session tests (requires CAP_NET_RAW)
+    integration/test_capture_session.cpp
+)
+
+target_link_libraries(wadjet_integration_tests
+    PRIVATE
+        wadjet
+        wadjet_warnings
+        wadjet_sanitizers
+        GTest::gtest_main
+)
+
+# Integration tests are discovered separately so they can be run independently
+gtest_discover_tests(wadjet_integration_tests
+    TEST_PREFIX "integration."
+)
