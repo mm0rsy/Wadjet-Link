@@ -50,6 +50,23 @@ namespace wadjet::io {
         + immediate_mode : bool = true
         + buffer_size : size_t = 2MB
         + timeout_ms : int = 100
+        + timestamp_source : TimestampSource = Auto
+        + use_tpacket_v3 : bool = false
+        + block_size : size_t = 128KB
+        + retire_timeout_ms : int = 100
+        + use_ring_buffer : bool = true
+    }
+
+    enum TpacketVersion {
+        V2
+        V3
+    }
+
+    enum TimestampSource {
+        Software
+        Hardware
+        System
+        Auto
     }
 
     class FrameFilter {
@@ -97,6 +114,13 @@ namespace wadjet::io {
         + frame_count : size_t
         + current_frame : size_t
         + stats : CaptureStats
+        + tpacket_version : TpacketVersion
+        + block_size : size_t
+        + block_count : size_t
+        + current_block : size_t
+        + packets_remaining_in_block : size_t
+        + current_packet_in_block : uint8_t*
+        + hw_timestamp_enabled : bool
     }
 
     ' Device functions (free functions)
@@ -126,6 +150,10 @@ note right of CaptureSessionImpl
   - AF_PACKET socket
   - PACKET_RX_RING
   - mmap'd ring buffer
+  - TPACKET_V2 (frame-based)
+  - TPACKET_V3 (block-based)
+    with nanosecond timestamps
+    and improved batching
 end note
 
 note right of FrameFilterImpl
