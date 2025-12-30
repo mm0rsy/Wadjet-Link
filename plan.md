@@ -712,6 +712,981 @@ fn main() -> wadjet::Result<()> {
 
 ---
 
+### Milestone 8 — gPTP Protocol Decoder (IEEE 802.1AS)
+
+**Goal:** Implement Generalized Precision Time Protocol decoder for automotive time synchronization
+
+**Status:** Not Started
+
+**Overview:**
+
+gPTP (IEEE 802.1AS) is the timing and synchronization standard for automotive Ethernet, enabling precise clock synchronization across ECUs. It's essential for time-sensitive networking (TSN) and coordinated vehicle functions.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    gPTP Protocol Stack                          │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
+│  │   Sync      │  │  Follow_Up  │  │   Pdelay_Req/Resp       │  │
+│  │   Message   │  │   Message   │  │   Messages              │  │
+│  └──────┬──────┘  └──────┬──────┘  └───────────┬─────────────┘  │
+│         │                │                     │                │
+│         └────────────────┼─────────────────────┘                │
+│                          ▼                                      │
+│              ┌───────────────────────┐                          │
+│              │   gPTP Header Parser  │                          │
+│              │   - Message Type      │                          │
+│              │   - Domain Number     │                          │
+│              │   - Correction Field  │                          │
+│              │   - Clock Identity    │                          │
+│              └───────────┬───────────┘                          │
+│                          ▼                                      │
+│              ┌───────────────────────┐                          │
+│              │   Time Calculator     │                          │
+│              │   - Path Delay        │                          │
+│              │   - Clock Offset      │                          │
+│              │   - Rate Ratio        │                          │
+│              └───────────────────────┘                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/gptp/gptp.hpp` — Main header
+- [ ] `include/wadjet/protocols/gptp/gptp_types.hpp` — Type definitions
+  - gPTPHeader (34 bytes base header)
+  - MessageType enum (Sync, Follow_Up, Pdelay_Req, Pdelay_Resp, Pdelay_Resp_Follow_Up, Announce)
+  - ClockIdentity (8-byte EUI-64)
+  - PortIdentity (ClockIdentity + port number)
+  - Timestamp (seconds + nanoseconds)
+  - CorrectionField (scaled nanoseconds)
+- [ ] `include/wadjet/protocols/gptp/gptp_messages.hpp` — Message structures
+  - SyncMessage
+  - FollowUpMessage with TLVs
+  - PdelayReqMessage
+  - PdelayRespMessage
+  - PdelayRespFollowUpMessage
+  - AnnounceMessage
+- [ ] `include/wadjet/protocols/gptp/gptp_tlv.hpp` — TLV parsing
+  - OrganizationExtension TLV
+  - FollowUpInformation TLV
+  - PathTrace TLV
+
+Decoder Implementation:
+- [ ] `src/protocols/gptp/gptp_decoder.cpp` — Main decoder
+  - Message type dispatch
+  - Header validation
+  - TLV parsing
+- [ ] `src/protocols/gptp/gptp_calculator.cpp` — Time calculations
+  - Path delay calculation
+  - Clock offset estimation
+  - Rate ratio computation
+- [ ] `src/protocols/gptp/gptp_state.cpp` — Protocol state tracking
+  - Grandmaster election state
+  - Sync interval tracking
+  - Port state machine
+
+Integration:
+- [ ] Update `ProtocolDispatcher` for EtherType 0x88F7 (PTP)
+- [ ] Add gPTP to scenario expectations
+- [ ] Python bindings for gPTP
+- [ ] Rust bindings for gPTP
+- [ ] C ABI layer updates
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_gptp.cpp`):
+- [ ] Header parsing (all message types)
+- [ ] TLV parsing and validation
+- [ ] ClockIdentity/PortIdentity handling
+- [ ] Timestamp conversion
+- [ ] CorrectionField scaling
+- [ ] Malformed message handling
+- [ ] Boundary conditions
+
+Integration Tests (`tests/integration/test_gptp_integration.cpp`):
+- [ ] Full message decode from raw bytes
+- [ ] PCAP roundtrip with gPTP traffic
+- [ ] Protocol stack decode (Ethernet → gPTP)
+- [ ] Multi-message sequence validation
+
+Fuzz Testing (`fuzz/fuzz_gptp.cpp`):
+- [ ] gPTP header fuzzer
+- [ ] TLV fuzzer
+- [ ] Message-specific fuzzers
+- [ ] Seed corpus with valid gPTP captures
+
+Property-Based Tests:
+- [ ] gPTPBuilder for packet generation
+- [ ] Random message type generation
+- [ ] Timestamp boundary testing
+
+Regression Tests:
+- [ ] `pcap_samples/gptp/` — Real gPTP captures
+- [ ] Known automotive gPTP traffic patterns
+- [ ] Edge cases from specification
+
+**Documentation:**
+
+- [ ] `docs/protocols/gptp.md` — Protocol reference
+  - IEEE 802.1AS overview
+  - Message format diagrams
+  - State machine documentation
+  - Automotive profile specifics
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with gPTP in protocol stack
+- [ ] Update `docs/quickstart.md` with gPTP examples
+
+**Use Cases & Examples:**
+
+- [ ] `examples/gptp_monitor.cpp` — gPTP traffic monitor
+  - Grandmaster detection
+  - Sync interval analysis
+  - Path delay measurement
+  - Clock drift visualization
+- [ ] `examples/scenarios/gptp_sync_test.yaml` — Scenario test
+- [ ] Python example: `examples/python/gptp_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// New matchers for testing
+EXPECT_THAT(packet, IsGptpSync());
+EXPECT_THAT(packet, IsGptpFollowUp());
+EXPECT_THAT(packet, HasGptpDomain(0));
+EXPECT_THAT(packet, HasGptpClockIdentity(clock_id));
+EXPECT_THAT(packet, GptpMessageType(MessageType::Sync));
+```
+
+---
+
+### Milestone 9 — UDS over IP Protocol Decoder
+
+**Goal:** Implement Unified Diagnostic Services over IP for automotive diagnostics
+
+**Status:** Not Started
+
+**Overview:**
+
+UDS (ISO 14229) is the standard diagnostic protocol for automotive ECUs. UDS over IP enables diagnostic communication over Ethernet, typically transported via DoIP or directly over TCP/UDP.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    UDS Protocol Stack                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    UDS Services                          │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
+│  │  │ Diag    │ │ Session │ │ Read/   │ │ Routine         │ │   │
+│  │  │ Session │ │ Control │ │ Write   │ │ Control         │ │   │
+│  │  │ Control │ │         │ │ Memory  │ │                 │ │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
+│  │  │ Security│ │ Read/   │ │ Request │ │ ECU Reset       │ │   │
+│  │  │ Access  │ │ Write   │ │ Download│ │                 │ │   │
+│  │  │         │ │ DID     │ │ /Upload │ │                 │ │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │      UDS Message Parser   │                      │
+│              │   - Service ID (SID)      │                      │
+│              │   - Sub-function          │                      │
+│              │   - Data Parameters       │                      │
+│              │   - NRC Handling          │                      │
+│              └───────────────────────────┘                      │
+│                              │                                  │
+│              ┌───────────────┴───────────────┐                  │
+│              ▼                               ▼                  │
+│  ┌─────────────────────┐        ┌─────────────────────┐         │
+│  │   DoIP Transport    │        │  Direct TCP/UDP     │         │
+│  │   (ISO 13400)       │        │  Transport          │         │
+│  └─────────────────────┘        └─────────────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/uds/uds.hpp` — Main header
+- [ ] `include/wadjet/protocols/uds/uds_types.hpp` — Type definitions
+  - ServiceID enum (0x10-0x3E services)
+  - NegativeResponseCode enum
+  - SessionType enum
+  - SecurityLevel
+  - DataIdentifier (DID)
+  - RoutineIdentifier
+- [ ] `include/wadjet/protocols/uds/uds_services.hpp` — Service structures
+  - DiagnosticSessionControl (0x10)
+  - ECUReset (0x11)
+  - SecurityAccess (0x27)
+  - CommunicationControl (0x28)
+  - TesterPresent (0x3E)
+  - ReadDataByIdentifier (0x22)
+  - WriteDataByIdentifier (0x2E)
+  - RoutineControl (0x31)
+  - RequestDownload (0x34)
+  - RequestUpload (0x35)
+  - TransferData (0x36)
+  - RequestTransferExit (0x37)
+- [ ] `include/wadjet/protocols/uds/uds_nrc.hpp` — Negative Response Codes
+  - All ISO 14229 NRCs with descriptions
+  - NRC classification (temporary, permanent)
+
+Decoder Implementation:
+- [ ] `src/protocols/uds/uds_decoder.cpp` — Main decoder
+  - Service ID dispatch
+  - Request/Response differentiation
+  - Sub-function parsing
+  - Parameter extraction
+- [ ] `src/protocols/uds/uds_services.cpp` — Service-specific parsing
+  - DID database lookup
+  - Routine parameter parsing
+  - Transfer block handling
+- [ ] `src/protocols/uds/uds_session.cpp` — Session tracking
+  - Active session state
+  - Security level tracking
+  - Timing parameters (P2, P2*)
+
+Integration:
+- [ ] Update DoIP decoder to extract UDS payload
+- [ ] Add UDS to scenario expectations
+- [ ] Python bindings for UDS
+- [ ] Rust bindings for UDS
+- [ ] C ABI layer updates
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_uds.cpp`):
+- [ ] Service ID parsing (all 20+ services)
+- [ ] Sub-function handling
+- [ ] DID encoding/decoding
+- [ ] NRC parsing and messages
+- [ ] Multi-frame handling
+- [ ] Malformed request handling
+- [ ] Response validation
+
+Integration Tests (`tests/integration/test_uds_integration.cpp`):
+- [ ] Full diagnostic session simulation
+- [ ] DoIP + UDS combined decode
+- [ ] Request-response correlation
+- [ ] Session state transitions
+
+Fuzz Testing (`fuzz/fuzz_uds.cpp`):
+- [ ] UDS message fuzzer
+- [ ] Service-specific fuzzers
+- [ ] NRC response fuzzer
+- [ ] Seed corpus with real diagnostic traffic
+
+Property-Based Tests:
+- [ ] UDSBuilder for message generation
+- [ ] Random service/sub-function generation
+- [ ] DID range testing
+
+Regression Tests:
+- [ ] `pcap_samples/uds/` — Real diagnostic captures
+- [ ] Known ECU diagnostic patterns
+- [ ] OEM-specific extensions
+
+**Documentation:**
+
+- [ ] `docs/protocols/uds.md` — Protocol reference
+  - ISO 14229 overview
+  - Service catalog with parameters
+  - Session and security concepts
+  - NRC reference table
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with UDS in protocol stack
+- [ ] DID database format documentation
+
+**Use Cases & Examples:**
+
+- [ ] `examples/uds_monitor.cpp` — UDS traffic monitor
+  - Service classification
+  - Request/response matching
+  - Session tracking
+  - Error analysis
+- [ ] `examples/uds_validator.cpp` — UDS compliance checker
+  - Timing validation (P2/P2*)
+  - Session rule enforcement
+  - Security access validation
+- [ ] `examples/scenarios/uds_flash_test.yaml` — Flash sequence test
+- [ ] Python example: `examples/python/uds_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// New matchers for testing
+EXPECT_THAT(packet, IsUdsRequest());
+EXPECT_THAT(packet, IsUdsResponse());
+EXPECT_THAT(packet, HasUdsService(ServiceID::ReadDataByIdentifier));
+EXPECT_THAT(packet, HasUdsDid(0xF190)); // VIN DID
+EXPECT_THAT(packet, IsUdsNegativeResponse());
+EXPECT_THAT(packet, HasUdsNrc(NRC::ServiceNotSupported));
+```
+
+---
+
+### Milestone 10 — DDS Protocol Support
+
+**Goal:** Implement Data Distribution Service decoder for advanced automotive middleware
+
+**Status:** Not Started
+
+**Overview:**
+
+DDS (Data Distribution Service) is an OMG standard for real-time publish-subscribe communication. It's increasingly used in autonomous vehicles for sensor fusion, perception, and control systems (e.g., ROS2 uses DDS).
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      DDS Protocol Stack                         │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    DDS Concepts                          │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
+│  │  │ Domain  │ │ Topic   │ │ Data    │ │ QoS Policies    │ │   │
+│  │  │ Part.   │ │         │ │ Reader/ │ │                 │ │   │
+│  │  │         │ │         │ │ Writer  │ │                 │ │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │         RTPS Layer        │                      │
+│              │   (Real-Time Publish-     │                      │
+│              │    Subscribe Protocol)    │                      │
+│              └───────────────────────────┘                      │
+│                              │                                  │
+│         ┌────────────────────┼────────────────────┐             │
+│         ▼                    ▼                    ▼             │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────────┐      │
+│  │   SPDP      │    │   SEDP      │    │   User Data     │      │
+│  │ (Discovery) │    │ (Endpoints) │    │   Messages      │      │
+│  └─────────────┘    └─────────────┘    └─────────────────┘      │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │      UDP/IP Transport     │                      │
+│              │   Multicast + Unicast     │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/dds/dds.hpp` — Main header
+- [ ] `include/wadjet/protocols/dds/rtps.hpp` — RTPS wire protocol
+  - RTPSHeader (RTPS magic, version, vendor, GUID prefix)
+  - SubmessageHeader
+  - Submessage types (DATA, HEARTBEAT, ACKNACK, GAP, INFO_TS, etc.)
+- [ ] `include/wadjet/protocols/dds/rtps_types.hpp` — RTPS types
+  - GUID_t (16 bytes)
+  - SequenceNumber_t
+  - Locator_t
+  - BuiltinEndpointSet
+  - ProtocolVersion
+  - VendorId
+- [ ] `include/wadjet/protocols/dds/discovery.hpp` — Discovery protocols
+  - SPDP (Simple Participant Discovery Protocol)
+  - SEDP (Simple Endpoint Discovery Protocol)
+  - ParticipantBuiltinTopicData
+  - PublicationBuiltinTopicData
+  - SubscriptionBuiltinTopicData
+- [ ] `include/wadjet/protocols/dds/qos.hpp` — QoS policies
+  - Reliability, Durability, History
+  - Deadline, Liveliness, LatencyBudget
+
+Decoder Implementation:
+- [ ] `src/protocols/dds/rtps_decoder.cpp` — RTPS decoder
+  - Header validation
+  - Submessage iteration
+  - Endianness handling
+- [ ] `src/protocols/dds/submessage_decoder.cpp` — Submessage parsing
+  - DATA submessage with serialized payload
+  - HEARTBEAT/ACKNACK for reliability
+  - INFO_DST, INFO_SRC, INFO_TS
+- [ ] `src/protocols/dds/discovery_decoder.cpp` — Discovery parsing
+  - Participant announcement parsing
+  - Endpoint discovery parsing
+  - QoS extraction
+- [ ] `src/protocols/dds/cdr_decoder.cpp` — CDR deserialization
+  - Common Data Representation parsing
+  - Type support basics
+
+Integration:
+- [ ] Update `ProtocolDispatcher` for DDS ports (7400-7500 range)
+- [ ] Add DDS to scenario expectations
+- [ ] Python bindings for DDS
+- [ ] Rust bindings for DDS
+- [ ] C ABI layer updates
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_dds.cpp`):
+- [ ] RTPS header parsing
+- [ ] All submessage types
+- [ ] GUID handling
+- [ ] Sequence number handling
+- [ ] Discovery message parsing
+- [ ] QoS policy extraction
+- [ ] CDR basic types
+
+Integration Tests (`tests/integration/test_dds_integration.cpp`):
+- [ ] Full RTPS message decode
+- [ ] Discovery sequence validation
+- [ ] Data exchange patterns
+- [ ] Multi-vendor interop samples
+
+Fuzz Testing (`fuzz/fuzz_dds.cpp`):
+- [ ] RTPS header fuzzer
+- [ ] Submessage fuzzer
+- [ ] Discovery fuzzer
+- [ ] CDR fuzzer
+
+Regression Tests:
+- [ ] `pcap_samples/dds/` — Real DDS captures
+- [ ] FastDDS traffic samples
+- [ ] CycloneDDS traffic samples
+- [ ] ROS2 traffic samples
+
+**Documentation:**
+
+- [ ] `docs/protocols/dds.md` — Protocol reference
+  - RTPS specification overview
+  - Discovery protocol documentation
+  - Submessage reference
+  - Vendor ID table
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with DDS
+
+**Use Cases & Examples:**
+
+- [ ] `examples/dds_monitor.cpp` — DDS traffic monitor
+  - Participant discovery tracking
+  - Topic/endpoint enumeration
+  - Data rate statistics
+  - QoS analysis
+- [ ] `examples/ros2_analyzer.cpp` — ROS2 traffic analyzer
+  - Node discovery
+  - Topic mapping
+  - Message frequency analysis
+- [ ] `examples/scenarios/dds_discovery_test.yaml` — Discovery test
+- [ ] Python example: `examples/python/dds_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// New matchers for testing
+EXPECT_THAT(packet, IsRtpsMessage());
+EXPECT_THAT(packet, HasRtpsSubmessage(SubmessageKind::DATA));
+EXPECT_THAT(packet, HasRtpsGuid(guid));
+EXPECT_THAT(packet, IsSpdpParticipant());
+EXPECT_THAT(packet, HasDdsTopic("rt/sensor_data"));
+```
+
+---
+
+### Milestone 11 — TSN Awareness (IEEE 802.1Qbv)
+
+**Goal:** Implement Time-Sensitive Networking awareness for deterministic Ethernet
+
+**Status:** Not Started
+
+**Overview:**
+
+TSN (Time-Sensitive Networking) is a set of IEEE 802.1 standards enabling deterministic, low-latency communication over Ethernet. 802.1Qbv (Time-Aware Shaper) is critical for automotive real-time applications.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TSN Analysis Stack                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │               TSN Standards Coverage                     │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
+│  │  │ 802.1AS │ │ 802.1Qbv│ │ 802.1Qbu│ │ 802.1CB         │ │   │
+│  │  │ (gPTP)  │ │ (TAS)   │ │ (Preempt│ │ (Redundancy)    │ │   │
+│  │  │         │ │         │ │ ion)    │ │                 │ │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  TSN Analyzer                            │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Schedule        │  │ Latency Measurement         │    │   │
+│  │  │ Validation      │  │ - End-to-end delay          │    │   │
+│  │  │ - Gate timing   │  │ - Jitter analysis           │    │   │
+│  │  │ - Priority map  │  │ - Deadline violations       │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Traffic Class   │  │ Preemption Analysis         │    │   │
+│  │  │ Analysis        │  │ - Express/Preemptable       │    │   │
+│  │  │ - PCP mapping   │  │ - Fragment handling         │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │    VLAN Priority Parser   │                      │
+│              │    (802.1Q PCP field)     │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/tsn/tsn.hpp` — Main header
+- [ ] `include/wadjet/protocols/tsn/vlan_priority.hpp` — Priority handling
+  - PriorityCodePoint (PCP) extraction
+  - Traffic class mapping
+  - Drop Eligible Indicator (DEI)
+- [ ] `include/wadjet/protocols/tsn/schedule.hpp` — TAS schedule
+  - GateControlEntry
+  - GateControlList
+  - CycleTime representation
+  - TimeAwareOffset
+- [ ] `include/wadjet/protocols/tsn/stream.hpp` — Stream identification
+  - StreamID (MAC + VLAN ID)
+  - StreamHandle
+  - Talker/Listener specification
+- [ ] `include/wadjet/protocols/tsn/frer.hpp` — Frame Replication (802.1CB)
+  - R-TAG parsing
+  - Sequence number tracking
+  - Redundancy elimination
+
+Analysis Components:
+- [ ] `src/protocols/tsn/tsn_analyzer.cpp` — TSN analysis
+  - Per-priority statistics
+  - Latency measurement
+  - Jitter calculation
+  - Schedule compliance checking
+- [ ] `src/protocols/tsn/latency_tracker.cpp` — Latency tracking
+  - End-to-end delay measurement
+  - Timestamped packet correlation
+  - Histogram generation
+- [ ] `src/protocols/tsn/preemption_analyzer.cpp` — 802.1Qbu analysis
+  - Express vs preemptable classification
+  - mPacket reassembly
+  - Preemption event detection
+- [ ] `src/protocols/tsn/redundancy_tracker.cpp` — 802.1CB analysis
+  - R-TAG sequence tracking
+  - Duplicate detection
+  - Replication path analysis
+
+Integration:
+- [ ] Enhance VLAN decoder with TSN awareness
+- [ ] Add TSN analysis to scenario expectations
+- [ ] Python bindings for TSN analysis
+- [ ] Rust bindings for TSN
+- [ ] C ABI layer updates
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_tsn.cpp`):
+- [ ] PCP extraction and mapping
+- [ ] Schedule parsing
+- [ ] Stream identification
+- [ ] R-TAG parsing
+- [ ] Latency calculation
+- [ ] Preemption detection
+
+Integration Tests (`tests/integration/test_tsn_integration.cpp`):
+- [ ] Full TSN traffic analysis
+- [ ] Multi-priority traffic mix
+- [ ] gPTP + TSN correlation
+- [ ] Redundancy path validation
+
+Regression Tests:
+- [ ] `pcap_samples/tsn/` — Real TSN captures
+- [ ] Multi-priority traffic patterns
+- [ ] Preemption scenarios
+- [ ] FRER redundancy captures
+
+**Documentation:**
+
+- [ ] `docs/protocols/tsn.md` — TSN reference
+  - IEEE 802.1 TSN standards overview
+  - Priority mapping tables
+  - Schedule format documentation
+  - Latency analysis methodology
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with TSN
+
+**Use Cases & Examples:**
+
+- [ ] `examples/tsn_analyzer.cpp` — TSN traffic analyzer
+  - Priority distribution charts
+  - Latency histograms
+  - Jitter statistics
+  - Schedule compliance report
+- [ ] `examples/tsn_validator.cpp` — TSN compliance checker
+  - Timing constraint validation
+  - Priority mapping verification
+  - Bandwidth utilization analysis
+- [ ] `examples/scenarios/tsn_latency_test.yaml` — Latency test
+- [ ] Python example: `examples/python/tsn_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// New matchers for testing
+EXPECT_THAT(packet, HasVlanPriority(7));
+EXPECT_THAT(packet, IsExpressTraffic());
+EXPECT_THAT(packet, IsPreemptableTraffic());
+EXPECT_THAT(packet, HasStreamId(stream_id));
+EXPECT_THAT(packet, HasLatencyBelow(100us));
+```
+
+---
+
+### Milestone 12 — UDS over DoIP Integration
+
+**Goal:** Implement complete UDS-over-DoIP diagnostic stack with session management
+
+**Status:** Not Started
+
+**Overview:**
+
+UDS over DoIP combines ISO 14229 (UDS) with ISO 13400 (DoIP) for complete Ethernet-based diagnostics. This milestone integrates the UDS decoder (Milestone 9) with the existing DoIP decoder for full diagnostic session handling.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 UDS over DoIP Stack                             │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │               Diagnostic Session Manager                  │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │  Session State  │  Security State │  Timing State   │ │   │
+│  │  │  - Default      │  - Locked       │  - P2 timer     │ │   │
+│  │  │  - Programming  │  - Level 1-N    │  - P2* timer    │ │   │
+│  │  │  - Extended     │  - Seeds/Keys   │  - S3 timer     │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Request/Response Correlator                 │   │
+│  │  - Source/Target address matching                        │   │
+│  │  - Service ID correlation                                │   │
+│  │  - Multi-frame assembly                                  │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│              ┌───────────────┴───────────────┐                  │
+│              ▼                               ▼                  │
+│  ┌─────────────────────┐        ┌─────────────────────┐         │
+│  │   UDS Decoder       │        │   DoIP Transport    │         │
+│  │   (Milestone 9)     │        │   (Existing)        │         │
+│  │   - Service parsing │        │   - Routing         │         │
+│  │   - NRC handling    │        │   - Vehicle ID      │         │
+│  └─────────────────────┘        └─────────────────────┘         │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │       TCP/IP Stack        │                      │
+│              │     Port 13400 (DoIP)     │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Integration Components:
+- [ ] `include/wadjet/protocols/diagnostic/diagnostic_session.hpp` — Session management
+  - DiagnosticSession class
+  - SessionState enum
+  - SecurityState tracking
+  - TimingParameters (P2, P2*, S3)
+- [ ] `include/wadjet/protocols/diagnostic/request_correlator.hpp` — Correlation
+  - RequestResponsePair
+  - PendingRequest tracking
+  - Multi-frame assembly
+- [ ] `include/wadjet/protocols/diagnostic/ecu_identifier.hpp` — ECU identification
+  - LogicalAddress
+  - ECUInfo (VIN, hardware/software versions)
+  - AddressTable
+
+Implementation:
+- [ ] `src/protocols/diagnostic/diagnostic_session.cpp` — Session manager
+  - State machine implementation
+  - Timer management
+  - Event callbacks
+- [ ] `src/protocols/diagnostic/uds_doip_decoder.cpp` — Combined decoder
+  - DoIP → UDS extraction
+  - Address translation
+  - Session context injection
+- [ ] `src/protocols/diagnostic/flash_sequence.cpp` — Flash support
+  - Download sequence tracking
+  - Block counter validation
+  - Checksum verification
+- [ ] `src/protocols/diagnostic/dtc_manager.cpp` — DTC handling
+  - DTC database
+  - Status byte parsing
+  - Snapshot data extraction
+
+Validation Engine:
+- [ ] `include/wadjet/testing/diagnostic_assertions.hpp` — Test assertions
+  - Session timing validation
+  - Security sequence validation
+  - Service compliance checks
+- [ ] `src/testing/diagnostic_validator.cpp` — Validation implementation
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_uds_doip.cpp`):
+- [ ] DoIP + UDS combined decode
+- [ ] Session state machine
+- [ ] Request/response correlation
+- [ ] Multi-ECU addressing
+- [ ] Timing validation
+- [ ] Flash sequence validation
+
+Integration Tests (`tests/integration/test_diagnostic_integration.cpp`):
+- [ ] Complete diagnostic session capture
+- [ ] Flash download sequence
+- [ ] DTC read/clear cycle
+- [ ] Security access sequence
+
+System Tests:
+- [ ] Real ECU diagnostic captures
+- [ ] Multi-ECU network scenarios
+- [ ] Error recovery scenarios
+
+**Documentation:**
+
+- [ ] `docs/protocols/uds_doip.md` — Integration reference
+  - ISO 13400 + ISO 14229 interaction
+  - Session management guide
+  - Timing requirements
+  - Common diagnostic sequences
+- [ ] `docs/diagnostic_testing.md` — Test guide
+  - Diagnostic test patterns
+  - Compliance validation
+  - Best practices
+- [ ] API documentation (Doxygen)
+
+**Use Cases & Examples:**
+
+- [ ] `examples/diagnostic_analyzer.cpp` — Full diagnostic analyzer
+  - Session visualization
+  - Service statistics
+  - Error analysis
+  - Timing charts
+- [ ] `examples/flash_validator.cpp` — Flash sequence validator
+  - Download sequence checking
+  - Block integrity validation
+  - Timing compliance
+- [ ] `examples/dtc_analyzer.cpp` — DTC analysis tool
+  - DTC enumeration
+  - Status interpretation
+  - Snapshot data display
+- [ ] `examples/scenarios/diagnostic_session_test.yaml` — Session test
+- [ ] Python example: `examples/python/diagnostic_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// Combined diagnostic matchers
+EXPECT_THAT(session, HasValidSessionTiming());
+EXPECT_THAT(sequence, IsValidSecurityAccess());
+EXPECT_THAT(flash, HasValidBlockSequence());
+EXPECT_THAT(response, ArrivesWithin(P2_TIMEOUT));
+
+// Diagnostic-specific assertions
+ASSERT_DIAGNOSTIC_SESSION(stream, SessionType::Programming, timeout);
+ASSERT_SECURITY_ACCESS(stream, SecurityLevel::Level1, timeout);
+ASSERT_FLASH_COMPLETE(stream, expected_size, timeout);
+```
+
+---
+
+### Milestone 13 — Web-Based Report Viewer
+
+**Goal:** Implement interactive web-based visualization for test reports and packet analysis
+
+**Status:** Not Started
+
+**Overview:**
+
+A modern web interface for visualizing test results, packet captures, and protocol analysis. Enables sharing results across teams without requiring local tool installation.
+
+**Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 Web Report Viewer Architecture                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                    Frontend (SPA)                       │    │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐    │    │
+│  │  │  Dashboard  │ │  Packet     │ │  Protocol       │    │    │
+│  │  │  View       │ │  Inspector  │ │  Analyzer       │    │    │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘    │    │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐    │    │
+│  │  │  Test       │ │  Timeline   │ │  Statistics     │    │    │
+│  │  │  Results    │ │  View       │ │  Charts         │    │    │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                  Backend API Server                     │    │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐    │    │
+│  │  │  REST API   │ │  WebSocket  │ │  File Server    │    │    │
+│  │  │  Endpoints  │ │  (Live)     │ │  (PCAP/Reports) │    │    │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │                   Data Layer                            │    │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐    │    │
+│  │  │  Report     │ │  PCAP       │ │  Scenario       │    │    │
+│  │  │  Parser     │ │  Indexer    │ │  Results        │    │    │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘    │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │              Wadjet-Link Core Library                   │    │
+│  │         (Protocol Decoders, Analysis Engine)            │    │
+│  └─────────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Backend Server:
+- [ ] `tools/wadjet-server/` — Backend server
+- [ ] `tools/wadjet-server/main.cpp` — Server entry point
+- [ ] `tools/wadjet-server/api/` — REST API handlers
+  - `/api/reports` — Report listing and retrieval
+  - `/api/pcaps` — PCAP file management
+  - `/api/packets/{id}` — Packet details
+  - `/api/decode` — On-demand packet decoding
+  - `/api/scenarios` — Scenario results
+  - `/api/statistics` — Traffic statistics
+- [ ] `tools/wadjet-server/websocket/` — Real-time updates
+  - Live capture streaming
+  - Test progress updates
+- [ ] HTTP server using cpp-httplib or Crow framework
+- [ ] JSON serialization for all Wadjet types
+
+Frontend Application:
+- [ ] `web/` — Frontend SPA
+- [ ] `web/src/` — Source code (TypeScript/React or Vue)
+- [ ] Views:
+  - Dashboard — Overview of recent tests
+  - Test Results — Detailed test report viewer
+  - Packet List — Scrollable packet table with filtering
+  - Packet Detail — Hex dump + decoded fields
+  - Protocol Analysis — Protocol-specific dashboards
+  - Timeline — Time-based packet visualization
+  - Statistics — Charts and graphs
+- [ ] Components:
+  - PacketTable — Virtual scrolling for large captures
+  - HexViewer — Interactive hex dump
+  - ProtocolTree — Expandable decode tree
+  - FilterBar — BPF-like filter input
+  - TimelineChart — D3.js timeline
+  - StatisticsChart — Chart.js/Recharts graphs
+
+Report Generation:
+- [ ] `src/report/html_report.cpp` — Static HTML export
+  - Self-contained HTML with embedded data
+  - Offline viewable reports
+  - Print-friendly layout
+- [ ] `src/report/json_export.cpp` — JSON data export
+  - Full packet data export
+  - Decode results export
+  - Statistics export
+
+**Testing:**
+
+Backend Tests:
+- [ ] API endpoint tests
+- [ ] WebSocket connection tests
+- [ ] Report parsing tests
+- [ ] PCAP indexing tests
+
+Frontend Tests:
+- [ ] Component unit tests (Jest)
+- [ ] Integration tests (Cypress)
+- [ ] Performance tests (large captures)
+
+End-to-End Tests:
+- [ ] Full workflow tests
+- [ ] Cross-browser testing
+- [ ] Mobile responsiveness
+
+**Documentation:**
+
+- [ ] `docs/web_viewer.md` — User guide
+  - Installation and setup
+  - Feature overview
+  - Navigation guide
+- [ ] `docs/api_reference.md` — REST API documentation
+  - Endpoint reference
+  - Request/response formats
+  - Authentication (if applicable)
+- [ ] README in `tools/wadjet-server/`
+- [ ] README in `web/`
+
+**Use Cases & Examples:**
+
+- [ ] `examples/start_server.sh` — Server launch script
+- [ ] Docker compose for easy deployment
+- [ ] CI integration examples
+  - GitHub Actions artifact upload
+  - Report publishing workflow
+
+**Features:**
+
+Dashboard:
+- Recent test runs with pass/fail status
+- Quick statistics summary
+- Alerts for failed tests
+
+Packet Inspector:
+- Scrollable packet list with virtual scrolling
+- Column customization
+- Filter by protocol, address, port
+- Export selection to PCAP
+
+Protocol Analyzer:
+- SOME/IP service browser
+- DoIP session timeline
+- gPTP synchronization graph
+- DDS topic explorer
+
+Test Results:
+- JUnit-style test tree
+- Failure details with packet context
+- PCAP link for failed assertions
+- Comparison with previous runs
+
+Statistics:
+- Protocol distribution pie chart
+- Traffic rate over time
+- Latency histograms
+- Top talkers table
+
+---
+
 ## Testing Strategy
 
 | Test Type | Description |
@@ -738,11 +1713,20 @@ MVP is complete when:
 
 ---
 
-## Stretch Goals
+## Post-MVP Roadmap
 
-- [ ] DDS protocol support
-- [ ] TSN awareness (802.1Qbv, etc.)
-- [x] Rust FFI bindings
-- [ ] UDS over DoIP parsing
+| Milestone | Description | Priority |
+|-----------|-------------|----------|
+| 8 | gPTP (IEEE 802.1AS) decoder | High |
+| 9 | UDS over IP decoder | High |
+| 10 | DDS protocol support | Medium |
+| 11 | TSN awareness (802.1Qbv) | Medium |
+| 12 | UDS over DoIP integration | High |
+| 13 | Web-based report viewer | Low |
+
+---
+
+## Stretch Goals (Completed)
+
+- [x] Rust FFI bindings (Milestone 7)
 - [x] Packet injection (TX capability via ReplaySession)
-- [ ] Web-based report viewer
