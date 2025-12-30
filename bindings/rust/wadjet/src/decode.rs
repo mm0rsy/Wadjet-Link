@@ -26,6 +26,8 @@ pub enum Protocol {
     SomeIpSd,
     /// DoIP (Diagnostics over IP)
     DoIp,
+    /// gPTP (IEEE 802.1AS)
+    Gptp,
     /// UDS (Unified Diagnostic Services)
     Uds,
     /// ARP
@@ -49,6 +51,7 @@ impl Protocol {
             WADJET_PROTOCOL_SOMEIP => Protocol::SomeIp,
             WADJET_PROTOCOL_SOMEIP_SD => Protocol::SomeIpSd,
             WADJET_PROTOCOL_DOIP => Protocol::DoIp,
+            WADJET_PROTOCOL_GPTP => Protocol::Gptp,
             WADJET_PROTOCOL_UDS => Protocol::Uds,
             WADJET_PROTOCOL_ARP => Protocol::Arp,
             WADJET_PROTOCOL_ICMP => Protocol::Icmp,
@@ -317,6 +320,153 @@ impl DoIpHeader {
     }
 }
 
+/// gPTP message type
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GptpMessageType {
+    /// Sync message
+    Sync = 0x0,
+    /// Delay Request
+    DelayReq = 0x1,
+    /// Peer Delay Request
+    PdelayReq = 0x2,
+    /// Peer Delay Response
+    PdelayResp = 0x3,
+    /// Follow Up
+    FollowUp = 0x8,
+    /// Delay Response
+    DelayResp = 0x9,
+    /// Peer Delay Response Follow Up
+    PdelayRespFollowUp = 0xA,
+    /// Announce
+    Announce = 0xB,
+    /// Signaling
+    Signaling = 0xC,
+    /// Management
+    Management = 0xD,
+    /// Unknown
+    Unknown = 0xFF,
+}
+
+impl From<u8> for GptpMessageType {
+    fn from(value: u8) -> Self {
+        match value {
+            0x0 => GptpMessageType::Sync,
+            0x1 => GptpMessageType::DelayReq,
+            0x2 => GptpMessageType::PdelayReq,
+            0x3 => GptpMessageType::PdelayResp,
+            0x8 => GptpMessageType::FollowUp,
+            0x9 => GptpMessageType::DelayResp,
+            0xA => GptpMessageType::PdelayRespFollowUp,
+            0xB => GptpMessageType::Announce,
+            0xC => GptpMessageType::Signaling,
+            0xD => GptpMessageType::Management,
+            _ => GptpMessageType::Unknown,
+        }
+    }
+}
+
+impl GptpMessageType {
+    /// Get the message type name
+    pub fn name(&self) -> &'static str {
+        match self {
+            GptpMessageType::Sync => "Sync",
+            GptpMessageType::DelayReq => "Delay_Req",
+            GptpMessageType::PdelayReq => "Pdelay_Req",
+            GptpMessageType::PdelayResp => "Pdelay_Resp",
+            GptpMessageType::FollowUp => "Follow_Up",
+            GptpMessageType::DelayResp => "Delay_Resp",
+            GptpMessageType::PdelayRespFollowUp => "Pdelay_Resp_Follow_Up",
+            GptpMessageType::Announce => "Announce",
+            GptpMessageType::Signaling => "Signaling",
+            GptpMessageType::Management => "Management",
+            GptpMessageType::Unknown => "Unknown",
+        }
+    }
+}
+
+/// Clock identity (8-byte EUI-64)
+#[derive(Debug, Clone)]
+pub struct ClockIdentity {
+    /// Raw bytes
+    pub bytes: [u8; 8],
+}
+
+impl ClockIdentity {
+    /// Convert to string representation
+    pub fn to_string(&self) -> String {
+        format!("{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}",
+                self.bytes[0], self.bytes[1], self.bytes[2], self.bytes[3],
+                self.bytes[4], self.bytes[5], self.bytes[6], self.bytes[7])
+    }
+}
+
+/// Port identity (clock identity + port number)
+#[derive(Debug, Clone)]
+pub struct PortIdentity {
+    /// Clock identity
+    pub clock_identity: ClockIdentity,
+    /// Port number
+    pub port_number: u16,
+}
+
+/// gPTP header information (IEEE 802.1AS)
+#[derive(Debug, Clone)]
+pub struct GptpHeader {
+    /// Transport specific (4 bits)
+    pub transport_specific: u8,
+    /// Message type
+    pub message_type: GptpMessageType,
+    /// PTP version
+    pub version: u8,
+    /// Message length
+    pub message_length: u16,
+    /// Domain number
+    pub domain_number: u8,
+    /// Correction field (scaled nanoseconds)
+    pub correction_field: i64,
+    /// Source port identity
+    pub source_port_identity: PortIdentity,
+    /// Sequence ID
+    pub sequence_id: u16,
+    /// Control field
+    pub control: u8,
+    /// Log message interval
+    pub log_message_interval: i8,
+    /// Two-step flag
+    pub two_step: bool,
+    /// Is event message
+    pub is_event: bool,
+}
+
+impl GptpHeader {
+    fn from_c(c: &wadjet_sys::wadjet_gptp_header_t) -> Self {
+        Self {
+            transport_specific: c.transport_specific,
+            message_type: GptpMessageType::from(c.message_type as u8),
+            version: c.version,
+            message_length: c.message_length,
+            domain_number: c.domain_number,
+            correction_field: c.correction_field,
+            source_port_identity: PortIdentity {
+                clock_identity: ClockIdentity {
+                    bytes: c.source_port_identity.clock_identity.bytes,
+                },
+                port_number: c.source_port_identity.port_number,
+            },
+            sequence_id: c.sequence_id,
+            control: c.control,
+            log_message_interval: c.log_message_interval,
+            two_step: c.two_step,
+            is_event: c.is_event,
+        }
+    }
+
+    /// Get the message type name
+    pub fn message_type_name(&self) -> &'static str {
+        self.message_type.name()
+    }
+}
+
 /// A decoded protocol layer
 #[derive(Debug, Clone)]
 pub struct DecodedLayer {
@@ -330,6 +480,7 @@ pub struct DecodedLayer {
     tcp: Option<TcpHeader>,
     someip: Option<SomeIpHeader>,
     doip: Option<DoIpHeader>,
+    gptp: Option<GptpHeader>,
 }
 
 impl DecodedLayer {
@@ -377,6 +528,11 @@ impl DecodedLayer {
     pub fn doip(&self) -> Option<&DoIpHeader> {
         self.doip.as_ref()
     }
+
+    /// Get gPTP header if this is a gPTP layer
+    pub fn gptp(&self) -> Option<&GptpHeader> {
+        self.gptp.as_ref()
+    }
 }
 
 /// Result of decoding a packet
@@ -412,13 +568,14 @@ impl DecodeResult {
             let protocol = Protocol::from_c(proto);
             
             // Extract protocol-specific headers
-            let (ethernet, ipv4, udp, tcp, someip, doip) = unsafe {
+            let (ethernet, ipv4, udp, tcp, someip, doip, gptp) = unsafe {
                 let mut eth = None;
                 let mut ip4 = None;
                 let mut u = None;
                 let mut t = None;
                 let mut sip = None;
                 let mut dip = None;
+                let mut gtp = None;
 
                 match protocol {
                     Protocol::Ethernet => {
@@ -457,10 +614,16 @@ impl DecodeResult {
                             dip = Some(DoIpHeader::from_c(&hdr));
                         }
                     }
+                    Protocol::Gptp => {
+                        let mut hdr = wadjet_sys::wadjet_gptp_header_t::default();
+                        if wadjet_sys::wadjet_decode_get_gptp_header(handle, i, &mut hdr) {
+                            gtp = Some(GptpHeader::from_c(&hdr));
+                        }
+                    }
                     _ => {}
                 }
 
-                (eth, ip4, u, t, sip, dip)
+                (eth, ip4, u, t, sip, dip, gtp)
             };
 
             layers.push(DecodedLayer {
@@ -473,6 +636,7 @@ impl DecodeResult {
                 tcp,
                 someip,
                 doip,
+                gptp,
             });
         }
 

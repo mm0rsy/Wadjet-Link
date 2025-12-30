@@ -42,6 +42,7 @@ fn main() {
         .rustified_enum("wadjet_someip_message_type_t")
         .rustified_enum("wadjet_someip_return_code_t")
         .rustified_enum("wadjet_doip_payload_type_t")
+        .rustified_enum("wadjet_gptp_message_type_t")
         // Generate documentation comments
         .generate_comments(true)
         // Block certain items that might cause issues
