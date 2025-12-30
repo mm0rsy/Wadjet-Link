@@ -1,0 +1,249 @@
+@startuml scenario_classes
+!theme plain
+title 𓆓 Wadjet-Link - Scenario Module Class Diagram
+
+skinparam backgroundColor white
+skinparam class {
+    BackgroundColor #FDF8E8
+    BorderColor #CC9944
+    ArrowColor #666666
+}
+skinparam package {
+    BackgroundColor #FFFDF8
+}
+
+package "Scenario Types" #FDF8E8 {
+    
+    enum CompareOp {
+        EQ
+        NE
+        LT
+        LE
+        GT
+        GE
+    }
+    
+    struct CountExpression {
+        +op: CompareOp
+        +value: size_t
+        --
+        +parse(str: string_view): optional<CountExpression>
+        +evaluate(count: size_t): bool
+        +to_string(): string
+    }
+    
+    struct Scenario {
+        +name: string
+        +description: string
+        +version: string
+        +author: string
+        +tags: vector<string>
+        +timeout_ms: uint32_t
+        +steps: vector<ScenarioStep>
+    }
+    
+    struct CaptureStep {
+        +interface: string
+        +filter: string
+        +promiscuous: bool
+    }
+    
+    struct WaitStep {
+        +duration_ms: uint32_t
+    }
+    
+    struct SendStep {
+        +interface: string
+        +pcap_file: string
+        +repeat: uint32_t
+        +delay_ms: uint32_t
+    }
+    
+    struct ExpectStep {
+        +description: string
+        +timeout_ms: uint32_t
+        +count: CountExpression
+        +source_mac: optional<MacAddress>
+        +dest_mac: optional<MacAddress>
+        +vlan_id: optional<uint16_t>
+        +ethertype: optional<uint16_t>
+        +source_ip: optional<IPv4Address>
+        +dest_ip: optional<IPv4Address>
+        +ip_protocol: optional<uint8_t>
+        +source_port: optional<uint16_t>
+        +dest_port: optional<uint16_t>
+        +someip_service: optional<uint16_t>
+        +someip_method: optional<uint16_t>
+        +someip_message_type: optional<uint8_t>
+        +doip_payload_type: optional<uint16_t>
+        +payload_contains: optional<vector<uint8_t>>
+    }
+    
+    class ScenarioStep << (U,#FFDD44) union >> {
+        +capture: optional<CaptureStep>
+        +wait: optional<WaitStep>
+        +send: optional<SendStep>
+        +expect: optional<ExpectStep>
+        --
+        +is_capture(): bool
+        +is_wait(): bool
+        +is_send(): bool
+        +is_expect(): bool
+    }
+    
+    ScenarioStep *-- CaptureStep
+    ScenarioStep *-- WaitStep
+    ScenarioStep *-- SendStep
+    ScenarioStep *-- ExpectStep
+    Scenario *-- ScenarioStep
+    ExpectStep --> CountExpression
+}
+
+package "Scenario Results" #E8FDF8 {
+    
+    struct ExpectResult {
+        +description: string
+        +passed: bool
+        +failure_reason: string
+        +packets_matched: size_t
+        +elapsed: Duration
+    }
+    
+    struct ScenarioResult {
+        +scenario_name: string
+        +passed: bool
+        +expect_results: vector<ExpectResult>
+        +total_elapsed: Duration
+        +error_message: string
+        +pcap_file: optional<string>
+        --
+        +passed_count(): size_t
+        +failed_count(): size_t
+        +total_count(): size_t
+    }
+    
+    struct BatchResult {
+        +results: vector<ScenarioResult>
+        +passed: size_t
+        +failed: size_t
+        +skipped: size_t
+        +total_elapsed: Duration
+        --
+        +total(): size_t
+        +all_passed(): bool
+    }
+    
+    ScenarioResult *-- ExpectResult
+    BatchResult *-- ScenarioResult
+}
+
+package "Parsers" #E8E8FD {
+    
+    interface IScenarioParser {
+        +parse(input: string): Result<Scenario, ParseError>
+        +parse_file(path: path): Result<Scenario, ParseError>
+    }
+    
+    class YamlScenarioParser {
+        +parse(input: string): Result<Scenario, ParseError>
+        +parse_file(path: path): Result<Scenario, ParseError>
+        -parse_step(node: YAML::Node): Result<ScenarioStep, ParseError>
+        -parse_expect(node: YAML::Node): Result<ExpectStep, ParseError>
+    }
+    
+    class JsonScenarioParser {
+        +parse(input: string): Result<Scenario, ParseError>
+        +parse_file(path: path): Result<Scenario, ParseError>
+        -parse_step(obj: json): Result<ScenarioStep, ParseError>
+        -parse_expect(obj: json): Result<ExpectStep, ParseError>
+    }
+    
+    YamlScenarioParser ..|> IScenarioParser
+    JsonScenarioParser ..|> IScenarioParser
+}
+
+package "Report Generators" #FDE8FD {
+    
+    struct ReportOptions {
+        +suite_name: string
+        +hostname: string
+        +include_pcap_paths: bool
+    }
+    
+    interface IReportGenerator {
+        +generate(out: ostream, results: BatchResult, opts: ReportOptions): void
+        +generate(out: ostream, result: ScenarioResult, opts: ReportOptions): void
+    }
+    
+    class JUnitXmlReportGenerator {
+        +generate(out: ostream, results: BatchResult, opts: ReportOptions): void
+        +generate(out: ostream, result: ScenarioResult, opts: ReportOptions): void
+    }
+    
+    class JsonReportGenerator {
+        +generate(out: ostream, results: BatchResult, opts: ReportOptions): void
+        +generate(out: ostream, result: ScenarioResult, opts: ReportOptions): void
+    }
+    
+    class TextReportGenerator {
+        +generate(out: ostream, results: BatchResult, opts: ReportOptions): void
+        +generate(out: ostream, result: ScenarioResult, opts: ReportOptions): void
+    }
+    
+    class TapReportGenerator {
+        +generate(out: ostream, results: BatchResult, opts: ReportOptions): void
+        +generate(out: ostream, result: ScenarioResult, opts: ReportOptions): void
+    }
+    
+    class ReportGeneratorFactory {
+        {static} +create(format: string): unique_ptr<IReportGenerator>
+    }
+    
+    JUnitXmlReportGenerator ..|> IReportGenerator
+    JsonReportGenerator ..|> IReportGenerator
+    TextReportGenerator ..|> IReportGenerator
+    TapReportGenerator ..|> IReportGenerator
+    ReportGeneratorFactory ..> IReportGenerator : creates
+}
+
+package "Runner" #E8FDE8 {
+    
+    struct RunnerOptions {
+        +dry_run: bool
+        +stop_on_failure: bool
+        +timeout_ms: uint32_t
+        +pcap_output_dir: path
+        +save_pcap_on_failure: bool
+        +verbose: bool
+        +required_tags: vector<string>
+    }
+    
+    class ScenarioRunner {
+        -options_: RunnerOptions
+        -session_: CaptureSession
+        -captured_packets_: vector<Packet>
+        --
+        +ScenarioRunner(options: RunnerOptions)
+        +run(scenario: Scenario): ScenarioResult
+        +run_batch(scenarios: vector<Scenario>): BatchResult
+        +discover_scenarios(dir: path): vector<path>
+        -execute_step(step: ScenarioStep): bool
+        -execute_capture(step: CaptureStep): bool
+        -execute_wait(step: WaitStep): bool
+        -execute_send(step: SendStep): bool
+        -execute_expect(step: ExpectStep): ExpectResult
+        -matches_filter(packet: Packet, expect: ExpectStep): bool
+    }
+    
+    ScenarioRunner --> RunnerOptions
+    ScenarioRunner --> ScenarioResult
+    ScenarioRunner --> BatchResult
+}
+
+' Cross-package relationships
+ScenarioRunner ..> Scenario : runs
+ScenarioRunner ..> IScenarioParser : uses
+IReportGenerator ..> BatchResult : formats
+IReportGenerator ..> ScenarioResult : formats
+
+@enduml

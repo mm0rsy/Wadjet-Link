@@ -1,0 +1,145 @@
+@startuml scenario_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Scenario Execution Sequences
+
+skinparam backgroundColor white
+skinparam sequence {
+    ArrowColor #666666
+    LifeLineBorderColor #444444
+    ParticipantBackgroundColor #FDF8E8
+    ParticipantBorderColor #CC9944
+}
+
+== Scenario File Parsing ==
+
+actor User
+participant "wadjet-run\nCLI" as CLI
+participant "YamlScenarioParser" as Parser
+participant "Scenario" as Scenario
+
+User -> CLI: wadjet-run test.yaml
+activate CLI
+
+CLI -> Parser: parse_file("test.yaml")
+activate Parser
+
+Parser -> Parser: read file content
+Parser -> Parser: parse YAML structure
+Parser -> Parser: validate required fields
+
+loop for each step
+    Parser -> Parser: parse_step(node)
+    alt capture step
+        Parser -> Parser: parse interface, filter
+    else wait step
+        Parser -> Parser: parse duration
+    else send step
+        Parser -> Parser: parse pcap_file, repeat
+    else expect step
+        Parser -> Parser: parse filters, count
+        Parser -> Parser: CountExpression::parse()
+    end
+end
+
+Parser --> CLI: Result<Scenario, ParseError>
+deactivate Parser
+
+== Scenario Execution ==
+
+participant "ScenarioRunner" as Runner
+participant "CaptureSession" as Capture
+participant "PcapReader" as PcapReader
+participant "Packet" as Packet
+
+CLI -> Runner: run(scenario)
+activate Runner
+
+loop for each step
+    alt capture step
+        Runner -> Capture: create(interface, options)
+        activate Capture
+        Runner -> Capture: set_filter(filter)
+        Runner -> Capture: start()
+    else wait step
+        Runner -> Runner: sleep(duration_ms)
+    else send step
+        Runner -> PcapReader: open(pcap_file)
+        loop for each packet
+            PcapReader --> Runner: Packet
+            Runner -> Capture: send(packet)
+        end
+    else expect step
+        Runner -> Runner: start timeout timer
+        loop until timeout or count satisfied
+            Capture --> Runner: next_packet()
+            Runner -> Packet: check filters
+            alt matches
+                Runner -> Runner: increment match count
+            end
+        end
+        Runner -> Runner: CountExpression::evaluate()
+        Runner -> Runner: create ExpectResult
+    end
+end
+
+Runner -> Capture: stop()
+deactivate Capture
+Runner --> CLI: ScenarioResult
+deactivate Runner
+
+== Report Generation ==
+
+participant "ReportGeneratorFactory" as Factory
+participant "IReportGenerator" as Reporter
+
+CLI -> Factory: create("junit")
+Factory --> CLI: JUnitXmlReportGenerator
+
+CLI -> Reporter: generate(output, batch_result)
+activate Reporter
+
+Reporter -> Reporter: write XML header
+loop for each scenario
+    Reporter -> Reporter: write testsuite
+    loop for each expect result
+        Reporter -> Reporter: write testcase
+        alt failed
+            Reporter -> Reporter: write failure element
+        end
+    end
+end
+Reporter -> Reporter: write summary
+
+Reporter --> CLI: (writes to stream)
+deactivate Reporter
+
+CLI --> User: Report file / console output
+
+== Batch Execution with Tag Filtering ==
+
+User -> CLI: wadjet-run -t smoke --dir scenarios/
+activate CLI
+
+CLI -> Runner: discover_scenarios("scenarios/")
+Runner --> CLI: vector<path>
+
+loop for each scenario file
+    CLI -> Parser: parse_file(path)
+    Parser --> CLI: Scenario
+    
+    CLI -> CLI: check tags match
+    alt tags match
+        CLI -> Runner: run(scenario)
+        Runner --> CLI: ScenarioResult
+    else tags don't match
+        CLI -> CLI: skip scenario
+    end
+end
+
+CLI -> CLI: aggregate BatchResult
+CLI -> Reporter: generate(output, batch_result)
+CLI --> User: Summary report
+
+deactivate CLI
+
+@enduml

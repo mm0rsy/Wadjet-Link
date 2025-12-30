@@ -1,0 +1,84 @@
+@startuml usecase_run_scenarios
+!theme plain
+title 𓆓 Wadjet-Link - Run Test Scenarios Use Cases
+
+skinparam backgroundColor white
+skinparam usecase {
+    BackgroundColor #FDF8E8
+    BorderColor #CC9944
+}
+skinparam actor {
+    BackgroundColor #E8E8FD
+}
+
+left to right direction
+
+actor "Test Engineer" as TE
+actor "CI/CD Pipeline" as CI
+
+rectangle "Wadjet-Link Scenario Runner" {
+    
+    usecase "Run Single Scenario" as UC1
+    usecase "Run Scenario Directory" as UC2
+    usecase "Filter by Tags" as UC3
+    usecase "Dry Run Validation" as UC4
+    usecase "Generate JUnit Report" as UC5
+    usecase "Generate JSON Report" as UC6
+    usecase "Generate TAP Report" as UC7
+    usecase "List Scenarios" as UC8
+    usecase "Save PCAP on Failure" as UC9
+    usecase "Set Global Timeout" as UC10
+    
+    UC1 <|-- UC4 : <<extend>>
+    UC2 <|-- UC3 : <<extend>>
+    UC2 <|-- UC4 : <<extend>>
+    
+    UC1 ..> UC5 : <<include>>
+    UC1 ..> UC6 : <<include>>
+    UC1 ..> UC7 : <<include>>
+    UC2 ..> UC5 : <<include>>
+    UC2 ..> UC6 : <<include>>
+    UC2 ..> UC7 : <<include>>
+    
+    UC1 ..> UC9 : <<include>>
+    UC2 ..> UC9 : <<include>>
+    
+    UC1 ..> UC10 : <<include>>
+    UC2 ..> UC10 : <<include>>
+}
+
+TE --> UC1 : runs
+TE --> UC2 : runs
+TE --> UC8 : lists
+TE --> UC4 : validates
+
+CI --> UC2 : automated
+CI --> UC5 : for Jenkins
+CI --> UC6 : for analysis
+CI --> UC3 : smoke/regression
+
+note right of UC1
+  wadjet-run test.yaml
+end note
+
+note right of UC2
+  wadjet-run --dir scenarios/
+end note
+
+note right of UC3
+  wadjet-run -t smoke --dir scenarios/
+end note
+
+note right of UC4
+  wadjet-run --dry-run scenarios/
+end note
+
+note right of UC5
+  wadjet-run -f junit -o results.xml
+end note
+
+note right of UC8
+  wadjet-run --list --dir scenarios/
+end note
+
+@enduml
