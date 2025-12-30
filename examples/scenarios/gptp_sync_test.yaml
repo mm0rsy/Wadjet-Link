@@ -1,0 +1,89 @@
+# Example: gPTP Time Synchronization Test
+# 
+# This scenario captures gPTP traffic on a TSN-enabled interface
+# and verifies proper time synchronization message exchange.
+# gPTP uses EtherType 0x88F7 (IEEE 802.1AS)
+
+name: gPTP Time Synchronization Test
+description: Verify gPTP Sync/Follow_Up message exchange
+version: "1.0"
+tags:
+  - gptp
+  - tsn
+  - time-sync
+  - automotive
+
+timeout: 60s
+
+parameters:
+  interface:
+    default: eth0
+    description: Network interface to capture gPTP traffic
+  domain:
+    default: 0
+    description: gPTP domain number to monitor
+
+steps:
+  - capture:
+      interface: "{{ interface }}"
+      filter: "ether proto 0x88F7"
+      timeout: 30s
+
+  - log: "Waiting for gPTP time synchronization messages..."
+
+  - expect:
+      description: "Should receive Sync messages from grandmaster"
+      gptp:
+        message_type: Sync
+        domain: "{{ domain }}"
+      within: 5s
+      count: ">= 1"
+
+  - expect:
+      description: "Should receive Follow_Up messages (two-step mode)"
+      gptp:
+        message_type: Follow_Up
+        domain: "{{ domain }}"
+      within: 5s
+      count: ">= 1"
+
+  - expect:
+      description: "Should see Pdelay_Req for peer delay measurement"
+      gptp:
+        message_type: Pdelay_Req
+      within: 10s
+      count: ">= 1"
+
+  - expect:
+      description: "Should see Pdelay_Resp in response"
+      gptp:
+        message_type: Pdelay_Resp
+      within: 10s
+      count: ">= 1"
+
+  - validate:
+      description: "Verify sync message sequence IDs are incrementing"
+      gptp:
+        message_type: Sync
+      assertion: sequence_id_incrementing
+
+  - log: "gPTP time synchronization test complete"
+
+# Expected behavior:
+# 1. Grandmaster sends Sync messages (event message with timestamp)
+# 2. Grandmaster sends Follow_Up with precise timestamp (two-step)
+# 3. Endpoints measure peer delay via Pdelay_Req/Pdelay_Resp exchange
+# 4. All devices synchronize to grandmaster's time within tolerance
+
+assertions:
+  - name: sync_rate
+    description: "Sync messages should arrive at configured rate"
+    gptp:
+      message_type: Sync
+      interval_tolerance: 10%
+
+  - name: clock_quality
+    description: "Grandmaster should have acceptable clock quality"
+    gptp:
+      message_type: Announce
+      clock_class: "<= 248"  # IEEE 802.1AS default
