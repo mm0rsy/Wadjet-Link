@@ -34,7 +34,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         [[maybe_unused]] auto has_someip = result.has_layer<someip::SomeIpHeader>();
         [[maybe_unused]] auto has_someip_sd = result.has_layer<someip_sd::SomeIpSdHeader>();
         [[maybe_unused]] auto has_doip = result.has_layer<doip::DoIPHeader>();
-        
+        [[maybe_unused]] auto has_gptp = result.has_layer<gptp::GptpHeader>();
+
         // Try to access each layer
         if (auto* eth = result.get_layer<ethernet::EthernetHeader>()) {
             [[maybe_unused]] auto src = eth->src_mac;
@@ -61,7 +62,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         if (auto* doip = result.get_layer<doip::DoIPHeader>()) {
             [[maybe_unused]] auto ptype = doip->payload_type;
         }
-        
+        if (auto* gptp = result.get_layer<gptp::GptpHeader>()) {
+            [[maybe_unused]] auto msg_type = gptp->message_type;
+            [[maybe_unused]] auto domain = gptp->domain_number;
+            [[maybe_unused]] auto seq_id = gptp->sequence_id;
+        }
+
         // Test get_all_layers
         [[maybe_unused]] auto all_eth = result.get_all_layers<ethernet::EthernetHeader>();
     }

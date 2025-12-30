@@ -104,6 +104,16 @@ target_link_libraries(fuzz_doip
         wadjet_fuzzer_options
 )
 
+# gPTP (IEEE 802.1AS) decoder fuzz target
+add_executable(fuzz_gptp
+    fuzz_gptp.cpp
+)
+target_link_libraries(fuzz_gptp
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
 # Full protocol stack fuzz target
 add_executable(fuzz_dispatcher
     fuzz_dispatcher.cpp
@@ -133,6 +143,7 @@ add_custom_target(fuzz_help
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip     - SOME/IP decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip_sd  - SOME/IP-SD decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_doip       - DoIP decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_gptp       - gPTP (IEEE 802.1AS) decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_dispatcher - Full protocol stack"
     COMMAND ${CMAKE_COMMAND} -E echo ""
     COMMAND ${CMAKE_COMMAND} -E echo "Run a fuzz test:"
