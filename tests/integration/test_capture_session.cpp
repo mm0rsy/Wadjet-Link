@@ -110,12 +110,12 @@ protected:
     }
 };
 
-TEST_F(CaptureSessionTest, DISABLED_CreateSessionOnLoopback) {
+TEST_F(CaptureSessionTest, CreateSessionOnLoopback) {
     auto result = io::CaptureSession::create("lo");
     EXPECT_TRUE(result.is_ok()) << "Failed to create capture session on loopback";
 }
 
-TEST_F(CaptureSessionTest, DISABLED_CreateWithOptions) {
+TEST_F(CaptureSessionTest, CreateWithOptions) {
     io::CaptureSessionOptions opts;
     opts.promiscuous = false;
     opts.buffer_size = 1024 * 1024;  // 1MB
@@ -124,7 +124,7 @@ TEST_F(CaptureSessionTest, DISABLED_CreateWithOptions) {
     EXPECT_TRUE(result.is_ok());
 }
 
-TEST_F(CaptureSessionTest, DISABLED_SetBpfFilter) {
+TEST_F(CaptureSessionTest, SetBpfFilter) {
     auto result = io::CaptureSession::create("lo");
     ASSERT_TRUE(result.is_ok());
     
@@ -135,7 +135,7 @@ TEST_F(CaptureSessionTest, DISABLED_SetBpfFilter) {
     EXPECT_TRUE(filter_result.is_ok()) << "Failed to set BPF filter";
 }
 
-TEST_F(CaptureSessionTest, DISABLED_StatsInitiallyZero) {
+TEST_F(CaptureSessionTest, StatsInitiallyZero) {
     auto result = io::CaptureSession::create("lo");
     ASSERT_TRUE(result.is_ok());
     
@@ -159,7 +159,7 @@ protected:
     ProtocolDispatcher dispatcher;
 };
 
-TEST_F(LoopbackCaptureTest, DISABLED_CaptureUdpOnLoopback) {
+TEST_F(LoopbackCaptureTest, CaptureUdpOnLoopback) {
     constexpr std::uint16_t TEST_PORT = 55555;
     
     // Create capture session on loopback with filter
@@ -195,7 +195,7 @@ TEST_F(LoopbackCaptureTest, DISABLED_CaptureUdpOnLoopback) {
     }
 }
 
-TEST_F(LoopbackCaptureTest, DISABLED_CaptureLoopWithCallback) {
+TEST_F(LoopbackCaptureTest, CaptureLoopWithCallback) {
     constexpr std::uint16_t TEST_PORT = 55556;
     
     auto result = io::CaptureSession::create("lo");
@@ -240,7 +240,7 @@ TEST_F(LoopbackCaptureTest, DISABLED_CaptureLoopWithCallback) {
     EXPECT_GT(captured_count.load(), 0) << "No packets captured in loop";
 }
 
-TEST_F(LoopbackCaptureTest, DISABLED_DecodesCapturedPackets) {
+TEST_F(LoopbackCaptureTest, DecodesCapturedPackets) {
     constexpr std::uint16_t TEST_PORT = 55557;
     
     auto result = io::CaptureSession::create("lo");
@@ -278,7 +278,7 @@ TEST_F(LoopbackCaptureTest, DISABLED_DecodesCapturedPackets) {
 // Timeout and Error Handling Tests
 //==============================================================================
 
-TEST_F(CaptureSessionTest, DISABLED_TimeoutWhenNoPackets) {
+TEST_F(CaptureSessionTest, TimeoutWhenNoPackets) {
     auto result = io::CaptureSession::create("lo");
     ASSERT_TRUE(result.is_ok());
     
@@ -298,7 +298,7 @@ TEST_F(CaptureSessionTest, DISABLED_TimeoutWhenNoPackets) {
     EXPECT_LE(elapsed, 200ms); // But shouldn't take too long
 }
 
-TEST_F(CaptureSessionTest, DISABLED_InvalidInterfaceFails) {
+TEST_F(CaptureSessionTest, InvalidInterfaceFails) {
     auto result = io::CaptureSession::create("nonexistent_interface_xyz");
     EXPECT_FALSE(result.is_ok()) << "Should fail for invalid interface";
 }
@@ -307,7 +307,7 @@ TEST_F(CaptureSessionTest, DISABLED_InvalidInterfaceFails) {
 // BPF Filter Tests
 //==============================================================================
 
-TEST_F(CaptureSessionTest, DISABLED_InvalidFilterFails) {
+TEST_F(CaptureSessionTest, InvalidFilterFails) {
     auto result = io::CaptureSession::create("lo");
     ASSERT_TRUE(result.is_ok());
     
@@ -318,7 +318,7 @@ TEST_F(CaptureSessionTest, DISABLED_InvalidFilterFails) {
     EXPECT_FALSE(filter_result.is_ok());
 }
 
-TEST_F(CaptureSessionTest, DISABLED_ComplexFilterWorks) {
+TEST_F(CaptureSessionTest, ComplexFilterWorks) {
     auto result = io::CaptureSession::create("lo");
     ASSERT_TRUE(result.is_ok());
     
@@ -333,7 +333,7 @@ TEST_F(CaptureSessionTest, DISABLED_ComplexFilterWorks) {
 // Integration: Full Pipeline with Live Capture
 //==============================================================================
 
-TEST_F(LoopbackCaptureTest, DISABLED_FullPipelineFromCapture) {
+TEST_F(LoopbackCaptureTest, FullPipelineFromCapture) {
     constexpr std::uint16_t TEST_PORT = 55558;
     
     auto result = io::CaptureSession::create("lo");
