@@ -482,16 +482,54 @@ wadjet-run examples/ --tags smoke,fast
 
 ---
 
-### Milestone 5 — Python Bindings
+### Milestone 5 — Python Bindings ✅
 
 **Goal:** Fast adoption, Jupyter analysis, pytest integration
 
-**Expose:**
+**Status:** Completed
 
-- [ ] Capture API
-- [ ] Protocol decode
-- [ ] Test assertions
-- [ ] Pcap reading/writing
+**Implementation:**
+
+C++ Binding Layer (pybind11):
+- [x] `module.cpp` — Main PYBIND11_MODULE with version info
+- [x] `core_bindings.cpp` — Timestamp class, bytes_to_hex/hex_to_bytes
+- [x] `packet_bindings.cpp` — Packet/PacketView with buffer protocol
+- [x] `capture_bindings.cpp` — CaptureSession, options, stats, device enumeration
+- [x] `pcap_bindings.cpp` — PcapReader/PcapWriter with context managers
+- [x] `protocol_bindings.cpp` — All protocol headers and enums
+- [x] `decoder_bindings.cpp` — DecodeResult, ProtocolDispatcher, decode_packet()
+
+Python Wrapper Layer:
+- [x] `wadjet/__init__.py` — Package exports with graceful fallback
+- [x] `capture.py` — LiveCapture, ReplayCapture context managers
+- [x] `protocols.py` — decode(), parse(), ProtocolStack, filters
+- [x] `pcap.py` — read_pcap, write_pcap, filter_pcap, merge_pcaps
+- [x] `testing.py` — assert_someip/doip, PacketMatcher, PacketTestRunner
+
+Documentation & Packaging:
+- [x] `README.md` — Comprehensive API documentation with examples
+- [x] `pyproject.toml` — Modern Python packaging (pip installable)
+- [x] `wadjet/_wadjet.pyi` — Type stubs for native module
+- [x] `wadjet/__init__.pyi` — Type stubs for Python wrappers
+- [x] `pytest.ini` — pytest configuration
+
+Tests & Examples:
+- [x] `tests/test_wadjet.py` — Comprehensive pytest test suite
+- [x] `examples/analyze_someip.py` — PCAP analysis example
+- [x] `examples/live_capture.py` — Real-time capture example
+- [x] `examples/test_protocol.py` — pytest integration example
+
+Build Integration:
+- [x] `bindings/python/CMakeLists.txt` — pybind11 module build config
+- [x] `WADJET_BUILD_PYTHON_BINDINGS` option in root CMakeLists.txt
+
+**Features:**
+- Zero-copy buffer protocol for NumPy integration
+- Pythonic context managers for resource management
+- Iterator protocol for packet streams
+- Composable packet matchers (AND, OR, NOT)
+- pytest fixtures for automotive protocol testing
+- Full type stub support for IDE autocomplete
 
 **Example:**
 

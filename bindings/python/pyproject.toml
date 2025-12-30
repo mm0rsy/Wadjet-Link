@@ -1,0 +1,121 @@
+[build-system]
+requires = ["scikit-build-core>=0.4.0", "pybind11>=2.10.0"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "wadjet"
+version = "0.1.0"
+description = "Python bindings for Wadjet-Link automotive Ethernet validation framework"
+readme = "README.md"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Wadjet-Link Contributors"}
+]
+maintainers = [
+    {name = "Wadjet-Link Contributors"}
+]
+keywords = [
+    "automotive",
+    "ethernet",
+    "someip",
+    "doip",
+    "protocol",
+    "network",
+    "capture",
+    "testing",
+    "validation",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: C++",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Testing",
+    "Topic :: System :: Networking :: Monitoring",
+    "Typing :: Typed",
+]
+requires-python = ">=3.8"
+dependencies = []
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
+]
+numpy = [
+    "numpy>=1.20.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/your-org/wadjet-link"
+Documentation = "https://github.com/your-org/wadjet-link#readme"
+Repository = "https://github.com/your-org/wadjet-link"
+Issues = "https://github.com/your-org/wadjet-link/issues"
+
+[tool.scikit-build]
+cmake.args = ["-DWADJET_BUILD_PYTHON_BINDINGS=ON"]
+wheel.packages = ["wadjet"]
+build-dir = "build/{wheel_tag}"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "capture: marks tests requiring live capture capabilities",
+]
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+exclude = ["build", "dist"]
+
+[tool.ruff]
+target-version = "py38"
+line-length = 100
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.isort]
+known-first-party = ["wadjet"]
+
+[tool.coverage.run]
+source = ["wadjet"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
