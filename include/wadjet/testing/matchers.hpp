@@ -757,6 +757,343 @@ inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPVehicleIde
 }
 
 // =============================================================================
+// gPTP (IEEE 802.1AS) Matchers
+// =============================================================================
+
+/// @brief Matcher: packet is a gPTP packet
+class IsGptpMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        bool has_gptp = result.has_layer<protocols::gptp::GptpHeader>();
+        if (listener->IsInterested()) {
+            *listener << (has_gptp ? "is a gPTP packet" : "is not a gPTP packet");
+        }
+        return has_gptp;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a gPTP packet"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a gPTP packet"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsGptpMatcher> IsGptp() {
+    return ::testing::MakePolymorphicMatcher(IsGptpMatcher());
+}
+
+/// @brief Matcher: packet has specific gPTP message type
+class HasGptpMessageTypeMatcher {
+public:
+    explicit HasGptpMessageTypeMatcher(protocols::gptp::MessageType msg_type)
+        : expected_(msg_type) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has gPTP message type "
+                      << protocols::gptp::message_type_string(gptp->message_type);
+        }
+        return gptp->message_type == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has gPTP message type " << protocols::gptp::message_type_string(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have gPTP message type "
+            << protocols::gptp::message_type_string(expected_);
+    }
+
+private:
+    protocols::gptp::MessageType expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> HasGptpMessageType(
+    protocols::gptp::MessageType msg_type) {
+    return ::testing::MakePolymorphicMatcher(HasGptpMessageTypeMatcher(msg_type));
+}
+
+/// @brief Matcher: packet is a gPTP Sync message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpSync() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Sync);
+}
+
+/// @brief Matcher: packet is a gPTP Follow_Up message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpFollowUp() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Follow_Up);
+}
+
+/// @brief Matcher: packet is a gPTP Pdelay_Req message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpPdelayReq() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Pdelay_Req);
+}
+
+/// @brief Matcher: packet is a gPTP Pdelay_Resp message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpPdelayResp() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Pdelay_Resp);
+}
+
+/// @brief Matcher: packet is a gPTP Pdelay_Resp_Follow_Up message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpPdelayRespFollowUp() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Pdelay_Resp_Follow_Up);
+}
+
+/// @brief Matcher: packet is a gPTP Announce message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpAnnounce() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Announce);
+}
+
+/// @brief Matcher: packet is a gPTP Signaling message
+inline ::testing::PolymorphicMatcher<HasGptpMessageTypeMatcher> IsGptpSignaling() {
+    return HasGptpMessageType(protocols::gptp::MessageType::Signaling);
+}
+
+/// @brief Matcher: packet has specific gPTP domain number
+class HasGptpDomainMatcher {
+public:
+    explicit HasGptpDomainMatcher(std::uint8_t domain) : expected_(domain) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has gPTP domain " << static_cast<int>(gptp->domain_number);
+        }
+        return gptp->domain_number == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has gPTP domain " << static_cast<int>(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have gPTP domain " << static_cast<int>(expected_);
+    }
+
+private:
+    std::uint8_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasGptpDomainMatcher> HasGptpDomain(std::uint8_t domain) {
+    return ::testing::MakePolymorphicMatcher(HasGptpDomainMatcher(domain));
+}
+
+/// @brief Matcher: packet has specific gPTP sequence ID
+class HasGptpSequenceIdMatcher {
+public:
+    explicit HasGptpSequenceIdMatcher(std::uint16_t seq_id) : expected_(seq_id) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has gPTP sequence ID " << gptp->sequence_id;
+        }
+        return gptp->sequence_id == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has gPTP sequence ID " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have gPTP sequence ID " << expected_;
+    }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasGptpSequenceIdMatcher> HasGptpSequenceId(
+    std::uint16_t seq_id) {
+    return ::testing::MakePolymorphicMatcher(HasGptpSequenceIdMatcher(seq_id));
+}
+
+/// @brief Matcher: packet is from a specific gPTP port identity
+class GptpFromPortMatcher {
+public:
+    explicit GptpFromPortMatcher(const protocols::gptp::PortIdentity& port) : expected_(port) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        const auto& src = gptp->source_port_identity;
+
+        bool matches = (src.clock_identity == expected_.clock_identity &&
+                        src.port_number == expected_.port_number);
+
+        if (listener->IsInterested()) {
+            *listener << "from port " << src.clock_identity.to_string() << ":" << src.port_number;
+        }
+        return matches;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "is from gPTP port " << expected_.clock_identity.to_string() << ":"
+            << expected_.port_number;
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "is not from gPTP port " << expected_.clock_identity.to_string() << ":"
+            << expected_.port_number;
+    }
+
+private:
+    protocols::gptp::PortIdentity expected_;
+};
+
+inline ::testing::PolymorphicMatcher<GptpFromPortMatcher> GptpFromPort(
+    const protocols::gptp::PortIdentity& port) {
+    return ::testing::MakePolymorphicMatcher(GptpFromPortMatcher(port));
+}
+
+/// @brief Matcher: packet is from a specific gPTP clock identity
+class GptpFromClockMatcher {
+public:
+    explicit GptpFromClockMatcher(const protocols::gptp::ClockIdentity& clock) : expected_(clock) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        bool matches = (gptp->source_port_identity.clock_identity == expected_);
+
+        if (listener->IsInterested()) {
+            *listener << "from clock " << gptp->source_port_identity.clock_identity.to_string();
+        }
+        return matches;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "is from gPTP clock " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "is not from gPTP clock " << expected_.to_string();
+    }
+
+private:
+    protocols::gptp::ClockIdentity expected_;
+};
+
+inline ::testing::PolymorphicMatcher<GptpFromClockMatcher> GptpFromClock(
+    const protocols::gptp::ClockIdentity& clock) {
+    return ::testing::MakePolymorphicMatcher(GptpFromClockMatcher(clock));
+}
+
+/// @brief Matcher: packet is a gPTP event message (requires timestamping)
+class IsGptpEventMessageMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        bool is_event = gptp->is_event();
+        if (listener->IsInterested()) {
+            *listener << (is_event ? "is an event message" : "is not an event message");
+        }
+        return is_event;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a gPTP event message"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a gPTP event message"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsGptpEventMessageMatcher> IsGptpEventMessage() {
+    return ::testing::MakePolymorphicMatcher(IsGptpEventMessageMatcher());
+}
+
+/// @brief Matcher: packet is a gPTP two-step message (Follow_Up expected)
+class IsGptpTwoStepMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::gptp::GptpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have gPTP header";
+            }
+            return false;
+        }
+
+        const auto* gptp = result.get_layer<protocols::gptp::GptpHeader>();
+        bool is_two_step = gptp->is_two_step();
+        if (listener->IsInterested()) {
+            *listener << (is_two_step ? "is two-step" : "is not two-step");
+        }
+        return is_two_step;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is a gPTP two-step message"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not a gPTP two-step message"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsGptpTwoStepMatcher> IsGptpTwoStep() {
+    return ::testing::MakePolymorphicMatcher(IsGptpTwoStepMatcher());
+}
+
+// =============================================================================
 // Payload Matchers
 // =============================================================================
 
