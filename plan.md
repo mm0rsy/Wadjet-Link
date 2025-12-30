@@ -111,14 +111,15 @@ Testing framework: **GoogleTest** with custom matchers
 ```text
 wadjet::io              → Device handling, capture engines
   - DeviceEnumerator
-  - CaptureSession
-  - ReplaySession
+  - CaptureSession (AF_PACKET + TPACKET_V2/V3)
+  - PcapCaptureSession (libpcap backend)
+  - ReplaySession (timing-controlled replay)
   - FrameFilter (BPF expression)
 
 wadjet::pcap            → Readers/writers
   - PcapReader
   - PcapWriter
-  - PcapngWriter
+  - PcapngWriter (Enhanced Packet Block support)
 
 wadjet::net             → Protocol primitives
   - MAC
@@ -190,49 +191,57 @@ public:
 
 ## Milestones
 
-### Milestone 0 — Bootstrapping
+### Milestone 0 — Bootstrapping ✅
 
 **Goal:** Repository foundation and developer experience
 
+**Status:** Completed
+
 **Deliverables:**
 
-- [ ] Repo structure created
-- [ ] CMake project with modern practices
-- [ ] CI/CD pipeline (GitHub Actions)
-- [ ] clang-format configuration
-- [ ] clang-tidy configuration
-- [ ] Doxygen setup
-- [ ] Coding guidelines document
-- [ ] README with vision/architecture
-- [ ] CONTRIBUTING.md
-- [ ] LICENSE file
-- [ ] Example pcap capture in repo
+- [x] Repo structure created
+- [x] CMake project with modern practices
+- [x] CI/CD pipeline (GitHub Actions)
+- [x] clang-format configuration
+- [x] clang-tidy configuration
+- [x] Doxygen setup
+- [x] Coding guidelines document
+- [x] README with vision/architecture
+- [x] CONTRIBUTING.md
+- [x] LICENSE file
+- [x] Example pcap capture in repo
 
 ---
 
-### Milestone 1 — Core Packet I/O
+### Milestone 1 — Core Packet I/O ✅
 
 **Goal:** Capture + replay + filter frames deterministically
 
+**Status:** Completed
+
 **Implementation:**
 
-- [ ] Linux AF_PACKET / PF_PACKET support
-- [ ] Optional libpcap backend
-- [ ] Zero-copy ring buffer support
-- [ ] Timestamping support (hardware if possible)
-- [ ] Packet writer (.pcap, .pcapng)
-- [ ] Packet reader abstraction
-- [ ] `CaptureSession` implementation
-- [ ] `ReplaySession` implementation
-- [ ] `Packet` and `PacketView` classes
-- [ ] `FrameFilter` (BPF expression)
+- [x] Linux AF_PACKET / PF_PACKET support
+- [x] Optional libpcap backend (PcapCaptureSession)
+- [x] Zero-copy ring buffer support (TPACKET_V2 and V3)
+- [x] TPACKET_V3 block-based ring buffer for improved performance
+- [x] Timestamping support (hardware if available, nanosecond precision)
+- [x] Packet writer (.pcap, .pcapng)
+- [x] Packet reader abstraction
+- [x] `CaptureSession` implementation with multiple backends
+- [x] `ReplaySession` implementation with timing control
+- [x] `Packet` and `PacketView` classes
+- [x] `FrameFilter` (BPF expression)
 
 **Validation Tests:**
 
-- [ ] Send & receive on loopback
-- [ ] Verify timestamps monotonic
-- [ ] Stress test under load
-- [ ] Dropped packet counters
+- [x] Send & receive on loopback
+- [x] Verify timestamps monotonic
+- [x] Stress test under load (HighPacketRateCapture, SustainedCapture)
+- [x] Dropped packet counters
+- [x] TPACKET_V3 basic capture test
+- [x] Large packet capture test
+- [x] Variable packet size capture test
 
 ---
 
@@ -474,12 +483,12 @@ with wadjet.LiveCapture("eth0", filter="udp port 30490") as cap:
 
 MVP is complete when:
 
-- [ ] Raw Ethernet capture works on Linux
-- [ ] SOME/IP decode works
-- [ ] GoogleTest can assert on live traffic
-- [ ] README shows usage example
-- [ ] At least 20 unit tests exist
-- [ ] CI pipeline passes
+- [x] Raw Ethernet capture works on Linux
+- [x] SOME/IP decode works
+- [x] GoogleTest can assert on live traffic
+- [x] README shows usage example
+- [x] At least 20 unit tests exist (295+ tests)
+- [x] CI pipeline passes
 
 ---
 
@@ -489,5 +498,5 @@ MVP is complete when:
 - [ ] TSN awareness (802.1Qbv, etc.)
 - [ ] Rust FFI bindings
 - [ ] UDS over DoIP parsing
-- [ ] Packet injection (TX capability)
+- [x] Packet injection (TX capability via ReplaySession)
 - [ ] Web-based report viewer
