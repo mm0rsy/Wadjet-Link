@@ -55,6 +55,10 @@ add_library(wadjet
     protocols/doip.cpp
     protocols/gptp_decoder.cpp
     protocols/dispatcher.cpp
+    
+    # UDS protocol
+    protocols/uds_decoder.cpp
+    protocols/uds_session.cpp
 )
 
 # Add scenario module sources if dependencies are available

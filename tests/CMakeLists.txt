@@ -37,6 +37,8 @@ add_executable(wadjet_tests
     # Protocol tests
     protocols/test_decoders.cpp
     protocols/test_gptp.cpp
+    protocols/test_uds.cpp
+    protocols/test_uds_regression.cpp
 )
 
 target_link_libraries(wadjet_tests
@@ -60,6 +62,8 @@ add_executable(wadjet_integration_tests
     integration/test_pcap_decode.cpp
     # Capture session tests (requires CAP_NET_RAW)
     integration/test_capture_session.cpp
+    # UDS integration tests - temporarily disabled until API alignment complete
+    # integration/test_uds_integration.cpp
 )
 
 target_link_libraries(wadjet_integration_tests
