@@ -1,0 +1,867 @@
+/// @file matchers.hpp
+/// @brief gMock-style packet matchers for Wadjet-Link
+///
+/// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
+///
+/// This header provides gMock-compatible matchers for protocol assertions
+/// in tests. Use these matchers with EXPECT_THAT/ASSERT_THAT for expressive
+/// packet validation.
+///
+/// Example:
+/// @code
+/// using namespace wadjet::testing;
+///
+/// auto pkt = capture.next_packet();
+/// EXPECT_THAT(pkt, AllOf(
+///     HasEthertype(0x0800),         // IPv4
+///     IsUDP(),                       // UDP transport
+///     HasSOMEIPServiceId(0x1234),   // Specific service
+///     IsSOMEIPRequest()             // Request message
+/// ));
+/// @endcode
+
+#pragma once
+
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <span>
+#include <sstream>
+#include <iomanip>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include <gmock/gmock.h>
+
+#include "wadjet/core/types.hpp"
+#include "wadjet/net/packet.hpp"
+#include "wadjet/protocols/dispatcher.hpp"
+
+namespace wadjet::testing {
+
+// =============================================================================
+// Helper to extract raw bytes from any packet-like object
+// =============================================================================
+
+namespace detail {
+
+/// @brief Extract raw data span from wadjet::Packet
+inline std::span<const std::byte> get_packet_data(const wadjet::Packet& pkt) {
+    return pkt.data();
+}
+
+/// @brief Extract raw data span from span of bytes
+inline std::span<const std::byte> get_packet_data(std::span<const std::byte> pkt) {
+    return pkt;
+}
+
+/// @brief Extract raw data span from span of uint8_t
+inline std::span<const std::byte> get_packet_data(std::span<const uint8_t> pkt) {
+    return std::span<const std::byte>(
+        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+}
+
+/// @brief Extract raw data span from vector of bytes
+inline std::span<const std::byte> get_packet_data(const std::vector<std::byte>& pkt) {
+    return std::span<const std::byte>(pkt);
+}
+
+/// @brief Extract raw data span from vector of uint8_t
+inline std::span<const std::byte> get_packet_data(const std::vector<uint8_t>& pkt) {
+    return std::span<const std::byte>(
+        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+}
+
+/// @brief Generic fallback for array types
+template <std::size_t N>
+std::span<const std::byte> get_packet_data(const std::array<uint8_t, N>& pkt) {
+    return std::span<const std::byte>(
+        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+}
+
+/// @brief Decode packet and return result
+inline protocols::DecodeStackResult decode(std::span<const std::byte> data) {
+    return protocols::decode_packet(data);
+}
+
+}  // namespace detail
+
+// =============================================================================
+// Ethernet Matchers
+// =============================================================================
+
+/// @brief Matcher: packet has specific EtherType
+class HasEthertypeMatcher {
+public:
+    explicit HasEthertypeMatcher(std::uint16_t ethertype) : expected_(ethertype) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ethernet::EthernetHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have Ethernet header";
+            }
+            return false;
+        }
+
+        const auto* eth = result.get_layer<protocols::ethernet::EthernetHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has ethertype 0x" << std::hex << eth->ethertype;
+        }
+        return eth->ethertype == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has ethertype 0x" << std::hex << std::setw(4) << std::setfill('0') << expected_;
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have ethertype 0x" << std::hex << std::setw(4) << std::setfill('0')
+            << expected_;
+    }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasEthertypeMatcher> HasEthertype(std::uint16_t ethertype) {
+    return ::testing::MakePolymorphicMatcher(HasEthertypeMatcher(ethertype));
+}
+
+/// @brief Matcher: packet has specific source MAC address
+class HasSourceMacMatcher {
+public:
+    explicit HasSourceMacMatcher(const MacAddress& mac) : expected_(mac) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ethernet::EthernetHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have Ethernet header";
+            }
+            return false;
+        }
+
+        const auto* eth = result.get_layer<protocols::ethernet::EthernetHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has source MAC " << eth->src_mac.to_string();
+        }
+        return eth->src_mac == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has source MAC " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have source MAC " << expected_.to_string();
+    }
+
+private:
+    MacAddress expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSourceMacMatcher> HasSourceMac(const MacAddress& mac) {
+    return ::testing::MakePolymorphicMatcher(HasSourceMacMatcher(mac));
+}
+
+/// @brief Matcher: packet has specific destination MAC address
+class HasDestMacMatcher {
+public:
+    explicit HasDestMacMatcher(const MacAddress& mac) : expected_(mac) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ethernet::EthernetHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have Ethernet header";
+            }
+            return false;
+        }
+
+        const auto* eth = result.get_layer<protocols::ethernet::EthernetHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has destination MAC " << eth->dst_mac.to_string();
+        }
+        return eth->dst_mac == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has destination MAC " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have destination MAC " << expected_.to_string();
+    }
+
+private:
+    MacAddress expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasDestMacMatcher> HasDestMac(const MacAddress& mac) {
+    return ::testing::MakePolymorphicMatcher(HasDestMacMatcher(mac));
+}
+
+/// @brief Matcher: packet has VLAN tag
+class HasVlanMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ethernet::EthernetHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have Ethernet header";
+            }
+            return false;
+        }
+
+        const auto* eth = result.get_layer<protocols::ethernet::EthernetHeader>();
+        bool has_vlan = eth->has_vlan();
+        if (listener->IsInterested()) {
+            *listener << (has_vlan ? "has VLAN tag" : "does not have VLAN tag");
+        }
+        return has_vlan;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has VLAN tag"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "does not have VLAN tag"; }
+};
+
+inline ::testing::PolymorphicMatcher<HasVlanMatcher> HasVlan() {
+    return ::testing::MakePolymorphicMatcher(HasVlanMatcher());
+}
+
+/// @brief Matcher: packet has specific VLAN ID
+class HasVlanIdMatcher {
+public:
+    explicit HasVlanIdMatcher(std::uint16_t vlan_id) : expected_(vlan_id) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+
+        // For VLAN, we need to check raw bytes (assuming standard 802.1Q)
+        if (data.size() < 16) {  // At least Ethernet header + VLAN tag
+            if (listener->IsInterested()) {
+                *listener << "packet too short for VLAN";
+            }
+            return false;
+        }
+
+        // Check if VLAN tag is present (ethertype at offset 12-13)
+        auto ethertype =
+            (static_cast<uint16_t>(static_cast<uint8_t>(data[12])) << 8) |
+            static_cast<uint16_t>(static_cast<uint8_t>(data[13]));
+
+        if (ethertype != 0x8100 && ethertype != 0x88A8) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have VLAN tag";
+            }
+            return false;
+        }
+
+        // VLAN ID is in bytes 14-15, lower 12 bits
+        auto tci =
+            (static_cast<uint16_t>(static_cast<uint8_t>(data[14])) << 8) |
+            static_cast<uint16_t>(static_cast<uint8_t>(data[15]));
+        auto vlan_id = tci & 0x0FFF;
+
+        if (listener->IsInterested()) {
+            *listener << "has VLAN ID " << vlan_id;
+        }
+        return vlan_id == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has VLAN ID " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "does not have VLAN ID " << expected_; }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasVlanIdMatcher> HasVlanId(std::uint16_t vlan_id) {
+    return ::testing::MakePolymorphicMatcher(HasVlanIdMatcher(vlan_id));
+}
+
+// =============================================================================
+// IPv4 Matchers
+// =============================================================================
+
+/// @brief Matcher: packet has specific source IP
+class HasSourceIPMatcher {
+public:
+    explicit HasSourceIPMatcher(const IPv4Address& ip) : expected_(ip) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ipv4::IPv4Header>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have IPv4 header";
+            }
+            return false;
+        }
+
+        const auto* ip = result.get_layer<protocols::ipv4::IPv4Header>();
+        if (listener->IsInterested()) {
+            *listener << "has source IP " << ip->src_ip.to_string();
+        }
+        return ip->src_ip == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has source IP " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have source IP " << expected_.to_string();
+    }
+
+private:
+    IPv4Address expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSourceIPMatcher> HasSourceIP(const IPv4Address& ip) {
+    return ::testing::MakePolymorphicMatcher(HasSourceIPMatcher(ip));
+}
+
+inline ::testing::PolymorphicMatcher<HasSourceIPMatcher> HasSourceIP(const std::string& ip) {
+    return ::testing::MakePolymorphicMatcher(HasSourceIPMatcher(IPv4Address::from_string(ip)));
+}
+
+inline ::testing::PolymorphicMatcher<HasSourceIPMatcher> HasSourceIP(std::uint32_t ip) {
+    return ::testing::MakePolymorphicMatcher(HasSourceIPMatcher(IPv4Address::from_uint32(ip)));
+}
+
+/// @brief Matcher: packet has specific destination IP
+class HasDestIPMatcher {
+public:
+    explicit HasDestIPMatcher(const IPv4Address& ip) : expected_(ip) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ipv4::IPv4Header>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have IPv4 header";
+            }
+            return false;
+        }
+
+        const auto* ip = result.get_layer<protocols::ipv4::IPv4Header>();
+        if (listener->IsInterested()) {
+            *listener << "has destination IP " << ip->dst_ip.to_string();
+        }
+        return ip->dst_ip == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has destination IP " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have destination IP " << expected_.to_string();
+    }
+
+private:
+    IPv4Address expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasDestIPMatcher> HasDestIP(const IPv4Address& ip) {
+    return ::testing::MakePolymorphicMatcher(HasDestIPMatcher(ip));
+}
+
+inline ::testing::PolymorphicMatcher<HasDestIPMatcher> HasDestIP(const std::string& ip) {
+    return ::testing::MakePolymorphicMatcher(HasDestIPMatcher(IPv4Address::from_string(ip)));
+}
+
+inline ::testing::PolymorphicMatcher<HasDestIPMatcher> HasDestIP(std::uint32_t ip) {
+    return ::testing::MakePolymorphicMatcher(HasDestIPMatcher(IPv4Address::from_uint32(ip)));
+}
+
+/// @brief Matcher: packet has specific IP protocol
+class HasIPProtocolMatcher {
+public:
+    explicit HasIPProtocolMatcher(std::uint8_t protocol) : expected_(protocol) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::ipv4::IPv4Header>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have IPv4 header";
+            }
+            return false;
+        }
+
+        const auto* ip = result.get_layer<protocols::ipv4::IPv4Header>();
+        if (listener->IsInterested()) {
+            *listener << "has IP protocol " << static_cast<int>(ip->protocol);
+        }
+        return ip->protocol == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has IP protocol " << static_cast<int>(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have IP protocol " << static_cast<int>(expected_);
+    }
+
+private:
+    std::uint8_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasIPProtocolMatcher> HasIPProtocol(std::uint8_t protocol) {
+    return ::testing::MakePolymorphicMatcher(HasIPProtocolMatcher(protocol));
+}
+
+/// @brief Matcher: packet uses UDP
+inline ::testing::PolymorphicMatcher<HasIPProtocolMatcher> IsUDP() {
+    return HasIPProtocol(17);  // IPPROTO_UDP
+}
+
+/// @brief Matcher: packet uses TCP
+inline ::testing::PolymorphicMatcher<HasIPProtocolMatcher> IsTCP() {
+    return HasIPProtocol(6);  // IPPROTO_TCP
+}
+
+// =============================================================================
+// Port Matchers
+// =============================================================================
+
+/// @brief Matcher: packet has specific source port (UDP or TCP)
+class HasSourcePortMatcher {
+public:
+    explicit HasSourcePortMatcher(std::uint16_t port) : expected_(port) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (result.has_layer<protocols::udp::UdpHeader>()) {
+            const auto* udp = result.get_layer<protocols::udp::UdpHeader>();
+            if (listener->IsInterested()) {
+                *listener << "has UDP source port " << udp->src_port;
+            }
+            return udp->src_port == expected_;
+        }
+
+        if (result.has_layer<protocols::tcp::TcpHeader>()) {
+            const auto* tcp = result.get_layer<protocols::tcp::TcpHeader>();
+            if (listener->IsInterested()) {
+                *listener << "has TCP source port " << tcp->src_port;
+            }
+            return tcp->src_port == expected_;
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "packet does not have UDP or TCP header";
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has source port " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "does not have source port " << expected_; }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSourcePortMatcher> HasSourcePort(std::uint16_t port) {
+    return ::testing::MakePolymorphicMatcher(HasSourcePortMatcher(port));
+}
+
+/// @brief Matcher: packet has specific destination port (UDP or TCP)
+class HasDestPortMatcher {
+public:
+    explicit HasDestPortMatcher(std::uint16_t port) : expected_(port) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (result.has_layer<protocols::udp::UdpHeader>()) {
+            const auto* udp = result.get_layer<protocols::udp::UdpHeader>();
+            if (listener->IsInterested()) {
+                *listener << "has UDP destination port " << udp->dst_port;
+            }
+            return udp->dst_port == expected_;
+        }
+
+        if (result.has_layer<protocols::tcp::TcpHeader>()) {
+            const auto* tcp = result.get_layer<protocols::tcp::TcpHeader>();
+            if (listener->IsInterested()) {
+                *listener << "has TCP destination port " << tcp->dst_port;
+            }
+            return tcp->dst_port == expected_;
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "packet does not have UDP or TCP header";
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has destination port " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have destination port " << expected_;
+    }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasDestPortMatcher> HasDestPort(std::uint16_t port) {
+    return ::testing::MakePolymorphicMatcher(HasDestPortMatcher(port));
+}
+
+// =============================================================================
+// SOME/IP Matchers
+// =============================================================================
+
+/// @brief Matcher: packet has specific SOME/IP service ID
+class HasSOMEIPServiceIdMatcher {
+public:
+    explicit HasSOMEIPServiceIdMatcher(std::uint16_t service_id) : expected_(service_id) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::someip::SomeIpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have SOME/IP header";
+            }
+            return false;
+        }
+
+        const auto* someip = result.get_layer<protocols::someip::SomeIpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has SOME/IP service ID 0x" << std::hex << someip->service_id;
+        }
+        return someip->service_id == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has SOME/IP service ID 0x" << std::hex << expected_;
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have SOME/IP service ID 0x" << std::hex << expected_;
+    }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSOMEIPServiceIdMatcher> HasSOMEIPServiceId(
+    std::uint16_t service_id) {
+    return ::testing::MakePolymorphicMatcher(HasSOMEIPServiceIdMatcher(service_id));
+}
+
+/// @brief Matcher: packet has specific SOME/IP method ID
+class HasSOMEIPMethodIdMatcher {
+public:
+    explicit HasSOMEIPMethodIdMatcher(std::uint16_t method_id) : expected_(method_id) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::someip::SomeIpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have SOME/IP header";
+            }
+            return false;
+        }
+
+        const auto* someip = result.get_layer<protocols::someip::SomeIpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has SOME/IP method ID 0x" << std::hex << someip->method_id;
+        }
+        return someip->method_id == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has SOME/IP method ID 0x" << std::hex << expected_;
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have SOME/IP method ID 0x" << std::hex << expected_;
+    }
+
+private:
+    std::uint16_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSOMEIPMethodIdMatcher> HasSOMEIPMethodId(
+    std::uint16_t method_id) {
+    return ::testing::MakePolymorphicMatcher(HasSOMEIPMethodIdMatcher(method_id));
+}
+
+/// @brief Matcher: packet has specific SOME/IP message type
+class HasSOMEIPMessageTypeMatcher {
+public:
+    explicit HasSOMEIPMessageTypeMatcher(protocols::someip::MessageType type) : expected_(type) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::someip::SomeIpHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have SOME/IP header";
+            }
+            return false;
+        }
+
+        const auto* someip = result.get_layer<protocols::someip::SomeIpHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has SOME/IP message type 0x" << std::hex
+                      << static_cast<int>(someip->message_type);
+        }
+        return someip->message_type == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has SOME/IP message type 0x" << std::hex << static_cast<int>(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have SOME/IP message type 0x" << std::hex << static_cast<int>(expected_);
+    }
+
+private:
+    protocols::someip::MessageType expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> HasSOMEIPMessageType(
+    protocols::someip::MessageType type) {
+    return ::testing::MakePolymorphicMatcher(HasSOMEIPMessageTypeMatcher(type));
+}
+
+/// @brief Matcher: packet is a SOME/IP request
+inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> IsSOMEIPRequest() {
+    return HasSOMEIPMessageType(protocols::someip::MessageType::Request);
+}
+
+/// @brief Matcher: packet is a SOME/IP response
+inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> IsSOMEIPResponse() {
+    return HasSOMEIPMessageType(protocols::someip::MessageType::Response);
+}
+
+/// @brief Matcher: packet is a SOME/IP notification/event
+inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> IsSOMEIPNotification() {
+    return HasSOMEIPMessageType(protocols::someip::MessageType::Notification);
+}
+
+/// @brief Matcher: packet is a SOME/IP request without return
+inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> IsSOMEIPRequestNoReturn() {
+    return HasSOMEIPMessageType(protocols::someip::MessageType::RequestNoReturn);
+}
+
+// =============================================================================
+// DoIP Matchers
+// =============================================================================
+
+/// @brief Matcher: packet has specific DoIP payload type
+class HasDoIPPayloadTypeMatcher {
+public:
+    explicit HasDoIPPayloadTypeMatcher(protocols::doip::PayloadType payload_type) : expected_(payload_type) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::doip::DoIPHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have DoIP header";
+            }
+            return false;
+        }
+
+        const auto* doip = result.get_layer<protocols::doip::DoIPHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has DoIP payload type 0x" << std::hex 
+                      << static_cast<uint16_t>(doip->payload_type);
+        }
+        return doip->payload_type == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has DoIP payload type 0x" << std::hex << static_cast<uint16_t>(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have DoIP payload type 0x" << std::hex << static_cast<uint16_t>(expected_);
+    }
+
+private:
+    protocols::doip::PayloadType expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> HasDoIPPayloadType(
+    protocols::doip::PayloadType payload_type) {
+    return ::testing::MakePolymorphicMatcher(HasDoIPPayloadTypeMatcher(payload_type));
+}
+
+/// @brief Matcher: packet is a DoIP diagnostic message
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPDiagnosticMessage() {
+    return HasDoIPPayloadType(protocols::doip::PayloadType::DiagnosticMessage);
+}
+
+/// @brief Matcher: packet is a DoIP routing activation request
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPRoutingActivationRequest() {
+    return HasDoIPPayloadType(protocols::doip::PayloadType::RoutingActivationRequest);
+}
+
+/// @brief Matcher: packet is a DoIP routing activation response
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPRoutingActivationResponse() {
+    return HasDoIPPayloadType(protocols::doip::PayloadType::RoutingActivationResponse);
+}
+
+/// @brief Matcher: packet is a DoIP vehicle identification request
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPVehicleIdentificationRequest() {
+    return HasDoIPPayloadType(protocols::doip::PayloadType::VehicleIdentificationRequest);
+}
+
+/// @brief Matcher: packet is a DoIP vehicle identification response
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPVehicleIdentificationResponse() {
+    return HasDoIPPayloadType(protocols::doip::PayloadType::VehicleAnnouncementOrIdentificationResponse);
+}
+
+// =============================================================================
+// Payload Matchers
+// =============================================================================
+
+/// @brief Matcher: packet payload contains specific bytes
+class PayloadContainsMatcher {
+public:
+    explicit PayloadContainsMatcher(std::vector<std::uint8_t> pattern) : pattern_(std::move(pattern)) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+
+        // Search for pattern in raw data
+        auto it = std::search(
+            reinterpret_cast<const uint8_t*>(data.data()),
+            reinterpret_cast<const uint8_t*>(data.data()) + data.size(),
+            pattern_.begin(), pattern_.end());
+
+        bool found = it != (reinterpret_cast<const uint8_t*>(data.data()) + data.size());
+        if (listener->IsInterested()) {
+            *listener << (found ? "payload contains pattern" : "payload does not contain pattern");
+        }
+        return found;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "payload contains pattern of " << pattern_.size() << " bytes";
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "payload does not contain pattern of " << pattern_.size() << " bytes";
+    }
+
+private:
+    std::vector<std::uint8_t> pattern_;
+};
+
+inline ::testing::PolymorphicMatcher<PayloadContainsMatcher> PayloadContains(
+    std::initializer_list<std::uint8_t> pattern) {
+    return ::testing::MakePolymorphicMatcher(
+        PayloadContainsMatcher(std::vector<std::uint8_t>(pattern)));
+}
+
+inline ::testing::PolymorphicMatcher<PayloadContainsMatcher> PayloadContains(
+    const std::vector<std::uint8_t>& pattern) {
+    return ::testing::MakePolymorphicMatcher(PayloadContainsMatcher(pattern));
+}
+
+/// @brief Matcher: packet has specific payload size
+class PayloadSizeMatcher {
+public:
+    explicit PayloadSizeMatcher(std::size_t size) : expected_(size) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+
+        if (listener->IsInterested()) {
+            *listener << "has payload size " << data.size();
+        }
+        return data.size() == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "has payload size " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "does not have payload size " << expected_; }
+
+private:
+    std::size_t expected_;
+};
+
+inline ::testing::PolymorphicMatcher<PayloadSizeMatcher> HasPayloadSize(std::size_t size) {
+    return ::testing::MakePolymorphicMatcher(PayloadSizeMatcher(size));
+}
+
+// =============================================================================
+// Combined/Meta Matchers
+// =============================================================================
+
+/// @brief Matcher: packet decodes successfully without errors
+class DecodesSuccessfullyMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (result.error.has_value()) {
+            if (listener->IsInterested()) {
+                *listener << "decode error: " << result.error->message;
+            }
+            return false;
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "decoded " << result.layers.size() << " layers successfully";
+        }
+        return true;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "decodes successfully"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "fails to decode"; }
+};
+
+inline ::testing::PolymorphicMatcher<DecodesSuccessfullyMatcher> DecodesSuccessfully() {
+    return ::testing::MakePolymorphicMatcher(DecodesSuccessfullyMatcher());
+}
+
+}  // namespace wadjet::testing
