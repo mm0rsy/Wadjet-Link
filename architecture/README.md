@@ -39,6 +39,24 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 | I/O | [io_sequences.puml](sequences/io_sequences.puml) |
 | Protocols | [protocols_sequences.puml](sequences/protocols_sequences.puml) |
 
+## Test Architecture
+
+The project has a comprehensive test suite with **137 tests**:
+
+### Unit Tests (111 tests)
+Located in `tests/` subdirectories by module:
+- `tests/core/` - Result, ByteOrder, Timestamp
+- `tests/net/` - Packet, PacketView, MacAddress, IPv4Address
+- `tests/pcap/` - PcapReader, PcapWriter
+- `tests/io/` - Device, FrameFilter
+- `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP decoders
+
+### Integration Tests (26 tests)
+Located in `tests/integration/`:
+- `test_decode_pipeline.cpp` - Full Ethernet→IPv4→UDP/TCP→SOME/IP/DoIP decode chain
+- `test_pcap_decode.cpp` - PCAP read/write + decode integration
+- `test_capture_session.cpp` - Live loopback capture (requires CAP_NET_RAW)
+
 ## Rendering Diagrams
 
 ### Using PlantUML CLI

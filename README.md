@@ -191,7 +191,7 @@ sudo setcap cap_net_raw+ep /usr/bin/your_app
 ### Unit Tests
 
 ```bash
-# Run all tests
+# Run all unit tests
 ctest --test-dir build
 
 # Run with verbose output
@@ -200,6 +200,28 @@ ctest --test-dir build --output-on-failure
 # Run specific test
 ./build/tests/wadjet_tests --gtest_filter="PacketViewTest.*"
 ```
+
+### Integration Tests
+
+Integration tests include live capture tests that require elevated privileges:
+
+```bash
+# Run integration tests (requires sudo for live capture)
+sudo ./build/tests/wadjet_integration_tests
+
+# Run unit tests only (no sudo required)
+./build/tests/wadjet_tests
+```
+
+---
+
+## Test Coverage
+
+| Test Suite | Tests | Description |
+|------------|-------|-------------|
+| Unit Tests | 111 | Core, Net, PCAP, I/O, Protocol decoders |
+| Integration Tests | 26 | Decode pipeline, PCAP roundtrip, Live capture |
+| **Total** | **137** | |
 
 ---
 
@@ -214,7 +236,13 @@ wadjet-link/
 │   ├── io/                  # Live capture
 │   └── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
 ├── src/                     # Implementation
-├── tests/                   # Unit tests
+├── tests/                   # Test suites
+│   ├── core/                # Core unit tests
+│   ├── net/                 # Packet unit tests
+│   ├── pcap/                # PCAP unit tests
+│   ├── io/                  # I/O unit tests
+│   ├── protocols/           # Protocol decoder unit tests
+│   └── integration/         # Integration & E2E tests
 ├── architecture/            # PlantUML diagrams
 ├── docs/                    # Documentation
 ├── pcap_samples/            # Test fixtures

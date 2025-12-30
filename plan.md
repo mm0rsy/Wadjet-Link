@@ -260,7 +260,14 @@ public:
 - [x] Known PCAP fixtures (39 new tests)
 - [x] Malformed frame handling
 - [x] Boundary conditions
+- [x] Integration tests (decode pipeline, PCAP roundtrip)
+- [x] Live capture tests (loopback)
 - [ ] Fuzz testing (future work)
+
+**Test Summary:**
+- Unit tests: 111
+- Integration tests: 26
+- **Total: 137 tests**
 
 ---
 
