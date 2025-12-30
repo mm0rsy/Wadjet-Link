@@ -422,6 +422,7 @@ typedef enum {
     WADJET_PROTOCOL_SOMEIP = 6,
     WADJET_PROTOCOL_SOMEIP_SD = 7,
     WADJET_PROTOCOL_DOIP = 8,
+    WADJET_PROTOCOL_GPTP = 9,
 } wadjet_protocol_t;
 
 /**
@@ -463,6 +464,22 @@ typedef enum {
     WADJET_DOIP_DIAGNOSTIC_MESSAGE_POSITIVE_ACK = 0x8002,
     WADJET_DOIP_DIAGNOSTIC_MESSAGE_NEGATIVE_ACK = 0x8003,
 } wadjet_doip_payload_type_t;
+
+/**
+ * @brief gPTP (IEEE 802.1AS) message types
+ */
+typedef enum {
+    WADJET_GPTP_SYNC = 0x0,
+    WADJET_GPTP_DELAY_REQ = 0x1,
+    WADJET_GPTP_PDELAY_REQ = 0x2,
+    WADJET_GPTP_PDELAY_RESP = 0x3,
+    WADJET_GPTP_FOLLOW_UP = 0x8,
+    WADJET_GPTP_DELAY_RESP = 0x9,
+    WADJET_GPTP_PDELAY_RESP_FOLLOW_UP = 0xA,
+    WADJET_GPTP_ANNOUNCE = 0xB,
+    WADJET_GPTP_SIGNALING = 0xC,
+    WADJET_GPTP_MANAGEMENT = 0xD,
+} wadjet_gptp_message_type_t;
 
 /**
  * @brief Decoded Ethernet header
@@ -545,6 +562,48 @@ typedef struct {
     uint32_t payload_length;
     bool version_valid;
 } wadjet_doip_header_t;
+
+/**
+ * @brief gPTP clock identity (8 bytes EUI-64)
+ */
+typedef struct {
+    uint8_t bytes[8];
+} wadjet_gptp_clock_identity_t;
+
+/**
+ * @brief gPTP port identity
+ */
+typedef struct {
+    wadjet_gptp_clock_identity_t clock_identity;
+    uint16_t port_number;
+} wadjet_gptp_port_identity_t;
+
+/**
+ * @brief gPTP timestamp (80-bit)
+ */
+typedef struct {
+    uint16_t seconds_msb;
+    uint32_t seconds_lsb;
+    uint32_t nanoseconds;
+} wadjet_gptp_timestamp_t;
+
+/**
+ * @brief Decoded gPTP header
+ */
+typedef struct {
+    uint8_t transport_specific;
+    wadjet_gptp_message_type_t message_type;
+    uint8_t version;
+    uint16_t message_length;
+    uint8_t domain_number;
+    int64_t correction_field;
+    wadjet_gptp_port_identity_t source_port_identity;
+    uint16_t sequence_id;
+    uint8_t control;
+    int8_t log_message_interval;
+    bool two_step;
+    bool is_event;
+} wadjet_gptp_header_t;
 
 /**
  * @brief Decode packet and return result handle
@@ -640,6 +699,32 @@ wadjet_error_t wadjet_decode_result_someip(
 wadjet_error_t wadjet_decode_result_doip(
     wadjet_decode_result_t result,
     wadjet_doip_header_t* header);
+
+/**
+ * @brief Get gPTP header from decode result
+ * @param result Decode result handle
+ * @param header Output: gPTP header
+ * @return WADJET_OK if layer present
+ */
+wadjet_error_t wadjet_decode_result_gptp(wadjet_decode_result_t result,
+                                         wadjet_gptp_header_t* header);
+
+/**
+ * @brief Convert gPTP clock identity to string
+ * @param clock Clock identity
+ * @param buffer Output buffer (at least 24 bytes)
+ * @param buffer_size Buffer size
+ * @return Number of characters written, or 0 on error
+ */
+size_t wadjet_gptp_clock_identity_to_string(const wadjet_gptp_clock_identity_t* clock, char* buffer,
+                                            size_t buffer_size);
+
+/**
+ * @brief Get gPTP message type name
+ * @param type Message type
+ * @return Message type name string (static, do not free)
+ */
+const char* wadjet_gptp_message_type_name(wadjet_gptp_message_type_t type);
 
 /**
  * @brief Get payload data after a specific protocol layer

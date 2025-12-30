@@ -15,6 +15,7 @@
 #include <wadjet/protocols/dispatcher.hpp>
 #include <wadjet/protocols/doip.hpp>
 #include <wadjet/protocols/ethernet.hpp>
+#include <wadjet/protocols/gptp/gptp.hpp>
 #include <wadjet/protocols/ipv4.hpp>
 #include <wadjet/protocols/someip.hpp>
 #include <wadjet/protocols/tcp.hpp>
@@ -581,6 +582,8 @@ bool wadjet_decode_result_has_layer(
             return result->result.has_layer<protocols::someip::SomeIpHeader>();
         case WADJET_PROTOCOL_DOIP:
             return result->result.has_layer<protocols::doip::DoIPHeader>();
+        case WADJET_PROTOCOL_GPTP:
+            return result->result.has_layer<protocols::gptp::GptpHeader>();
         default:
             return false;
     }
@@ -740,6 +743,77 @@ wadjet_error_t wadjet_decode_result_doip(
     return WADJET_OK;
 }
 
+wadjet_error_t wadjet_decode_result_gptp(wadjet_decode_result_t result,
+                                         wadjet_gptp_header_t* header) {
+    if (!result || !header) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    if (!result->result.has_layer<protocols::gptp::GptpHeader>()) {
+        set_last_error("gPTP layer not present");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    const auto* gptp = result->result.get_layer<protocols::gptp::GptpHeader>();
+    header->transport_specific = gptp->transport_specific;
+    header->message_type = static_cast<wadjet_gptp_message_type_t>(gptp->message_type);
+    header->version = gptp->version;
+    header->message_length = gptp->message_length;
+    header->domain_number = gptp->domain_number;
+    header->correction_field = gptp->correction_field.scaled_ns;
+
+    // Copy clock identity
+    std::memcpy(header->source_port_identity.clock_identity.bytes,
+                gptp->source_port_identity.clock_identity.bytes.data(), 8);
+    header->source_port_identity.port_number = gptp->source_port_identity.port_number;
+
+    header->sequence_id = gptp->sequence_id;
+    header->control = gptp->control;
+    header->log_message_interval = gptp->log_message_interval;
+    header->two_step = gptp->is_two_step();
+    header->is_event = gptp->is_event();
+    return WADJET_OK;
+}
+
+size_t wadjet_gptp_clock_identity_to_string(const wadjet_gptp_clock_identity_t* clock, char* buffer,
+                                            size_t buffer_size) {
+    if (!clock || !buffer || buffer_size < 24) {
+        return 0;
+    }
+
+    return std::snprintf(buffer, buffer_size, "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+                         clock->bytes[0], clock->bytes[1], clock->bytes[2], clock->bytes[3],
+                         clock->bytes[4], clock->bytes[5], clock->bytes[6], clock->bytes[7]);
+}
+
+const char* wadjet_gptp_message_type_name(wadjet_gptp_message_type_t type) {
+    switch (type) {
+        case WADJET_GPTP_SYNC:
+            return "Sync";
+        case WADJET_GPTP_DELAY_REQ:
+            return "Delay_Req";
+        case WADJET_GPTP_PDELAY_REQ:
+            return "Pdelay_Req";
+        case WADJET_GPTP_PDELAY_RESP:
+            return "Pdelay_Resp";
+        case WADJET_GPTP_FOLLOW_UP:
+            return "Follow_Up";
+        case WADJET_GPTP_DELAY_RESP:
+            return "Delay_Resp";
+        case WADJET_GPTP_PDELAY_RESP_FOLLOW_UP:
+            return "Pdelay_Resp_Follow_Up";
+        case WADJET_GPTP_ANNOUNCE:
+            return "Announce";
+        case WADJET_GPTP_SIGNALING:
+            return "Signaling";
+        case WADJET_GPTP_MANAGEMENT:
+            return "Management";
+        default:
+            return "Unknown";
+    }
+}
+
 wadjet_error_t wadjet_decode_result_payload(
     wadjet_decode_result_t result,
     wadjet_protocol_t protocol,
@@ -782,6 +856,11 @@ wadjet_error_t wadjet_decode_result_payload(
         case WADJET_PROTOCOL_DOIP:
             if (result->result.has_layer<protocols::doip::DoIPHeader>()) {
                 payload = result->result.payload_after<protocols::doip::DoIPHeader>();
+            }
+            break;
+        case WADJET_PROTOCOL_GPTP:
+            if (result->result.has_layer<protocols::gptp::GptpHeader>()) {
+                payload = result->result.payload_after<protocols::gptp::GptpHeader>();
             }
             break;
         default:
