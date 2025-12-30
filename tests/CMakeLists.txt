@@ -71,3 +71,32 @@ target_link_libraries(wadjet_integration_tests
 gtest_discover_tests(wadjet_integration_tests
     TEST_PREFIX "integration."
 )
+
+# ============================================================================
+# Testing Framework Tests (for the matchers and fixtures)
+# ============================================================================
+add_executable(wadjet_testing_framework_tests
+    # Matcher tests
+    testing/test_matchers.cpp
+    # Live capture fixture tests (require CAP_NET_RAW or root)
+    testing/test_live_capture_fixture.cpp
+    # Property-based testing generators
+    testing/test_generators.cpp
+    # Record-then-assert mode
+    testing/test_record_replay.cpp
+    # Live-assert mode
+    testing/test_live_assert.cpp
+)
+
+target_link_libraries(wadjet_testing_framework_tests
+    PRIVATE
+        wadjet
+        wadjet_warnings
+        wadjet_sanitizers
+        GTest::gtest_main
+        GTest::gmock
+)
+
+gtest_discover_tests(wadjet_testing_framework_tests
+    TEST_PREFIX "testing."
+)
