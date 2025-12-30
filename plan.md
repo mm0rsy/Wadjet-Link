@@ -545,17 +545,79 @@ with wadjet.LiveCapture("eth0", filter="udp port 30490") as cap:
 
 ---
 
-### Milestone 6 — Documentation & Examples
+### Milestone 6 — Documentation & Examples ✅
+
+**Goal:** Comprehensive documentation and practical examples
+
+**Status:** Completed
 
 **Deliverables:**
 
-- [ ] Doxygen API documentation
-- [ ] Architecture diagrams
-- [ ] Quickstart tutorial
-- [ ] Example: Detect SOME/IP service discovery
-- [ ] Example: Validate DoIP routing activation
-- [ ] Example: Monitor ECU bootup traffic
-- [ ] Example: Regression test with pcap fixtures
+Doxygen Configuration:
+- [x] Enhanced Doxyfile with modern settings
+- [x] UML diagram generation (SVG)
+- [x] Interactive SVG for class diagrams
+- [x] Custom aliases (@someip, @doip, @threadsafe)
+- [x] Code syntax highlighting
+
+Documentation Files:
+- [x] `docs/quickstart.md` — Getting started tutorial
+  - Installation from source
+  - First packet capture
+  - Protocol decoding examples
+  - GoogleTest integration guide
+  - PCAP file operations
+- [x] `docs/architecture.md` — System architecture
+  - ASCII system diagrams
+  - Namespace structure
+  - Data flow diagrams
+  - Design decisions
+  - Protocol stack table
+  - Testing architecture
+- [x] `docs/scenarios.md` — Scenario file format
+  - YAML/JSON syntax reference
+  - Step types documentation
+  - Protocol expectations guide
+  - CLI usage examples
+
+C++ Example Programs:
+- [x] `examples/someip_discovery.cpp` — SOME/IP Service Discovery monitor
+  - Live capture and PCAP analysis
+  - Service registry tracking
+  - Offer/Find/Subscribe detection
+  - Summary table generation
+- [x] `examples/doip_routing.cpp` — DoIP routing activation validator
+  - ISO 13400-2 compliance checking
+  - Session state machine
+  - Diagnostic message tracking
+  - Validation error reporting
+- [x] `examples/ecu_bootup.cpp` — ECU bootup sequence monitor
+  - Timeline event tracking
+  - Service availability timing
+  - Reboot detection
+  - Multi-protocol correlation
+- [x] `examples/pcap_regression.cpp` — PCAP-based regression tests
+  - GoogleTest integration
+  - Protocol parsing validation
+  - Performance benchmarks
+  - Edge case testing
+  - Synthetic packet generation
+
+Build System:
+- [x] `examples/CMakeLists.txt` — Build configuration for examples
+- [x] `examples/README.md` — Comprehensive examples documentation
+
+**Files Created:**
+- `docs/Doxyfile` — Enhanced Doxygen configuration (156 lines)
+- `docs/quickstart.md` — Getting started tutorial (~300 lines)
+- `docs/architecture.md` — Architecture documentation (~400 lines)
+- `docs/scenarios.md` — Scenario format reference (~350 lines)
+- `examples/someip_discovery.cpp` — SD monitor (~300 lines)
+- `examples/doip_routing.cpp` — DoIP validator (~450 lines)
+- `examples/ecu_bootup.cpp` — Bootup monitor (~400 lines)
+- `examples/pcap_regression.cpp` — Regression tests (~500 lines)
+- `examples/CMakeLists.txt` — Updated with all examples
+- `examples/README.md` — Examples documentation
 
 ---
 
