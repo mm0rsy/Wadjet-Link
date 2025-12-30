@@ -14,6 +14,7 @@ option(WADJET_BUILD_EXAMPLES "Build examples" ON)
 option(WADJET_BUILD_BENCHMARKS "Build benchmarks" OFF)
 option(WADJET_BUILD_DOCS "Build documentation" OFF)
 option(WADJET_BUILD_FUZZ "Build fuzz tests (requires Clang with libFuzzer)" OFF)
+option(WADJET_BUILD_PYTHON_BINDINGS "Build Python bindings (requires pybind11)" OFF)
 option(WADJET_ENABLE_SANITIZERS "Enable ASan/UBSan in Debug builds" ON)
 
 # ============================================================================
@@ -114,6 +115,13 @@ endif()
 # ============================================================================
 if(WADJET_BUILD_DOCS)
     add_subdirectory(docs)
+endif()
+
+# ============================================================================
+# Python Bindings
+# ============================================================================
+if(WADJET_BUILD_PYTHON_BINDINGS)
+    add_subdirectory(bindings/python)
 endif()
 
 # ============================================================================
