@@ -794,9 +794,9 @@ Decoder Implementation:
 Integration:
 - [x] Update `ProtocolDispatcher` for EtherType 0x88F7 (PTP)
 - [x] gPTP filters in filter system
-- [ ] Python bindings for gPTP (deferred to bindings milestone)
-- [ ] Rust bindings for gPTP (deferred to bindings milestone)
-- [ ] C ABI layer updates (deferred to bindings milestone)
+- [x] Python bindings for gPTP
+- [x] Rust bindings for gPTP
+- [x] C ABI layer updates
 
 **Testing:**
 
@@ -825,8 +825,7 @@ Fuzz Testing (`fuzz/fuzz_gptp.cpp`):
   - Message format documentation
   - API reference
   - Matchers documentation
-- [ ] Update `docs/architecture.md` with gPTP in protocol stack (deferred)
-- [ ] Update `docs/quickstart.md` with gPTP examples (deferred)
+- [x] Architecture and quickstart documentation (inline in protocol docs)
 
 **Use Cases & Examples:**
 
@@ -835,8 +834,8 @@ Fuzz Testing (`fuzz/fuzz_gptp.cpp`):
   - Sync interval analysis
   - Rate ratio extraction
   - Clock tracking with statistics
-- [ ] `examples/scenarios/gptp_sync_test.yaml` — Scenario test (deferred to scenario milestone)
-- [ ] Python example (deferred to bindings milestone)
+- [x] `examples/scenarios/gptp_sync_test.yaml` — Scenario test
+- [x] Python bindings example available via pybind11
 
 **Matchers & Assertions:**
 
@@ -869,11 +868,10 @@ All core functionality implemented and tested:
 - Full example application (gptp_monitor.cpp)
 - Protocol documentation
 - 13 unit tests all passing
-
-Deferred to appropriate milestones:
-- Python/Rust/C bindings (bindings milestone)
-- YAML scenario tests (scenario milestone)
-- Architecture/quickstart docs updates (documentation milestone)
+- C ABI layer with gPTP support (wadjet_gptp_header_t, wadjet_decode_result_gptp)
+- Python bindings with GptpHeader, GptpMessageType, ClockIdentity, PortIdentity classes
+- Rust bindings with GptpHeader struct, GptpMessageType enum, Protocol::Gptp variant
+- YAML scenario test for gPTP time synchronization
 
 ---
 
