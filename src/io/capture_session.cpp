@@ -1,13 +1,14 @@
 #include "wadjet/io/capture_session.hpp"
 
-#include <cstring>
+#include <pcap/pcap.h>
 #include <poll.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <pcap/pcap.h>
+#include <cstring>
+#include <thread>
 
 #ifdef __linux__
     #include <linux/ethtool.h>
@@ -52,11 +53,36 @@ struct CaptureSession::Impl {
 
 CaptureSession::CaptureSession() : impl_(std::make_unique<Impl>()) {}
 
-CaptureSession::CaptureSession(CaptureSession&&) noexcept = default;
-CaptureSession& CaptureSession::operator=(CaptureSession&&) noexcept = default;
+CaptureSession::CaptureSession(CaptureSession&& other) noexcept
+    : impl_(std::move(other.impl_)),
+      interface_(std::move(other.interface_)),
+      options_(std::move(other.options_)),
+      running_(other.running_.load(std::memory_order_relaxed)),
+      in_capture_loop_(other.in_capture_loop_.load(std::memory_order_relaxed)),
+      active_ts_source_(other.active_ts_source_) {}
+
+CaptureSession& CaptureSession::operator=(CaptureSession&& other) noexcept {
+    if (this != &other) {
+        impl_ = std::move(other.impl_);
+        interface_ = std::move(other.interface_);
+        options_ = std::move(other.options_);
+        running_.store(other.running_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+        in_capture_loop_.store(other.in_capture_loop_.load(std::memory_order_relaxed),
+                               std::memory_order_relaxed);
+        active_ts_source_ = other.active_ts_source_;
+    }
+    return *this;
+}
 
 CaptureSession::~CaptureSession() {
     stop();
+
+    // Wait for capture loop to fully exit before unmapping memory
+    // This prevents SEGV when capture thread is still accessing ring buffer
+    while (in_capture_loop_.load(std::memory_order_acquire)) {
+        std::this_thread::yield();
+    }
+
     if (impl_) {
         // First close the socket to prevent new data from arriving
         if (impl_->socket_fd >= 0) {
@@ -304,7 +330,7 @@ auto CaptureSession::next_packet_v2(int timeout_ms) -> std::optional<Packet> {
 #ifdef __linux__
     auto* frame =
         static_cast<std::uint8_t*>(impl_->ring_buffer) + impl_->current_frame * impl_->frame_size;
-    auto* header = reinterpret_cast<tpacket_hdr*>(frame);
+    auto* header = reinterpret_cast<volatile tpacket2_hdr*>(frame);
 
     // Check if frame is ready
     if ((header->tp_status & TP_STATUS_USER) == 0) {
@@ -315,28 +341,46 @@ auto CaptureSession::next_packet_v2(int timeout_ms) -> std::optional<Packet> {
         if (poll(&pfd, 1, timeout_ms) <= 0) {
             return std::nullopt;
         }
+        // Memory barrier to ensure we see the kernel's updates
+        __sync_synchronize();
+        // Re-check after poll - the status may still not be ready
+        if ((header->tp_status & TP_STATUS_USER) == 0) {
+            return std::nullopt;
+        }
     }
 
-    if ((header->tp_status & TP_STATUS_USER) != 0) {
-        // Extract packet
-        auto* data = frame + header->tp_mac;
-        std::size_t len = header->tp_snaplen;
+    // Memory barrier before reading packet data
+    __sync_synchronize();
 
-        Timestamp ts = Timestamp::from_unix(static_cast<std::int64_t>(header->tp_sec),
-                                            static_cast<std::int64_t>(header->tp_usec) * 1000);
+    // Extract packet - read from volatile header (TPACKET_V2 uses tpacket2_hdr)
+    auto* data = frame + header->tp_mac;
+    std::size_t len = header->tp_snaplen;
 
-        Packet pkt(ByteSpan(reinterpret_cast<const std::byte*>(data), len), ts);
-
-        // Release frame
-        header->tp_status = TP_STATUS_KERNEL;
-
-        // Move to next frame
+    // Sanity check the length - packets on loopback can be quite large
+    // tp_mac is typically around 66-70 bytes (tpacket2_hdr + sockaddr_ll + padding)
+    // Maximum packet size should be bounded by snap_len (usually 65535 or buffer_size)
+    static constexpr std::size_t MAX_PACKET_LEN = 65535;  // Standard max
+    if (len == 0 || len > MAX_PACKET_LEN) {
+        // Invalid frame data, release and skip
+        const_cast<tpacket2_hdr*>(header)->tp_status = TP_STATUS_KERNEL;
         impl_->current_frame = (impl_->current_frame + 1) % impl_->frame_count;
-        impl_->stats.packets_received++;
-        impl_->stats.bytes_received += len;
-
-        return pkt;
+        return std::nullopt;
     }
+
+    Timestamp ts = Timestamp::from_unix(static_cast<std::int64_t>(header->tp_sec),
+                                        static_cast<std::int64_t>(header->tp_nsec));
+
+    Packet pkt(ByteSpan(reinterpret_cast<const std::byte*>(data), len), ts);
+
+    // Release frame
+    const_cast<tpacket2_hdr*>(header)->tp_status = TP_STATUS_KERNEL;
+
+    // Move to next frame
+    impl_->current_frame = (impl_->current_frame + 1) % impl_->frame_count;
+    impl_->stats.packets_received++;
+    impl_->stats.bytes_received += len;
+
+    return pkt;
 #else
     (void)timeout_ms;
 #endif
@@ -385,15 +429,20 @@ auto CaptureSession::next_packet_v3(int timeout_ms) -> std::optional<Packet> {
     // Extract current packet from block
     auto* pkt_hdr = reinterpret_cast<tpacket3_hdr*>(impl_->current_packet_in_block);
 
-    // Validate packet header
-    if (pkt_hdr->tp_snaplen == 0 || pkt_hdr->tp_mac == 0) {
-        // Invalid packet, skip
+    // Validate packet header - check for reasonable values
+    std::size_t len = pkt_hdr->tp_snaplen;
+    if (len == 0 || len > impl_->block_size || pkt_hdr->tp_mac == 0) {
+        // Invalid packet, skip entire block
         impl_->packets_remaining_in_block = 0;
+        auto* block = static_cast<std::uint8_t*>(impl_->ring_buffer) +
+                      impl_->current_block * impl_->block_size;
+        auto* block_desc = reinterpret_cast<tpacket_block_desc*>(block);
+        block_desc->hdr.bh1.block_status = TP_STATUS_KERNEL;
+        impl_->current_block = (impl_->current_block + 1) % impl_->block_count;
         return std::nullopt;
     }
 
     auto* data = impl_->current_packet_in_block + pkt_hdr->tp_mac;
-    std::size_t len = pkt_hdr->tp_snaplen;
 
     // V3 provides nanosecond timestamps
     Timestamp ts = Timestamp::from_unix(static_cast<std::int64_t>(pkt_hdr->tp_sec),
@@ -433,6 +482,7 @@ auto CaptureSession::capture_loop(const PacketCallback& callback,
                                   std::size_t max_packets) -> std::size_t {
     std::size_t count = 0;
     running_ = true;
+    in_capture_loop_ = true;
 
     while (running_ && (max_packets == 0 || count < max_packets)) {
         if (auto packet = next_packet()) {
@@ -441,6 +491,7 @@ auto CaptureSession::capture_loop(const PacketCallback& callback,
         }
     }
 
+    in_capture_loop_ = false;
     return count;
 }
 

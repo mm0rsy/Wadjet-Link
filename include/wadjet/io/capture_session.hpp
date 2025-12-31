@@ -9,6 +9,7 @@
 #include "wadjet/io/frame_filter.hpp"
 #include "wadjet/net/packet.hpp"
 
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -169,7 +170,8 @@ private:
     std::unique_ptr<Impl> impl_;
     std::string interface_;
     Options options_;
-    bool running_ = false;
+    std::atomic<bool> running_{false};
+    mutable std::atomic<bool> in_capture_loop_{false};
     TimestampSource active_ts_source_ = TimestampSource::Software;
 };
 
