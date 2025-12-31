@@ -54,6 +54,7 @@ add_library(wadjet
     protocols/someip_sd.cpp
     protocols/doip.cpp
     protocols/gptp_decoder.cpp
+    protocols/dds/rtps_decoder.cpp
     protocols/dispatcher.cpp
     
     # UDS protocol

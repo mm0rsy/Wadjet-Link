@@ -39,6 +39,7 @@ add_executable(wadjet_tests
     protocols/test_gptp.cpp
     protocols/test_uds.cpp
     protocols/test_uds_regression.cpp
+    protocols/test_dds.cpp
 )
 
 target_link_libraries(wadjet_tests

@@ -22,6 +22,11 @@ add_executable(gptp_monitor gptp_monitor.cpp)
 target_link_libraries(gptp_monitor PRIVATE wadjet)
 target_compile_features(gptp_monitor PRIVATE cxx_std_20)
 
+# DDS/RTPS Protocol Monitor
+add_executable(dds_monitor dds_monitor.cpp)
+target_link_libraries(dds_monitor PRIVATE wadjet)
+target_compile_features(dds_monitor PRIVATE cxx_std_20)
+
 # UDS Diagnostic Traffic Monitor
 add_executable(uds_monitor uds_monitor.cpp)
 target_link_libraries(uds_monitor PRIVATE wadjet)
