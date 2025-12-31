@@ -257,10 +257,11 @@ TPACKET_V3 provides high-performance zero-copy capture:
 | L7 | DoIP | ✅ Complete |
 | L7 | gPTP (IEEE 802.1AS) | ✅ Complete |
 | L7 | UDS (ISO 14229) | ✅ Complete |
+| L7 | DDS/RTPS | ✅ Complete |
 
 ### Decode Tree
 
-```
+```text
 Ethernet Frame
 ├── EtherType: 0x0800 (IPv4)
 │   └── IPv4 Packet
@@ -268,8 +269,11 @@ Ethernet Frame
 │       │   └── UDP Datagram
 │       │       ├── Port 30490-30491 → SOME/IP
 │       │       │   └── Service ID 0xFFFF → SOME/IP-SD
-│       │       └── Port 13400 → DoIP
-│       │           └── Payload Type 0x8001 → UDS
+│       │       ├── Port 13400 → DoIP
+│       │       │   └── Payload Type 0x8001 → UDS
+│       │       └── Port 7400-7500 → DDS/RTPS
+│       │           ├── Port 7400 → SPDP Discovery
+│       │           └── Port 7401+ → User Traffic
 │       └── Protocol: 6 (TCP)
 │           └── TCP Segment
 │               └── Port 13400 → DoIP
@@ -329,6 +333,25 @@ testing::
 │   ├── GptpFromClock(ClockIdentity)
 │   ├── IsGptpEventMessage()
 │   └── IsGptpTwoStep()
+│
+├── DDS/RTPS Matchers
+│   ├── IsRtps() / IsDds()
+│   ├── HasRtpsVersion(major, minor)
+│   ├── HasRtpsVendor(VendorId)
+│   ├── IsFromFastDDS()
+│   ├── IsFromRTI()
+│   ├── IsFromCycloneDDS()
+│   ├── IsFromOpenDDS()
+│   ├── HasRtpsGuidPrefix(GuidPrefix)
+│   ├── HasRtpsSubmessage(SubmessageKind)
+│   ├── HasRtpsData()
+│   ├── HasRtpsHeartbeat()
+│   ├── HasRtpsAckNack()
+│   ├── HasRtpsGap()
+│   ├── HasRtpsInfoTs()
+│   ├── HasRtpsInfoDst()
+│   ├── HasRtpsSubmessageCount(size_t)
+│   └── IsRtpsDiscovery() / IsSpdpOrSedp()
 │
 ├── UDS Matchers
 │   ├── IsUds()
