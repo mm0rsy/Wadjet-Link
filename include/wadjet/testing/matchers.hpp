@@ -24,6 +24,8 @@
 
 #include "wadjet/core/types.hpp"
 #include "wadjet/net/packet.hpp"
+#include "wadjet/protocols/dds/rtps.hpp"
+#include "wadjet/protocols/dds/rtps_messages.hpp"
 #include "wadjet/protocols/dispatcher.hpp"
 #include "wadjet/protocols/uds/uds.hpp"
 
@@ -1630,6 +1632,384 @@ inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> IsUdsProgrammingS
 /// @brief Convenience: Check for extended diagnostic session
 inline ::testing::PolymorphicMatcher<HasUdsSessionTypeMatcher> IsUdsExtendedSession() {
     return HasUdsSessionType(protocols::uds::SessionType::ExtendedDiagnosticSession);
+}
+
+// =============================================================================
+// DDS/RTPS Matchers
+// =============================================================================
+
+/// @brief Matcher: packet is an RTPS message
+class IsRtpsMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        bool has_rtps = result.has_layer<protocols::dds::RtpsHeader>();
+        if (listener->IsInterested()) {
+            *listener << (has_rtps ? "is an RTPS message" : "is not an RTPS message");
+        }
+        return has_rtps;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is an RTPS message"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not an RTPS message"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsRtpsMatcher> IsRtps() {
+    return ::testing::MakePolymorphicMatcher(IsRtpsMatcher());
+}
+
+/// @brief Alias for IsRtps
+inline ::testing::PolymorphicMatcher<IsRtpsMatcher> IsDds() {
+    return ::testing::MakePolymorphicMatcher(IsRtpsMatcher());
+}
+
+/// @brief Matcher: RTPS message has specific protocol version
+class HasRtpsVersionMatcher {
+public:
+    HasRtpsVersionMatcher(std::uint8_t major, std::uint8_t minor) : major_(major), minor_(minor) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has RTPS version " << static_cast<int>(rtps->version.major) << "."
+                      << static_cast<int>(rtps->version.minor);
+        }
+        return rtps->version.major == major_ && rtps->version.minor == minor_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has RTPS version " << static_cast<int>(major_) << "." << static_cast<int>(minor_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have RTPS version " << static_cast<int>(major_) << "."
+            << static_cast<int>(minor_);
+    }
+
+private:
+    std::uint8_t major_;
+    std::uint8_t minor_;
+};
+
+inline ::testing::PolymorphicMatcher<HasRtpsVersionMatcher> HasRtpsVersion(std::uint8_t major,
+                                                                           std::uint8_t minor) {
+    return ::testing::MakePolymorphicMatcher(HasRtpsVersionMatcher(major, minor));
+}
+
+/// @brief Matcher: RTPS message has specific vendor ID
+class HasRtpsVendorMatcher {
+public:
+    explicit HasRtpsVendorMatcher(protocols::dds::VendorId vendor) : expected_(vendor) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has vendor " << rtps->vendor_id.to_string();
+        }
+        return rtps->vendor_id.to_vendor() == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has RTPS vendor " << protocols::dds::vendor_id_string(expected_);
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have RTPS vendor " << protocols::dds::vendor_id_string(expected_);
+    }
+
+private:
+    protocols::dds::VendorId expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> HasRtpsVendor(
+    protocols::dds::VendorId vendor) {
+    return ::testing::MakePolymorphicMatcher(HasRtpsVendorMatcher(vendor));
+}
+
+/// @brief Convenience: Check for FastDDS vendor
+inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromFastDDS() {
+    return HasRtpsVendor(protocols::dds::VendorId::FastDDS);
+}
+
+/// @brief Convenience: Check for RTI Connext vendor
+inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromRTI() {
+    return HasRtpsVendor(protocols::dds::VendorId::RTI);
+}
+
+/// @brief Convenience: Check for CycloneDDS vendor
+inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromCycloneDDS() {
+    return HasRtpsVendor(protocols::dds::VendorId::CycloneDDS);
+}
+
+/// @brief Convenience: Check for OpenDDS vendor
+inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromOpenDDS() {
+    return HasRtpsVendor(protocols::dds::VendorId::OpenDDS);
+}
+
+/// @brief Matcher: RTPS message has specific GUID prefix
+class HasRtpsGuidPrefixMatcher {
+public:
+    explicit HasRtpsGuidPrefixMatcher(const protocols::dds::GuidPrefix& prefix)
+        : expected_(prefix) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has GUID prefix " << rtps->guid_prefix.to_string();
+        }
+        return rtps->guid_prefix == expected_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has RTPS GUID prefix " << expected_.to_string();
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have RTPS GUID prefix " << expected_.to_string();
+    }
+
+private:
+    protocols::dds::GuidPrefix expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasRtpsGuidPrefixMatcher> HasRtpsGuidPrefix(
+    const protocols::dds::GuidPrefix& prefix) {
+    return ::testing::MakePolymorphicMatcher(HasRtpsGuidPrefixMatcher(prefix));
+}
+
+/// @brief Matcher: RTPS message contains specific submessage kind
+class HasRtpsSubmessageMatcher {
+public:
+    explicit HasRtpsSubmessageMatcher(protocols::dds::SubmessageKind kind) : expected_(kind) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+        for (const auto& submsg : rtps->submessages) {
+            if (submsg.header.kind == expected_) {
+                if (listener->IsInterested()) {
+                    *listener << "contains " << protocols::dds::submessage_kind_string(expected_)
+                              << " submessage";
+                }
+                return true;
+            }
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "does not contain " << protocols::dds::submessage_kind_string(expected_)
+                      << " submessage (has " << rtps->submessages.size() << " submessages)";
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "contains RTPS " << protocols::dds::submessage_kind_string(expected_)
+            << " submessage";
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not contain RTPS " << protocols::dds::submessage_kind_string(expected_)
+            << " submessage";
+    }
+
+private:
+    protocols::dds::SubmessageKind expected_;
+};
+
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsSubmessage(
+    protocols::dds::SubmessageKind kind) {
+    return ::testing::MakePolymorphicMatcher(HasRtpsSubmessageMatcher(kind));
+}
+
+/// @brief Convenience: Check for DATA submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsData() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::DATA);
+}
+
+/// @brief Convenience: Check for HEARTBEAT submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsHeartbeat() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::HEARTBEAT);
+}
+
+/// @brief Convenience: Check for ACKNACK submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsAckNack() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::ACKNACK);
+}
+
+/// @brief Convenience: Check for GAP submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsGap() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::GAP);
+}
+
+/// @brief Convenience: Check for INFO_TS submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsInfoTs() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::INFO_TS);
+}
+
+/// @brief Convenience: Check for INFO_DST submessage
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageMatcher> HasRtpsInfoDst() {
+    return HasRtpsSubmessage(protocols::dds::SubmessageKind::INFO_DST);
+}
+
+/// @brief Matcher: RTPS message has at least N submessages
+class HasRtpsSubmessageCountMatcher {
+public:
+    explicit HasRtpsSubmessageCountMatcher(std::size_t min_count) : min_count_(min_count) {}
+
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+        if (listener->IsInterested()) {
+            *listener << "has " << rtps->submessages.size() << " submessages";
+        }
+        return rtps->submessages.size() >= min_count_;
+    }
+
+    void DescribeTo(std::ostream* os) const {
+        *os << "has at least " << min_count_ << " RTPS submessages";
+    }
+
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "has fewer than " << min_count_ << " RTPS submessages";
+    }
+
+private:
+    std::size_t min_count_;
+};
+
+inline ::testing::PolymorphicMatcher<HasRtpsSubmessageCountMatcher> HasRtpsSubmessageCount(
+    std::size_t min_count) {
+    return ::testing::MakePolymorphicMatcher(HasRtpsSubmessageCountMatcher(min_count));
+}
+
+/// @brief Matcher: RTPS message is discovery traffic (SPDP/SEDP)
+class IsRtpsDiscoveryMatcher {
+public:
+    template <typename T>
+    bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
+        auto data = detail::get_packet_data(pkt);
+        protocols::DecodeStackResult result = protocols::decode_packet(data);
+
+        if (!result.has_layer<protocols::dds::RtpsHeader>()) {
+            if (listener->IsInterested()) {
+                *listener << "packet does not have RTPS header";
+            }
+            return false;
+        }
+
+        const auto* rtps = result.get_layer<protocols::dds::RtpsHeader>();
+
+        // Check for builtin entity IDs in DATA submessages
+        for (const auto& submsg : rtps->submessages) {
+            if (submsg.header.kind == protocols::dds::SubmessageKind::DATA) {
+                if (auto* data_submsg = std::get_if<protocols::dds::DataSubmessage>(&submsg.body)) {
+                    // Check for SPDP writer (participant announcements)
+                    if (data_submsg->writer_id.entity_kind ==
+                            protocols::dds::EntityKind::BuiltinWriterWithKey &&
+                        data_submsg->writer_id.entity_key ==
+                            std::array<std::uint8_t, 3>{0x00, 0x01, 0x00}) {
+                        if (listener->IsInterested()) {
+                            *listener << "is SPDP participant announcement";
+                        }
+                        return true;
+                    }
+                    // Check for SEDP publication writer
+                    if (data_submsg->writer_id.entity_kind ==
+                            protocols::dds::EntityKind::BuiltinWriterWithKey &&
+                        data_submsg->writer_id.entity_key ==
+                            std::array<std::uint8_t, 3>{0x00, 0x00, 0x03}) {
+                        if (listener->IsInterested()) {
+                            *listener << "is SEDP publication announcement";
+                        }
+                        return true;
+                    }
+                    // Check for SEDP subscription writer
+                    if (data_submsg->writer_id.entity_kind ==
+                            protocols::dds::EntityKind::BuiltinWriterWithKey &&
+                        data_submsg->writer_id.entity_key ==
+                            std::array<std::uint8_t, 3>{0x00, 0x00, 0x04}) {
+                        if (listener->IsInterested()) {
+                            *listener << "is SEDP subscription announcement";
+                        }
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (listener->IsInterested()) {
+            *listener << "is not discovery traffic";
+        }
+        return false;
+    }
+
+    void DescribeTo(std::ostream* os) const { *os << "is RTPS discovery traffic"; }
+    void DescribeNegationTo(std::ostream* os) const { *os << "is not RTPS discovery traffic"; }
+};
+
+inline ::testing::PolymorphicMatcher<IsRtpsDiscoveryMatcher> IsRtpsDiscovery() {
+    return ::testing::MakePolymorphicMatcher(IsRtpsDiscoveryMatcher());
+}
+
+/// @brief Alias for discovery matcher
+inline ::testing::PolymorphicMatcher<IsRtpsDiscoveryMatcher> IsSpdpOrSedp() {
+    return ::testing::MakePolymorphicMatcher(IsRtpsDiscoveryMatcher());
 }
 
 }  // namespace wadjet::testing

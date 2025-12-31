@@ -3,6 +3,8 @@
 
 #include "wadjet/protocols/dispatcher.hpp"
 
+#include "wadjet/protocols/dds/rtps_types.hpp"
+
 namespace wadjet::protocols {
 
 DecodeStackResult ProtocolDispatcher::decode(std::span<const std::byte> data) const {
@@ -201,6 +203,16 @@ void ProtocolDispatcher::decode_application(DecodeStackResult& result,
         return;  // DoIP doesn't have further layers we decode
     }
 
+    // Check for DDS/RTPS (ports 7400-7500 range, typically)
+    if (dds::is_likely_rtps_port(src_port) || dds::is_likely_rtps_port(dst_port)) {
+        // Verify RTPS magic before committing
+        if (data.size() >= 4 && data[0] == std::byte{'R'} && data[1] == std::byte{'T'} &&
+            data[2] == std::byte{'P'} && data[3] == std::byte{'S'}) {
+            decode_rtps(result, data);
+            return;
+        }
+    }
+
     // Check for SOME/IP-SD (port 30490)
     if (src_port == udp::ports::SOMEIP_SD || dst_port == udp::ports::SOMEIP_SD) {
         // First decode SOME/IP header
@@ -288,6 +300,30 @@ void ProtocolDispatcher::decode_gptp(DecodeStackResult& result,
         } else {
             data = {};
         }
+        result.payload = data;
+    }
+}
+
+void ProtocolDispatcher::decode_rtps(DecodeStackResult& result,
+                                     std::span<const std::byte>& data) const {
+    if (data.empty() || result.layers.size() >= options_.max_layers) {
+        return;
+    }
+
+    DecodeContext rtps_ctx;
+    rtps_ctx.data = data;
+    auto rtps_result = rtps_decoder_.decode(rtps_ctx);
+
+    if (!rtps_result) {
+        result.error = rtps_result.error();
+        result.complete = false;
+        if (options_.stop_on_error) {
+            return;
+        }
+    } else {
+        result.layers.emplace_back(std::move(*rtps_result));
+        // RTPS is the final application layer
+        data = {};
         result.payload = data;
     }
 }

@@ -3,6 +3,7 @@
 /// @file dispatcher.hpp
 /// @brief Protocol dispatcher for chaining decoders
 
+#include "wadjet/protocols/dds/rtps.hpp"
 #include "wadjet/protocols/decoder.hpp"
 #include "wadjet/protocols/doip.hpp"
 #include "wadjet/protocols/ethernet.hpp"
@@ -26,7 +27,7 @@ namespace wadjet::protocols {
 using DecodedHeaderVariant =
     std::variant<ethernet::EthernetHeader, ipv4::IPv4Header, udp::UdpHeader, tcp::TcpHeader,
                  someip::SomeIpHeader, someip_sd::SomeIpSdHeader, doip::DoIPHeader,
-                 gptp::GptpHeader>;
+                 gptp::GptpHeader, dds::RtpsHeader>;
 
 /// @brief Result of a full protocol stack decode
 struct DecodeStackResult {
@@ -125,6 +126,9 @@ private:
     /// @brief Decode gPTP (IEEE 802.1AS) layer
     void decode_gptp(DecodeStackResult& result, std::span<const std::byte>& data) const;
 
+    /// @brief Decode DDS/RTPS layer
+    void decode_rtps(DecodeStackResult& result, std::span<const std::byte>& data) const;
+
     DispatcherOptions options_;
 
     // Pre-instantiated decoders
@@ -136,6 +140,7 @@ private:
     someip_sd::SomeIpSdDecoder someip_sd_decoder_;
     doip::DoIPDecoder doip_decoder_;
     gptp::GptpDecoder gptp_decoder_;
+    dds::RtpsDecoder rtps_decoder_;
 };
 
 /// @brief Global dispatcher instance with default options
