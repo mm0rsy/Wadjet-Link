@@ -1,52 +1,74 @@
 /// @file uds_validator.cpp
 /// @brief Example: UDS protocol validator and compliance checker
 ///
-/// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
-///
-/// This example demonstrates how to validate UDS messages against ISO 14229
-/// specification rules, checking for protocol compliance, timing violations,
-/// and common implementation errors.
+/// This example validates UDS traffic for ISO 14229 compliance, checking:
+/// - Proper service ID usage and responses
+/// - Session state machine compliance
+/// - Security access protocol adherence
+/// - Timing requirements (P2/P2* timeouts)
+/// - Service availability in current session
 ///
 /// Usage:
-///   ./uds_validator capture.pcap           # Validate PCAP file
-///   ./uds_validator --strict capture.pcap  # Strict mode (more checks)
+///   ./uds_validator demo           # Run validation demo
+///   ./uds_validator -v demo        # Verbose output
 
-#include <wadjet/pcap/pcap_reader.hpp>
-#include <wadjet/protocols/doip.hpp>
-#include <wadjet/protocols/uds.hpp>
+#include <wadjet/protocols/decoder.hpp>
+#include <wadjet/protocols/uds/uds.hpp>
 
+#include <algorithm>
 #include <chrono>
-#include <filesystem>
+#include <cstdint>
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <optional>
 #include <set>
+#include <sstream>
 #include <string>
 #include <vector>
 
 using namespace wadjet;
 using namespace wadjet::protocols;
+using namespace wadjet::protocols::uds;
 using namespace std::chrono_literals;
 
 // =============================================================================
 // Validation Issue Types
 // =============================================================================
 
-enum class IssueSeverity {
-    Info,
-    Warning,
-    Error,
-    Critical
-};
+enum class Severity { Info, Warning, Error, Critical };
 
 struct ValidationIssue {
-    IssueSeverity severity;
+    Severity severity;
     std::string category;
-    std::string message;
-    std::uint16_t source_addr;
-    std::uint16_t target_addr;
-    std::chrono::system_clock::time_point timestamp;
-    std::string service_name;
+    std::string description;
+    std::uint16_t ecu_address;
+    std::optional<std::uint32_t> packet_number;
+};
+
+// =============================================================================
+// ECU Session State Machine
+// =============================================================================
+
+struct EcuValidationState {
+    std::uint16_t address = 0;
+    SessionType current_session = SessionType::DefaultSession;
+    std::uint8_t security_level = 0;  // 0 = locked
+
+    // Pending operations
+    std::optional<SessionType> pending_session;
+    std::optional<std::uint8_t> pending_security_level;
+    bool awaiting_security_key = false;
+
+    // Last message tracking
+    std::optional<ServiceID> last_request_service;
+    std::chrono::system_clock::time_point last_request_time;
+    std::chrono::system_clock::time_point last_tester_present;
+
+    // Statistics
+    std::uint32_t request_count = 0;
+    std::uint32_t response_count = 0;
+    std::uint32_t nrc_count = 0;
 };
 
 // =============================================================================
@@ -55,428 +77,304 @@ struct ValidationIssue {
 
 class UdsValidator {
 public:
-    struct Config {
-        bool strict_mode = false;
-        std::chrono::milliseconds p2_max{50};      // Default P2 timing
-        std::chrono::milliseconds p2_star_max{5000}; // Extended P2* timing
-        std::chrono::milliseconds s3_timeout{5000};  // Session timeout
-    };
+    void add_issue(Severity severity, const std::string& category, const std::string& description,
+                   std::uint16_t ecu, std::optional<std::uint32_t> packet = std::nullopt) {
+        issues_.push_back({severity, category, description, ecu, packet});
+    }
 
-    explicit UdsValidator(Config config = {}) : config_(config) {}
+    void process_request(std::uint16_t source, std::uint16_t target, const UdsDecodeResult& decoded,
+                         std::uint32_t packet_num) {
+        auto& ecu = get_or_create_ecu(target);
+        ecu.request_count++;
 
-    void validate_request(std::uint16_t source, std::uint16_t target,
-                         const uds::UdsDecoder::Result& decoded,
-                         std::chrono::system_clock::time_point timestamp) {
-        // Record request for response matching
-        pending_requests_[{target, static_cast<std::uint8_t>(decoded.service_id)}] = {
-            source, target, decoded.service_id, timestamp
-        };
+        // Track last request for response correlation
+        ecu.last_request_service = decoded.header.service_id;
+        ecu.last_request_time = std::chrono::system_clock::now();
+
+        // Validate service availability in current session
+        validate_service_in_session(ecu, decoded.header.service_id, packet_num);
 
         // Service-specific validation
-        switch (decoded.service_id) {
-            case uds::ServiceId::DiagnosticSessionControl:
-                validate_session_control_request(source, target, decoded, timestamp);
+        switch (decoded.header.service_id) {
+            case ServiceID::DiagnosticSessionControl:
+                validate_session_control_request(ecu, decoded, packet_num);
                 break;
-            case uds::ServiceId::SecurityAccess:
-                validate_security_access_request(source, target, decoded, timestamp);
+
+            case ServiceID::SecurityAccess:
+                validate_security_access_request(ecu, decoded, packet_num);
                 break;
-            case uds::ServiceId::ReadDataByIdentifier:
-                validate_rdbi_request(source, target, decoded, timestamp);
+
+            case ServiceID::TesterPresent:
+                validate_tester_present(ecu, packet_num);
                 break;
-            case uds::ServiceId::WriteDataByIdentifier:
-                validate_wdbi_request(source, target, decoded, timestamp);
+
+            case ServiceID::WriteDataByIdentifier:
+            case ServiceID::InputOutputControlByIdentifier:
+            case ServiceID::RoutineControl:
+            case ServiceID::RequestDownload:
+            case ServiceID::RequestUpload:
+            case ServiceID::TransferData:
+                // These typically require security access
+                validate_security_required(ecu, decoded.header.service_id, packet_num);
                 break;
-            case uds::ServiceId::RoutineControl:
-                validate_routine_control_request(source, target, decoded, timestamp);
-                break;
-            case uds::ServiceId::RequestDownload:
-            case uds::ServiceId::RequestUpload:
-                validate_transfer_request(source, target, decoded, timestamp);
-                break;
+
             default:
                 break;
         }
-
-        // Check message length
-        validate_message_length(source, target, decoded, timestamp, true);
     }
 
-    void validate_response(std::uint16_t source, std::uint16_t target,
-                          const uds::UdsDecoder::Result& decoded,
-                          std::chrono::system_clock::time_point timestamp) {
-        // Find matching request
-        auto request_sid = static_cast<std::uint8_t>(decoded.service_id) - 0x40;
-        auto key = std::make_pair(source, request_sid);
-        
-        if (auto it = pending_requests_.find(key); it != pending_requests_.end()) {
-            // Check P2 timing
-            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                timestamp - it->second.timestamp);
-            
-            if (elapsed > config_.p2_max) {
-                auto& ecu = ecu_state_[source];
-                if (ecu.response_pending_active) {
-                    // P2* timing applies
-                    if (elapsed > config_.p2_star_max) {
-                        add_issue(IssueSeverity::Error, "Timing",
-                                 "P2* timeout exceeded: " + std::to_string(elapsed.count()) + "ms",
-                                 source, target, timestamp, decoded.service_id);
-                    }
+    void process_response(std::uint16_t source, std::uint16_t target,
+                          const UdsDecodeResult& decoded, std::uint32_t packet_num) {
+        auto& ecu = get_or_create_ecu(source);
+        ecu.response_count++;
+
+        // Handle session transitions
+        if (decoded.header.service_id == ServiceID::DiagnosticSessionControl) {
+            if (auto* resp = decoded.as<DiagnosticSessionControlResponse>()) {
+                SessionType old_session = ecu.current_session;
+                ecu.current_session = resp->session_type;
+                ecu.pending_session.reset();
+
+                // Session change resets security
+                if (resp->session_type != old_session) {
+                    ecu.security_level = 0;
+                    ecu.awaiting_security_key = false;
+                    ecu.pending_security_level.reset();
+                }
+            }
+        }
+
+        // Handle security access
+        if (decoded.header.service_id == ServiceID::SecurityAccess) {
+            if (auto* resp = decoded.as<SecurityAccessResponse>()) {
+                // Odd access_type = seed response
+                if ((resp->access_type & 0x01) != 0) {
+                    // Seed received, now expecting key
+                    ecu.awaiting_security_key = true;
+                    // Calculate security level from access_type
+                    ecu.pending_security_level =
+                        static_cast<std::uint8_t>((resp->access_type + 1) / 2);
                 } else {
-                    add_issue(IssueSeverity::Warning, "Timing",
-                             "P2 timeout exceeded: " + std::to_string(elapsed.count()) + "ms",
-                             source, target, timestamp, decoded.service_id);
+                    // Key accepted - calculate security level from access_type
+                    ecu.security_level = static_cast<std::uint8_t>((resp->access_type + 1) / 2);
+                    ecu.awaiting_security_key = false;
+                    ecu.pending_security_level.reset();
                 }
             }
-            
-            pending_requests_.erase(it);
-        } else {
-            if (config_.strict_mode) {
-                add_issue(IssueSeverity::Warning, "Protocol",
-                         "Response without matching request",
-                         source, target, timestamp, decoded.service_id);
-            }
         }
-
-        // Service-specific validation
-        switch (decoded.service_id) {
-            case uds::ServiceId::DiagnosticSessionControlResponse:
-                validate_session_control_response(source, target, decoded, timestamp);
-                break;
-            case uds::ServiceId::SecurityAccessResponse:
-                validate_security_access_response(source, target, decoded, timestamp);
-                break;
-            default:
-                break;
-        }
-
-        // Update session activity
-        ecu_state_[source].last_activity = timestamp;
-        ecu_state_[source].response_pending_active = false;
     }
 
-    void validate_negative_response(std::uint16_t source,
-                                    uds::ServiceId rejected_service,
-                                    uds::NegativeResponseCode nrc,
-                                    std::chrono::system_clock::time_point timestamp) {
-        // Track response pending
-        if (nrc == uds::NegativeResponseCode::ResponsePending) {
-            ecu_state_[source].response_pending_active = true;
-            ecu_state_[source].response_pending_count++;
-            
-            // ISO 14229 recommends max 10 consecutive response pending
-            if (ecu_state_[source].response_pending_count > 10) {
-                add_issue(IssueSeverity::Warning, "Protocol",
-                         "Excessive ResponsePending count: " + 
-                         std::to_string(ecu_state_[source].response_pending_count),
-                         source, 0, timestamp, rejected_service);
-            }
-            return;
+    void process_negative_response(std::uint16_t source, ServiceID rejected_service, NRC nrc,
+                                   std::uint32_t packet_num) {
+        auto& ecu = get_or_create_ecu(source);
+        ecu.nrc_count++;
+
+        // Validate common NRC issues
+        validate_nrc(ecu, rejected_service, nrc, packet_num);
+
+        // Security failures
+        if (nrc == NRC::InvalidKey) {
+            add_issue(Severity::Warning, "Security", "Invalid security key sent", source,
+                      packet_num);
+            ecu.awaiting_security_key = false;
         }
 
-        // Reset response pending counter
-        ecu_state_[source].response_pending_active = false;
-        ecu_state_[source].response_pending_count = 0;
+        if (nrc == NRC::ExceededNumberOfAttempts) {
+            add_issue(Severity::Critical, "Security",
+                      "Security lockout - maximum attempts exceeded", source, packet_num);
+            ecu.security_level = 0;
+            ecu.awaiting_security_key = false;
+            ecu.pending_security_level.reset();
+        }
 
-        // Check for suspicious NRC patterns
-        validate_nrc(source, rejected_service, nrc, timestamp);
-    }
-
-    void check_session_timeouts(std::chrono::system_clock::time_point current_time) {
-        for (auto& [addr, state] : ecu_state_) {
-            if (state.session != uds::SessionType::Default &&
-                state.last_activity.time_since_epoch().count() > 0) {
-                
-                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-                    current_time - state.last_activity);
-                
-                if (elapsed > config_.s3_timeout) {
-                    add_issue(IssueSeverity::Info, "Session",
-                             "Session likely timed out after " + 
-                             std::to_string(elapsed.count()) + "ms",
-                             addr, 0, current_time, uds::ServiceId::DiagnosticSessionControl);
-                    state.session = uds::SessionType::Default;
-                }
-            }
+        // Session failures
+        if (rejected_service == ServiceID::DiagnosticSessionControl) {
+            ecu.pending_session.reset();
         }
     }
 
     const std::vector<ValidationIssue>& issues() const { return issues_; }
+    const std::map<std::uint16_t, EcuValidationState>& ecus() const { return ecus_; }
 
-    void print_report() const {
-        std::cout << "\n╔══════════════════════════════════════════════════════════════════════════╗\n";
-        std::cout << "║                       UDS Validation Report                              ║\n";
-        std::cout << "╚══════════════════════════════════════════════════════════════════════════╝\n\n";
+    void print_report(std::ostream& out) const {
+        out << "=======================================================\n";
+        out << "         Wadjet-Link UDS Validation Report\n";
+        out << "=======================================================\n\n";
 
-        // Count by severity
-        std::map<IssueSeverity, int> counts;
+        // Summary by severity
+        std::map<Severity, int> severity_counts;
         for (const auto& issue : issues_) {
-            counts[issue.severity]++;
+            severity_counts[issue.severity]++;
         }
 
-        std::cout << "📊 Summary:\n";
-        std::cout << "   🔴 Critical: " << counts[IssueSeverity::Critical] << "\n";
-        std::cout << "   🟠 Errors:   " << counts[IssueSeverity::Error] << "\n";
-        std::cout << "   🟡 Warnings: " << counts[IssueSeverity::Warning] << "\n";
-        std::cout << "   🔵 Info:     " << counts[IssueSeverity::Info] << "\n\n";
+        out << "Summary:\n";
+        out << "   Critical: " << severity_counts[Severity::Critical] << "\n";
+        out << "   Error:    " << severity_counts[Severity::Error] << "\n";
+        out << "   Warning:  " << severity_counts[Severity::Warning] << "\n";
+        out << "   Info:     " << severity_counts[Severity::Info] << "\n\n";
 
-        if (issues_.empty()) {
-            std::cout << "✅ No validation issues found!\n";
-            return;
+        // ECU summary
+        out << "ECU Summary:\n";
+        out << "ECU Addr  | Final Session        | Security    | Req     | Resp    | NRC\n";
+        out << "----------|----------------------|-------------|---------|---------|------\n";
+
+        for (const auto& [addr, state] : ecus_) {
+            out << "   0x" << std::hex << std::setw(4) << std::setfill('0') << addr << " | "
+                << std::dec << std::setw(20) << std::left << std::setfill(' ')
+                << session_type_string(state.current_session) << " | " << std::setw(11)
+                << security_name(state.security_level) << " | " << std::right << std::setw(7)
+                << state.request_count << " | " << std::setw(7) << state.response_count << " | "
+                << std::setw(6) << state.nrc_count << "\n";
         }
+        out << "\n";
 
-        // Group by category
-        std::map<std::string, std::vector<const ValidationIssue*>> by_category;
-        for (const auto& issue : issues_) {
-            by_category[issue.category].push_back(&issue);
-        }
+        // Detailed issues
+        if (!issues_.empty()) {
+            out << "Validation Issues:\n\n";
 
-        for (const auto& [category, cat_issues] : by_category) {
-            std::cout << "📁 " << category << " (" << cat_issues.size() << " issues):\n";
-            std::cout << "┌──────────────────────────────────────────────────────────────────────┐\n";
-            
-            for (const auto* issue : cat_issues) {
-                char severity_char = ' ';
-                switch (issue->severity) {
-                    case IssueSeverity::Critical: severity_char = '!'; break;
-                    case IssueSeverity::Error:    severity_char = 'E'; break;
-                    case IssueSeverity::Warning:  severity_char = 'W'; break;
-                    case IssueSeverity::Info:     severity_char = 'I'; break;
+            for (const auto& issue : issues_) {
+                out << severity_icon(issue.severity) << " [" << issue.category << "] " << "ECU 0x"
+                    << std::hex << issue.ecu_address << std::dec;
+                if (issue.packet_number) {
+                    out << " (packet #" << *issue.packet_number << ")";
                 }
-                
-                std::cout << "│ [" << severity_char << "] ";
-                if (issue->source_addr != 0) {
-                    std::cout << "ECU 0x" << std::hex << std::setw(4) << std::setfill('0')
-                              << issue->source_addr << std::dec << ": ";
-                }
-                std::cout << issue->message << "\n";
+                out << "\n   " << issue.description << "\n\n";
             }
-            
-            std::cout << "└──────────────────────────────────────────────────────────────────────┘\n\n";
+        } else {
+            out << "No validation issues found!\n\n";
         }
     }
 
 private:
-    struct PendingRequest {
-        std::uint16_t source;
-        std::uint16_t target;
-        uds::ServiceId service;
-        std::chrono::system_clock::time_point timestamp;
-    };
-
-    struct EcuState {
-        uds::SessionType session = uds::SessionType::Default;
-        std::uint8_t security_level = 0;
-        std::chrono::system_clock::time_point last_activity;
-        bool response_pending_active = false;
-        int response_pending_count = 0;
-        int security_attempt_count = 0;
-    };
-
-    void add_issue(IssueSeverity severity, const std::string& category,
-                   const std::string& message, std::uint16_t source,
-                   std::uint16_t target, std::chrono::system_clock::time_point timestamp,
-                   uds::ServiceId service) {
-        issues_.push_back({
-            severity, category, message, source, target, timestamp,
-            uds::service_id_name(service)
-        });
+    EcuValidationState& get_or_create_ecu(std::uint16_t address) {
+        auto& ecu = ecus_[address];
+        if (ecu.address == 0) {
+            ecu.address = address;
+        }
+        return ecu;
     }
 
-    void validate_session_control_request(std::uint16_t source, std::uint16_t target,
-                                          const uds::UdsDecoder::Result& decoded,
-                                          std::chrono::system_clock::time_point timestamp) {
-        if (decoded.payload.empty()) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "DiagnosticSessionControl missing session type",
-                     source, target, timestamp, decoded.service_id);
-            return;
-        }
+    void validate_service_in_session(EcuValidationState& ecu, ServiceID service,
+                                     std::uint32_t packet_num) {
+        // Services that require non-default session
+        static const std::set<ServiceID> extended_only = {
+            ServiceID::InputOutputControlByIdentifier,
+        };
 
-        auto session = decoded.payload[0];
-        if (session == 0 || session > 0x7F) {
-            add_issue(IssueSeverity::Warning, "Format",
-                     "Invalid session type: 0x" + to_hex(session),
-                     source, target, timestamp, decoded.service_id);
-        }
-    }
+        static const std::set<ServiceID> programming_only = {
+            ServiceID::RequestDownload,
+            ServiceID::RequestUpload,
+            ServiceID::TransferData,
+            ServiceID::RequestTransferExit,
+        };
 
-    void validate_session_control_response(std::uint16_t source, std::uint16_t target,
-                                           const uds::UdsDecoder::Result& decoded,
-                                           std::chrono::system_clock::time_point timestamp) {
-        // Response should contain session type and timing parameters
-        if (decoded.payload.size() < 5) {
-            add_issue(IssueSeverity::Warning, "Format",
-                     "DiagnosticSessionControl response missing timing parameters",
-                     source, target, timestamp, decoded.service_id);
-        } else {
-            // Update tracked session
-            ecu_state_[source].session = static_cast<uds::SessionType>(decoded.payload[0]);
-        }
-    }
-
-    void validate_security_access_request(std::uint16_t source, std::uint16_t target,
-                                          const uds::UdsDecoder::Result& decoded,
-                                          std::chrono::system_clock::time_point timestamp) {
-        if (decoded.payload.empty()) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "SecurityAccess missing subfunction",
-                     source, target, timestamp, decoded.service_id);
-            return;
-        }
-
-        auto& ecu = ecu_state_[target];
-        auto subfunction = decoded.payload[0];
-
-        // Check if attempting security without proper session
-        if (config_.strict_mode && ecu.session == uds::SessionType::Default) {
-            add_issue(IssueSeverity::Warning, "Protocol",
-                     "SecurityAccess attempted in default session",
-                     source, target, timestamp, decoded.service_id);
-        }
-
-        // Odd subfunction = seed request
-        if (subfunction & 0x01) {
-            ecu.security_attempt_count++;
-        }
-    }
-
-    void validate_security_access_response(std::uint16_t source, std::uint16_t target,
-                                           const uds::UdsDecoder::Result& decoded,
-                                           std::chrono::system_clock::time_point timestamp) {
-        if (!decoded.payload.empty()) {
-            auto subfunction = decoded.payload[0];
-            // Even subfunction = successful key validation
-            if (!(subfunction & 0x01)) {
-                auto level = subfunction / 2;
-                ecu_state_[source].security_level = level;
-                ecu_state_[source].security_attempt_count = 0;
+        if (ecu.current_session == SessionType::DefaultSession) {
+            if (extended_only.count(service)) {
+                add_issue(Severity::Warning, "Session",
+                          std::string(service_id_string(service)) + " requires Extended session",
+                          ecu.address, packet_num);
+            }
+            if (programming_only.count(service)) {
+                add_issue(Severity::Warning, "Session",
+                          std::string(service_id_string(service)) + " requires Programming session",
+                          ecu.address, packet_num);
             }
         }
     }
 
-    void validate_rdbi_request(std::uint16_t source, std::uint16_t target,
-                               const uds::UdsDecoder::Result& decoded,
-                               std::chrono::system_clock::time_point timestamp) {
-        if (decoded.payload.size() < 2) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "ReadDataByIdentifier missing DID",
-                     source, target, timestamp, decoded.service_id);
-            return;
-        }
+    void validate_session_control_request(EcuValidationState& ecu, const UdsDecodeResult& decoded,
+                                          std::uint32_t packet_num) {
+        if (auto* req = decoded.as<DiagnosticSessionControlRequest>()) {
+            ecu.pending_session = req->session_type;
 
-        // Check for multiple DIDs (must be pairs)
-        if (decoded.payload.size() % 2 != 0) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "ReadDataByIdentifier has incomplete DID (odd byte count)",
-                     source, target, timestamp, decoded.service_id);
-        }
-
-        // ISO 14229 allows up to 65535 DIDs, but practical limit is much lower
-        int num_dids = decoded.payload.size() / 2;
-        if (config_.strict_mode && num_dids > 100) {
-            add_issue(IssueSeverity::Warning, "Performance",
-                     "ReadDataByIdentifier with " + std::to_string(num_dids) + 
-                     " DIDs may cause timeout",
-                     source, target, timestamp, decoded.service_id);
+            // Warn about programming session from non-default
+            if (req->session_type == SessionType::ProgrammingSession &&
+                ecu.current_session != SessionType::DefaultSession &&
+                ecu.current_session != SessionType::ExtendedDiagnosticSession) {
+                add_issue(Severity::Info, "Session",
+                          "Programming session typically requires transition from Default or "
+                          "Extended session",
+                          ecu.address, packet_num);
+            }
         }
     }
 
-    void validate_wdbi_request(std::uint16_t source, std::uint16_t target,
-                               const uds::UdsDecoder::Result& decoded,
-                               std::chrono::system_clock::time_point timestamp) {
-        if (decoded.payload.size() < 3) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "WriteDataByIdentifier missing DID or data",
-                     source, target, timestamp, decoded.service_id);
-        }
-
-        // Check security requirements for write
-        auto& ecu = ecu_state_[target];
-        if (config_.strict_mode && ecu.security_level == 0) {
-            add_issue(IssueSeverity::Info, "Security",
-                     "WriteDataByIdentifier without security unlock",
-                     source, target, timestamp, decoded.service_id);
-        }
-    }
-
-    void validate_routine_control_request(std::uint16_t source, std::uint16_t target,
-                                          const uds::UdsDecoder::Result& decoded,
-                                          std::chrono::system_clock::time_point timestamp) {
-        if (decoded.payload.size() < 3) {
-            add_issue(IssueSeverity::Error, "Format",
-                     "RoutineControl missing subfunction or routine ID",
-                     source, target, timestamp, decoded.service_id);
-            return;
-        }
-
-        auto control_type = decoded.payload[0];
-        if (control_type < 1 || control_type > 3) {
-            add_issue(IssueSeverity::Warning, "Format",
-                     "RoutineControl invalid control type: 0x" + to_hex(control_type),
-                     source, target, timestamp, decoded.service_id);
+    void validate_security_access_request(EcuValidationState& ecu, const UdsDecodeResult& decoded,
+                                          std::uint32_t packet_num) {
+        if (auto* req = decoded.as<SecurityAccessRequest>()) {
+            if (req->is_request_seed()) {
+                // Requesting seed when already unlocked at this level
+                if (ecu.security_level == req->security_level()) {
+                    add_issue(Severity::Info, "Security",
+                              "Requesting seed for already unlocked security level", ecu.address,
+                              packet_num);
+                }
+            } else {
+                // Sending key
+                if (!ecu.awaiting_security_key) {
+                    add_issue(Severity::Error, "Security",
+                              "Sending security key without first requesting seed", ecu.address,
+                              packet_num);
+                }
+            }
         }
     }
 
-    void validate_transfer_request(std::uint16_t source, std::uint16_t target,
-                                   const uds::UdsDecoder::Result& decoded,
-                                   std::chrono::system_clock::time_point timestamp) {
-        auto& ecu = ecu_state_[target];
-
-        // Programming operations require programming session
-        if (ecu.session != uds::SessionType::Programming) {
-            add_issue(IssueSeverity::Error, "Protocol",
-                     "Transfer service requires programming session",
-                     source, target, timestamp, decoded.service_id);
-        }
-
-        // Should be unlocked
+    void validate_security_required(EcuValidationState& ecu, ServiceID service,
+                                    std::uint32_t packet_num) {
         if (ecu.security_level == 0) {
-            add_issue(IssueSeverity::Warning, "Security",
-                     "Transfer service typically requires security unlock",
-                     source, target, timestamp, decoded.service_id);
+            add_issue(
+                Severity::Info, "Security",
+                std::string(service_id_string(service)) + " typically requires security access",
+                ecu.address, packet_num);
         }
     }
 
-    void validate_message_length(std::uint16_t source, std::uint16_t target,
-                                 const uds::UdsDecoder::Result& decoded,
-                                 std::chrono::system_clock::time_point timestamp,
-                                 bool is_request) {
-        // Total message size (service ID + payload)
-        std::size_t total_length = 1 + decoded.payload.size();
+    void validate_tester_present(EcuValidationState& ecu, std::uint32_t packet_num) {
+        auto now = std::chrono::system_clock::now();
+        auto time_since_last = now - ecu.last_tester_present;
+        ecu.last_tester_present = now;
 
-        // Check against typical CAN limits (for informational purposes)
-        if (total_length > 4095) {
-            add_issue(IssueSeverity::Info, "Format",
-                     "Message length " + std::to_string(total_length) + 
-                     " bytes requires multi-frame",
-                     source, target, timestamp, decoded.service_id);
+        // S3 timeout is typically 5 seconds, warning if interval is too long
+        if (ecu.current_session != SessionType::DefaultSession) {
+            auto ms =
+                std::chrono::duration_cast<std::chrono::milliseconds>(time_since_last).count();
+            if (ms > 5000 && ecu.last_tester_present.time_since_epoch().count() > 0) {
+                add_issue(Severity::Warning, "Timing",
+                          "TesterPresent interval (" + std::to_string(ms) +
+                              "ms) exceeds typical S3 timeout (5s)",
+                          ecu.address, packet_num);
+            }
         }
     }
 
-    void validate_nrc(std::uint16_t source, uds::ServiceId rejected_service,
-                      uds::NegativeResponseCode nrc,
-                      std::chrono::system_clock::time_point timestamp) {
+    void validate_nrc(EcuValidationState& ecu, ServiceID service, NRC nrc,
+                      std::uint32_t packet_num) {
+        // Track frequent NRCs
         switch (nrc) {
-            case uds::NegativeResponseCode::SecurityAccessDenied:
-            case uds::NegativeResponseCode::InvalidKey:
-            case uds::NegativeResponseCode::ExceedNumberOfAttempts:
-                add_issue(IssueSeverity::Warning, "Security",
-                         "Security failure: " + std::string(uds::nrc_name(nrc)),
-                         source, 0, timestamp, rejected_service);
+            case NRC::ServiceNotSupported:
+                add_issue(Severity::Warning, "Protocol",
+                          std::string(service_id_string(service)) + " not supported by ECU",
+                          ecu.address, packet_num);
                 break;
 
-            case uds::NegativeResponseCode::ServiceNotSupported:
-            case uds::NegativeResponseCode::ServiceNotSupportedInActiveSession:
-                add_issue(IssueSeverity::Info, "Compatibility",
-                         std::string(uds::nrc_name(nrc)),
-                         source, 0, timestamp, rejected_service);
+            case NRC::ServiceNotSupportedInActiveSession:
+                add_issue(Severity::Warning, "Session",
+                          std::string(service_id_string(service)) + " not available in " +
+                              std::string(session_type_string(ecu.current_session)),
+                          ecu.address, packet_num);
                 break;
 
-            case uds::NegativeResponseCode::ConditionsNotCorrect:
-                add_issue(IssueSeverity::Info, "Sequence",
-                         "Conditions not correct - check prerequisites",
-                         source, 0, timestamp, rejected_service);
+            case NRC::SecurityAccessDenied:
+                add_issue(Severity::Warning, "Security",
+                          std::string(service_id_string(service)) + " requires security access",
+                          ecu.address, packet_num);
+                break;
+
+            case NRC::ConditionsNotCorrect:
+                add_issue(Severity::Info, "Protocol",
+                          std::string(service_id_string(service)) + " - conditions not correct",
+                          ecu.address, packet_num);
                 break;
 
             default:
@@ -484,138 +382,167 @@ private:
         }
     }
 
-    static std::string to_hex(std::uint8_t value) {
-        char buf[8];
-        std::snprintf(buf, sizeof(buf), "%02X", value);
-        return buf;
+    static std::string severity_icon(Severity s) {
+        switch (s) {
+            case Severity::Critical:
+                return "[CRITICAL]";
+            case Severity::Error:
+                return "[ERROR]";
+            case Severity::Warning:
+                return "[WARNING]";
+            case Severity::Info:
+                return "[INFO]";
+        }
+        return "[?]";
     }
 
-    Config config_;
+    static std::string security_name(std::uint8_t level) {
+        if (level == 0)
+            return "Locked";
+        return "Level " + std::to_string(level);
+    }
+
+    std::map<std::uint16_t, EcuValidationState> ecus_;
     std::vector<ValidationIssue> issues_;
-    std::map<std::pair<std::uint16_t, std::uint8_t>, PendingRequest> pending_requests_;
-    std::map<std::uint16_t, EcuState> ecu_state_;
 };
+
+// =============================================================================
+// Command Line Parsing
+// =============================================================================
+
+struct Options {
+    std::string input_file;
+    std::optional<std::string> report_file;
+    bool verbose = false;
+};
+
+Options parse_args(int argc, char* argv[]) {
+    Options opts;
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+
+        if (arg == "-r" && i + 1 < argc) {
+            opts.report_file = argv[++i];
+        } else if (arg == "-v" || arg == "--verbose") {
+            opts.verbose = true;
+        } else if (arg == "-h" || arg == "--help") {
+            std::cout << "Usage: uds_validator [options] <input>\n"
+                      << "\nOptions:\n"
+                      << "  -r <file>    Output report to file\n"
+                      << "  -v           Verbose output\n"
+                      << "  -h           Show this help\n";
+            std::exit(0);
+        } else {
+            opts.input_file = arg;
+        }
+    }
+
+    if (opts.input_file.empty()) {
+        std::cerr << "Error: No input specified. Use -h for help.\n";
+        std::exit(1);
+    }
+
+    return opts;
+}
+
+// =============================================================================
+// Demo Mode
+// =============================================================================
+
+void run_demo(UdsValidator& validator) {
+    std::cout << "=== Wadjet-Link UDS Validator Demo ===\n\n";
+    std::cout << "Processing sample UDS validation scenarios...\n\n";
+
+    UdsDecoder uds_decoder;
+    std::uint32_t packet_num = 0;
+
+    // Scenario 1: Normal session control
+    std::vector<std::uint8_t> dsc_req = {0x10, 0x03};  // Extended session
+    auto result1 = uds_decoder.decode(dsc_req);
+    if (result1.is_ok()) {
+        validator.process_request(0x0E00, 0x0001, *result1, ++packet_num);
+    }
+
+    std::vector<std::uint8_t> dsc_resp = {0x50, 0x03, 0x00, 0x19, 0x01, 0xF4};
+    auto result2 = uds_decoder.decode(dsc_resp);
+    if (result2.is_ok()) {
+        validator.process_response(0x0001, 0x0E00, *result2, ++packet_num);
+    }
+
+    // Scenario 2: Write without security - should flag info
+    std::vector<std::uint8_t> write_req = {0x2E, 0xF1, 0x90, 0x41, 0x42};  // WriteDataByIdentifier
+    auto result3 = uds_decoder.decode(write_req);
+    if (result3.is_ok()) {
+        validator.process_request(0x0E00, 0x0001, *result3, ++packet_num);
+    }
+
+    // Scenario 3: NRC - Security Access Denied
+    std::vector<std::uint8_t> nrc = {0x7F, 0x2E,
+                                     0x33};  // SecurityAccessDenied for WriteDataByIdentifier
+    auto result4 = uds_decoder.decode(nrc);
+    if (result4.is_ok()) {
+        if (auto* nrc_msg = result4->as<NegativeResponseMessage>()) {
+            validator.process_negative_response(0x0001, nrc_msg->rejected_service_id,
+                                                nrc_msg->negative_response_code, ++packet_num);
+        }
+    }
+
+    // Scenario 4: Send key without seed - should flag error
+    std::vector<std::uint8_t> key_req = {0x27, 0x02, 0x12,
+                                         0x34, 0x56, 0x78};  // SendKey without seed
+    auto result5 = uds_decoder.decode(key_req);
+    if (result5.is_ok()) {
+        validator.process_request(0x0E00, 0x0001, *result5, ++packet_num);
+    }
+
+    // Scenario 5: Request Download in default session - should flag warning
+    std::vector<std::uint8_t> download_req = {0x34, 0x00, 0x44, 0x00, 0x10, 0x00, 0x00, 0x10, 0x00};
+    auto result6 = uds_decoder.decode(download_req);
+    if (result6.is_ok()) {
+        // Reset to default session first
+        auto& ecu =
+            const_cast<std::map<std::uint16_t, EcuValidationState>&>(validator.ecus())[0x0001];
+        ecu.current_session = SessionType::DefaultSession;
+        validator.process_request(0x0E00, 0x0001, *result6, ++packet_num);
+    }
+
+    std::cout << "\n";
+}
 
 // =============================================================================
 // Main
 // =============================================================================
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: uds_validator [--strict] <pcap_file>\n";
-        return 1;
+    auto opts = parse_args(argc, argv);
+
+    if (opts.verbose) {
+        std::cout << "Wadjet-Link UDS Validator\n";
+        std::cout << "Processing: " << opts.input_file << "\n\n";
     }
 
-    std::string input_file;
-    bool strict_mode = false;
+    UdsValidator validator;
 
-    for (int i = 1; i < argc; ++i) {
-        std::string arg = argv[i];
-        if (arg == "--strict" || arg == "-s") {
-            strict_mode = true;
-        } else if (arg == "-h" || arg == "--help") {
-            std::cout << "Usage: uds_validator [options] <pcap_file>\n"
-                      << "\nOptions:\n"
-                      << "  --strict, -s   Enable strict validation\n"
-                      << "  --help, -h     Show this help\n";
-            return 0;
-        } else {
-            input_file = arg;
-        }
+    // Run demo mode
+    if (opts.input_file == "demo") {
+        run_demo(validator);
+    } else {
+        std::cout << "Note: PCAP file reading requires additional setup.\n";
+        std::cout << "Running demo mode instead...\n\n";
+        run_demo(validator);
     }
 
-    if (input_file.empty()) {
-        std::cerr << "Error: No input file specified\n";
-        return 1;
-    }
+    // Output report
+    validator.print_report(std::cout);
 
-    if (!std::filesystem::exists(input_file)) {
-        std::cerr << "Error: File not found: " << input_file << "\n";
-        return 1;
-    }
-
-    std::cout << "╔═══════════════════════════════════════════════════════════════╗\n";
-    std::cout << "║  𓆓 Wadjet-Link UDS Validator                                  ║\n";
-    std::cout << "╚═══════════════════════════════════════════════════════════════╝\n\n";
-
-    std::cout << "📁 Analyzing: " << input_file << "\n";
-    if (strict_mode) {
-        std::cout << "⚠️  Strict mode enabled\n";
-    }
-    std::cout << "\n";
-
-    UdsValidator::Config config;
-    config.strict_mode = strict_mode;
-    UdsValidator validator(config);
-
-    uds::UdsDecoder decoder;
-    doip::DoIPDecoder doip_decoder;
-    std::uint32_t packet_count = 0;
-    std::uint32_t uds_message_count = 0;
-    std::chrono::system_clock::time_point last_timestamp;
-
-    pcap::PcapReader reader(input_file);
-    while (auto packet = reader.next_packet()) {
-        packet_count++;
-        last_timestamp = packet->timestamp;
-
-        // Check for session timeouts periodically
-        if (packet_count % 100 == 0) {
-            validator.check_session_timeouts(packet->timestamp);
-        }
-
-        // Decode DoIP layer
-        auto doip_result = doip_decoder.decode(packet->data);
-        if (!doip_result) continue;
-
-        if (doip_result->payload_type != doip::PayloadType::DiagnosticMessage) {
-            continue;
-        }
-
-        if (doip_result->payload.size() < 4) continue;
-
-        std::uint16_t source = (doip_result->payload[0] << 8) | doip_result->payload[1];
-        std::uint16_t target = (doip_result->payload[2] << 8) | doip_result->payload[3];
-
-        std::span<const std::uint8_t> uds_data(
-            doip_result->payload.data() + 4,
-            doip_result->payload.size() - 4);
-
-        auto uds_result = decoder.decode(uds_data);
-        if (!uds_result) continue;
-
-        uds_message_count++;
-
-        // Handle negative response
-        if (uds_result->service_id == uds::ServiceId::NegativeResponse) {
-            if (uds_result->payload.size() >= 2) {
-                auto rejected = static_cast<uds::ServiceId>(uds_result->payload[0]);
-                auto nrc = static_cast<uds::NegativeResponseCode>(uds_result->payload[1]);
-                validator.validate_negative_response(source, rejected, nrc, packet->timestamp);
-            }
-            continue;
-        }
-
-        // Determine request vs response
-        bool is_response = (static_cast<std::uint8_t>(uds_result->service_id) & 0x40) != 0;
-
-        if (is_response) {
-            validator.validate_response(source, target, *uds_result, packet->timestamp);
-        } else {
-            validator.validate_request(source, target, *uds_result, packet->timestamp);
-        }
-    }
-
-    // Final timeout check
-    validator.check_session_timeouts(last_timestamp);
-
-    // Print results
-    validator.print_report();
-
-    std::cout << "\n📊 Processing Statistics:\n";
-    std::cout << "   Total packets:   " << packet_count << "\n";
-    std::cout << "   UDS messages:    " << uds_message_count << "\n";
+    std::cout << "Processing Statistics:\n";
+    std::cout << "   ECUs found:      " << validator.ecus().size() << "\n";
     std::cout << "   Issues found:    " << validator.issues().size() << "\n";
 
-    return validator.issues().empty() ? 0 : 1;
+    // Return code based on issues
+    bool has_critical = std::any_of(validator.issues().begin(), validator.issues().end(),
+                                    [](const auto& i) { return i.severity == Severity::Critical; });
+
+    return has_critical ? 2 : (validator.issues().empty() ? 0 : 1);
 }

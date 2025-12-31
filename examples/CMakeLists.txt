@@ -22,15 +22,15 @@ add_executable(gptp_monitor gptp_monitor.cpp)
 target_link_libraries(gptp_monitor PRIVATE wadjet)
 target_compile_features(gptp_monitor PRIVATE cxx_std_20)
 
-# UDS Diagnostic Traffic Monitor - temporarily disabled until API alignment complete
-# add_executable(uds_monitor uds_monitor.cpp)
-# target_link_libraries(uds_monitor PRIVATE wadjet)
-# target_compile_features(uds_monitor PRIVATE cxx_std_20)
+# UDS Diagnostic Traffic Monitor
+add_executable(uds_monitor uds_monitor.cpp)
+target_link_libraries(uds_monitor PRIVATE wadjet)
+target_compile_features(uds_monitor PRIVATE cxx_std_20)
 
-# UDS Protocol Validator - temporarily disabled until API alignment complete
-# add_executable(uds_validator uds_validator.cpp)
-# target_link_libraries(uds_validator PRIVATE wadjet)
-# target_compile_features(uds_validator PRIVATE cxx_std_20)
+# UDS Protocol Validator
+add_executable(uds_validator uds_validator.cpp)
+target_link_libraries(uds_validator PRIVATE wadjet)
+target_compile_features(uds_validator PRIVATE cxx_std_20)
 
 # PCAP Regression Testing (requires GoogleTest)
 if(TARGET GTest::gtest AND TARGET GTest::gmock)
