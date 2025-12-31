@@ -285,6 +285,7 @@ private:
     void transition_to_session(SessionType new_type);
     void emit_event(SessionEvent event);
     void update_activity();
+    void reset_internal();  ///< Internal reset without acquiring lock
 
     std::uint16_t ecu_address_{0};
     SessionType session_type_{SessionType::DefaultSession};

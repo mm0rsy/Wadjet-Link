@@ -264,6 +264,11 @@ void UdsSession::clear_callbacks() {
 
 void UdsSession::reset() {
     std::lock_guard lock(mutex_);
+    reset_internal();
+}
+
+void UdsSession::reset_internal() {
+    // Internal reset - must be called with lock already held
     session_type_ = SessionType::DefaultSession;
     state_ = SessionState::Idle;
     timing_ = TimingParameters::default_values();
@@ -334,7 +339,8 @@ void UdsSession::handle_tester_present() {
 
 void UdsSession::handle_ecu_reset(const ECUResetRequest& /* req */) {
     // ECU reset typically ends the session
-    reset();
+    // Note: Called from process_decoded which already holds the lock
+    reset_internal();
 }
 
 void UdsSession::handle_negative_response(const NegativeResponseMessage& nrc) {
