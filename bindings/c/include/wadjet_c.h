@@ -424,6 +424,7 @@ typedef enum {
     WADJET_PROTOCOL_DOIP = 8,
     WADJET_PROTOCOL_GPTP = 9,
     WADJET_PROTOCOL_UDS = 10,
+    WADJET_PROTOCOL_RTPS = 11, /**< DDS/RTPS protocol */
 } wadjet_protocol_t;
 
 /**
@@ -481,6 +482,43 @@ typedef enum {
     WADJET_GPTP_SIGNALING = 0xC,
     WADJET_GPTP_MANAGEMENT = 0xD,
 } wadjet_gptp_message_type_t;
+
+/**
+ * @brief RTPS/DDS vendor identifiers
+ */
+typedef enum {
+    WADJET_RTPS_VENDOR_UNKNOWN = 0x0000,
+    WADJET_RTPS_VENDOR_FASTDDS = 0x0101,     /**< eProsima FastDDS */
+    WADJET_RTPS_VENDOR_RTI_CONNEXT = 0x0102, /**< RTI Connext DDS */
+    WADJET_RTPS_VENDOR_OPENSPLICE = 0x0103,  /**< OpenSplice DDS */
+    WADJET_RTPS_VENDOR_CYCLONEDDS = 0x0105,  /**< Eclipse CycloneDDS */
+    WADJET_RTPS_VENDOR_OPENDDS = 0x0106,     /**< OpenDDS */
+    WADJET_RTPS_VENDOR_COREDX = 0x0107,      /**< CoreDX DDS */
+    WADJET_RTPS_VENDOR_DUST = 0x0108,        /**< DUST DDS */
+    WADJET_RTPS_VENDOR_GURUM = 0x0109,       /**< GurumDDS */
+    WADJET_RTPS_VENDOR_INTERCOM = 0x010A,    /**< InterCOM DDS */
+    WADJET_RTPS_VENDOR_ZHENRONG = 0x010B,    /**< Zhenrong DDS */
+    WADJET_RTPS_VENDOR_ROS2 = 0x010F,        /**< ROS2 default middleware */
+} wadjet_rtps_vendor_t;
+
+/**
+ * @brief RTPS submessage kinds (RTPS v2.4)
+ */
+typedef enum {
+    WADJET_RTPS_SUBMSG_PAD = 0x01,
+    WADJET_RTPS_SUBMSG_ACKNACK = 0x06,
+    WADJET_RTPS_SUBMSG_HEARTBEAT = 0x07,
+    WADJET_RTPS_SUBMSG_GAP = 0x08,
+    WADJET_RTPS_SUBMSG_INFO_TS = 0x09,
+    WADJET_RTPS_SUBMSG_INFO_SRC = 0x0C,
+    WADJET_RTPS_SUBMSG_INFO_REPLY_IP4 = 0x0D,
+    WADJET_RTPS_SUBMSG_INFO_DST = 0x0E,
+    WADJET_RTPS_SUBMSG_INFO_REPLY = 0x0F,
+    WADJET_RTPS_SUBMSG_NACK_FRAG = 0x12,
+    WADJET_RTPS_SUBMSG_HEARTBEAT_FRAG = 0x13,
+    WADJET_RTPS_SUBMSG_DATA = 0x15,
+    WADJET_RTPS_SUBMSG_DATA_FRAG = 0x16,
+} wadjet_rtps_submessage_kind_t;
 
 /**
  * @brief UDS service identifiers (ISO 14229)
@@ -712,6 +750,48 @@ typedef struct {
     size_t data_length;                 /**< Length of service data */
 } wadjet_uds_header_t;
 
+/**
+ * @brief RTPS GUID prefix (12 bytes)
+ */
+typedef struct {
+    uint8_t bytes[12];
+} wadjet_rtps_guid_prefix_t;
+
+/**
+ * @brief RTPS Entity ID (4 bytes)
+ */
+typedef struct {
+    uint8_t entity_key[3]; /**< Entity key (3 bytes) */
+    uint8_t entity_kind;   /**< Entity kind */
+} wadjet_rtps_entity_id_t;
+
+/**
+ * @brief RTPS submessage header
+ */
+typedef struct {
+    wadjet_rtps_submessage_kind_t kind; /**< Submessage kind */
+    uint8_t flags;                      /**< Submessage flags */
+    uint16_t octets_to_next_header;     /**< Submessage length */
+    bool endianness_flag;               /**< E flag (little endian if true) */
+} wadjet_rtps_submessage_t;
+
+/**
+ * @brief Decoded RTPS header
+ */
+typedef struct {
+    uint8_t protocol[4];                   /**< "RTPS" magic */
+    uint8_t version_major;                 /**< Protocol version major */
+    uint8_t version_minor;                 /**< Protocol version minor */
+    wadjet_rtps_vendor_t vendor_id;        /**< Vendor identifier */
+    wadjet_rtps_guid_prefix_t guid_prefix; /**< GUID prefix */
+    wadjet_rtps_submessage_t* submessages; /**< Array of submessages */
+    size_t submessage_count;               /**< Number of submessages */
+    bool is_discovery;                     /**< True if discovery traffic */
+    bool has_data;                         /**< Contains DATA submessage */
+    bool has_heartbeat;                    /**< Contains HEARTBEAT submessage */
+    bool has_acknack;                      /**< Contains ACKNACK submessage */
+} wadjet_rtps_header_t;
+
 /** @brief Opaque handle to UDS decoder */
 typedef struct wadjet_uds_decoder* wadjet_uds_decoder_t;
 
@@ -838,6 +918,74 @@ size_t wadjet_gptp_clock_identity_to_string(const wadjet_gptp_clock_identity_t* 
  * @return Message type name string (static, do not free)
  */
 const char* wadjet_gptp_message_type_name(wadjet_gptp_message_type_t type);
+
+/* ============================================================================
+ * RTPS/DDS API
+ * ============================================================================ */
+
+/**
+ * @brief Get RTPS header from decode result
+ * @param result Decode result handle
+ * @param header Output: RTPS header
+ * @return WADJET_OK if layer present
+ */
+wadjet_error_t wadjet_decode_result_rtps(wadjet_decode_result_t result,
+                                         wadjet_rtps_header_t* header);
+
+/**
+ * @brief Destroy RTPS header (frees submessage array)
+ * @param header RTPS header to destroy
+ */
+void wadjet_rtps_header_destroy(wadjet_rtps_header_t* header);
+
+/**
+ * @brief Convert RTPS GUID prefix to string
+ * @param guid_prefix GUID prefix
+ * @param buffer Output buffer (at least 36 bytes)
+ * @param buffer_size Buffer size
+ * @return Number of characters written, or 0 on error
+ */
+size_t wadjet_rtps_guid_prefix_to_string(const wadjet_rtps_guid_prefix_t* guid_prefix, char* buffer,
+                                         size_t buffer_size);
+
+/**
+ * @brief Convert RTPS entity ID to string
+ * @param entity_id Entity ID
+ * @param buffer Output buffer (at least 12 bytes)
+ * @param buffer_size Buffer size
+ * @return Number of characters written, or 0 on error
+ */
+size_t wadjet_rtps_entity_id_to_string(const wadjet_rtps_entity_id_t* entity_id, char* buffer,
+                                       size_t buffer_size);
+
+/**
+ * @brief Get RTPS vendor name
+ * @param vendor Vendor ID
+ * @return Vendor name string (static, do not free)
+ */
+const char* wadjet_rtps_vendor_name(wadjet_rtps_vendor_t vendor);
+
+/**
+ * @brief Get RTPS submessage kind name
+ * @param kind Submessage kind
+ * @return Submessage kind name string (static, do not free)
+ */
+const char* wadjet_rtps_submessage_kind_name(wadjet_rtps_submessage_kind_t kind);
+
+/**
+ * @brief Check if RTPS traffic is discovery (ports 7400-7410)
+ * @param src_port Source UDP port
+ * @param dst_port Destination UDP port
+ * @return true if discovery traffic
+ */
+bool wadjet_rtps_is_discovery_port(uint16_t src_port, uint16_t dst_port);
+
+/**
+ * @brief Check if port range indicates RTPS traffic
+ * @param port UDP port
+ * @return true if likely RTPS port (7400-7500 range)
+ */
+bool wadjet_rtps_is_likely_port(uint16_t port);
 
 /* ============================================================================
  * UDS (Unified Diagnostic Services) API

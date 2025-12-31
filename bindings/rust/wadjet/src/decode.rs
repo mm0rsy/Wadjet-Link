@@ -36,6 +36,8 @@ pub enum Protocol {
     Icmp,
     /// VLAN (802.1Q)
     Vlan,
+    /// DDS/RTPS
+    Rtps,
 }
 
 impl Protocol {
@@ -464,6 +466,227 @@ impl GptpHeader {
     /// Get the message type name
     pub fn message_type_name(&self) -> &'static str {
         self.message_type.name()
+    }
+}
+
+// =============================================================================
+// DDS/RTPS Types
+// =============================================================================
+
+/// DDS/RTPS vendor identifiers
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u16)]
+pub enum RtpsVendor {
+    /// Unknown vendor
+    Unknown = 0x0000,
+    /// eProsima Fast DDS
+    FastDds = 0x0101,
+    /// RTI Connext DDS
+    RtiConnext = 0x0102,
+    /// PrismTech OpenSplice
+    OpenSplice = 0x0103,
+    /// Eclipse CycloneDDS
+    CycloneDds = 0x0105,
+    /// OCI OpenDDS
+    OpenDds = 0x0106,
+}
+
+impl From<u16> for RtpsVendor {
+    fn from(value: u16) -> Self {
+        match value {
+            0x0101 => RtpsVendor::FastDds,
+            0x0102 => RtpsVendor::RtiConnext,
+            0x0103 => RtpsVendor::OpenSplice,
+            0x0105 => RtpsVendor::CycloneDds,
+            0x0106 => RtpsVendor::OpenDds,
+            _ => RtpsVendor::Unknown,
+        }
+    }
+}
+
+impl RtpsVendor {
+    /// Get vendor name
+    pub fn name(&self) -> &'static str {
+        match self {
+            RtpsVendor::Unknown => "Unknown",
+            RtpsVendor::FastDds => "eProsima Fast DDS",
+            RtpsVendor::RtiConnext => "RTI Connext DDS",
+            RtpsVendor::OpenSplice => "PrismTech OpenSplice",
+            RtpsVendor::CycloneDds => "Eclipse CycloneDDS",
+            RtpsVendor::OpenDds => "OCI OpenDDS",
+        }
+    }
+}
+
+/// RTPS submessage kinds
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[repr(u8)]
+pub enum RtpsSubmessageKind {
+    /// Pad submessage
+    Pad = 0x01,
+    /// AckNack submessage
+    AckNack = 0x06,
+    /// Heartbeat submessage  
+    Heartbeat = 0x07,
+    /// Gap submessage
+    Gap = 0x08,
+    /// Info Timestamp submessage
+    InfoTs = 0x09,
+    /// Info Source submessage
+    InfoSrc = 0x0C,
+    /// Info Reply IPv4 submessage
+    InfoReplyIp4 = 0x0D,
+    /// Info Destination submessage
+    InfoDst = 0x0E,
+    /// Info Reply submessage
+    InfoReply = 0x0F,
+    /// NackFrag submessage
+    NackFrag = 0x12,
+    /// HeartbeatFrag submessage
+    HeartbeatFrag = 0x13,
+    /// Data submessage
+    Data = 0x15,
+    /// DataFrag submessage
+    DataFrag = 0x16,
+    /// Unknown submessage
+    Unknown = 0xFF,
+}
+
+impl From<u8> for RtpsSubmessageKind {
+    fn from(value: u8) -> Self {
+        match value {
+            0x01 => RtpsSubmessageKind::Pad,
+            0x06 => RtpsSubmessageKind::AckNack,
+            0x07 => RtpsSubmessageKind::Heartbeat,
+            0x08 => RtpsSubmessageKind::Gap,
+            0x09 => RtpsSubmessageKind::InfoTs,
+            0x0C => RtpsSubmessageKind::InfoSrc,
+            0x0D => RtpsSubmessageKind::InfoReplyIp4,
+            0x0E => RtpsSubmessageKind::InfoDst,
+            0x0F => RtpsSubmessageKind::InfoReply,
+            0x12 => RtpsSubmessageKind::NackFrag,
+            0x13 => RtpsSubmessageKind::HeartbeatFrag,
+            0x15 => RtpsSubmessageKind::Data,
+            0x16 => RtpsSubmessageKind::DataFrag,
+            _ => RtpsSubmessageKind::Unknown,
+        }
+    }
+}
+
+impl RtpsSubmessageKind {
+    /// Get submessage kind name
+    pub fn name(&self) -> &'static str {
+        match self {
+            RtpsSubmessageKind::Pad => "PAD",
+            RtpsSubmessageKind::AckNack => "ACKNACK",
+            RtpsSubmessageKind::Heartbeat => "HEARTBEAT",
+            RtpsSubmessageKind::Gap => "GAP",
+            RtpsSubmessageKind::InfoTs => "INFO_TS",
+            RtpsSubmessageKind::InfoSrc => "INFO_SRC",
+            RtpsSubmessageKind::InfoReplyIp4 => "INFO_REPLY_IP4",
+            RtpsSubmessageKind::InfoDst => "INFO_DST",
+            RtpsSubmessageKind::InfoReply => "INFO_REPLY",
+            RtpsSubmessageKind::NackFrag => "NACK_FRAG",
+            RtpsSubmessageKind::HeartbeatFrag => "HEARTBEAT_FRAG",
+            RtpsSubmessageKind::Data => "DATA",
+            RtpsSubmessageKind::DataFrag => "DATA_FRAG",
+            RtpsSubmessageKind::Unknown => "UNKNOWN",
+        }
+    }
+}
+
+/// GUID prefix (12 bytes)
+#[derive(Debug, Clone)]
+pub struct GuidPrefix {
+    /// Raw bytes
+    pub bytes: [u8; 12],
+}
+
+impl GuidPrefix {
+    /// Convert to hex string
+    pub fn to_string(&self) -> String {
+        self.bytes.iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<Vec<_>>()
+            .join("")
+    }
+}
+
+/// Entity ID (4 bytes)
+#[derive(Debug, Clone)]
+pub struct EntityId {
+    /// Entity key (3 bytes)
+    pub entity_key: [u8; 3],
+    /// Entity kind
+    pub entity_kind: u8,
+}
+
+impl EntityId {
+    /// Convert to hex string
+    pub fn to_string(&self) -> String {
+        format!("{:02x}{:02x}{:02x}{:02x}",
+                self.entity_key[0], self.entity_key[1], 
+                self.entity_key[2], self.entity_kind)
+    }
+}
+
+/// RTPS submessage info
+#[derive(Debug, Clone)]
+pub struct RtpsSubmessage {
+    /// Submessage kind
+    pub kind: RtpsSubmessageKind,
+    /// Submessage length
+    pub length: u16,
+    /// Endianness (true = little-endian)
+    pub endian_little: bool,
+}
+
+/// RTPS/DDS header information
+#[derive(Debug, Clone)]
+pub struct RtpsHeader {
+    /// Protocol version major
+    pub version_major: u8,
+    /// Protocol version minor
+    pub version_minor: u8,
+    /// Vendor ID
+    pub vendor_id: u16,
+    /// Vendor enum
+    pub vendor: RtpsVendor,
+    /// GUID prefix
+    pub guid_prefix: GuidPrefix,
+    /// Submessages
+    pub submessages: Vec<RtpsSubmessage>,
+}
+
+impl RtpsHeader {
+    /// Get vendor name
+    pub fn vendor_name(&self) -> &'static str {
+        self.vendor.name()
+    }
+    
+    /// Get protocol version string
+    pub fn version_string(&self) -> String {
+        format!("{}.{}", self.version_major, self.version_minor)
+    }
+    
+    /// Check if packet has DATA submessage
+    pub fn has_data(&self) -> bool {
+        self.submessages.iter().any(|s| s.kind == RtpsSubmessageKind::Data)
+    }
+    
+    /// Check if packet has HEARTBEAT submessage
+    pub fn has_heartbeat(&self) -> bool {
+        self.submessages.iter().any(|s| s.kind == RtpsSubmessageKind::Heartbeat)
+    }
+    
+    /// Check if packet has ACKNACK submessage
+    pub fn has_acknack(&self) -> bool {
+        self.submessages.iter().any(|s| s.kind == RtpsSubmessageKind::AckNack)
+    }
+    
+    /// Check if this appears to be discovery traffic
+    pub fn is_discovery(&self) -> bool {
+        self.has_data() && self.submessages.iter().any(|s| s.kind == RtpsSubmessageKind::InfoTs)
     }
 }
 
