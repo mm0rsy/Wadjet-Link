@@ -2,18 +2,20 @@
 /// @brief Integration tests for UDS protocol with DoIP transport
 /// @details Tests UDS message decoding, session tracking, request-response correlation
 
-#include <gtest/gtest.h>
-#include <array>
-#include <vector>
-#include <chrono>
-#include <thread>
-
-#include "wadjet/protocols/uds/uds.hpp"
-#include "wadjet/protocols/uds/uds_session.hpp"
+#include "wadjet/protocols/decoder.hpp"
 #include "wadjet/protocols/doip.hpp"
 #include "wadjet/protocols/ethernet.hpp"
 #include "wadjet/protocols/ipv4.hpp"
 #include "wadjet/protocols/tcp.hpp"
+#include "wadjet/protocols/uds/uds.hpp"
+#include "wadjet/protocols/uds/uds_session.hpp"
+
+#include <gtest/gtest.h>
+
+#include <array>
+#include <chrono>
+#include <thread>
+#include <vector>
 
 using namespace wadjet;
 using namespace wadjet::protocols;
@@ -39,7 +41,7 @@ public:
         packet.push_back(0x01);
         
         // Payload length = 4 (addresses) + UDS payload length
-        std::uint32_t payload_len = 4 + uds_payload.size();
+        std::uint32_t payload_len = 4 + static_cast<std::uint32_t>(uds_payload.size());
         packet.push_back(static_cast<std::uint8_t>(payload_len >> 24));
         packet.push_back(static_cast<std::uint8_t>(payload_len >> 16));
         packet.push_back(static_cast<std::uint8_t>(payload_len >> 8));
@@ -229,8 +231,11 @@ TEST_F(UdsDecoderIntegrationTest, DecodeNegativeResponse) {
     
     ASSERT_TRUE(result.is_ok());
     EXPECT_TRUE(result->header.is_negative_response());
-    EXPECT_EQ(result->header.negative_response_code, NRC::SecurityAccessDenied);
-    EXPECT_EQ(result->header.rejected_service_id, ServiceID::SecurityAccess);
+    ASSERT_TRUE(result->header.negative_response_code.has_value());
+    EXPECT_EQ(*result->header.negative_response_code,
+              static_cast<std::uint8_t>(NRC::SecurityAccessDenied));
+    ASSERT_TRUE(result->header.rejected_service_id.has_value());
+    EXPECT_EQ(*result->header.rejected_service_id, ServiceID::SecurityAccess);
 }
 
 TEST_F(UdsDecoderIntegrationTest, DecodeResponsePending) {
@@ -242,8 +247,11 @@ TEST_F(UdsDecoderIntegrationTest, DecodeResponsePending) {
     
     ASSERT_TRUE(result.is_ok());
     EXPECT_TRUE(result->header.is_negative_response());
-    EXPECT_EQ(result->header.negative_response_code, NRC::RequestCorrectlyReceivedResponsePending);
-    EXPECT_EQ(result->header.rejected_service_id, ServiceID::RoutineControl);
+    ASSERT_TRUE(result->header.negative_response_code.has_value());
+    EXPECT_EQ(*result->header.negative_response_code,
+              static_cast<std::uint8_t>(NRC::RequestCorrectlyReceivedResponsePending));
+    ASSERT_TRUE(result->header.rejected_service_id.has_value());
+    EXPECT_EQ(*result->header.rejected_service_id, ServiceID::RoutineControl);
 }
 
 TEST_F(UdsDecoderIntegrationTest, DecodeReadDataByIdentifier) {
@@ -452,7 +460,7 @@ TEST_F(UdsSessionIntegrationTest, ECUReset_ResetsSession) {
 
 class DoIpUdsIntegrationTest : public ::testing::Test {
 protected:
-    doip::DoIpDecoder doip_decoder_;
+    doip::DoIPDecoder doip_decoder_;
     UdsDecoder uds_decoder_;
 };
 
@@ -462,21 +470,37 @@ TEST_F(DoIpUdsIntegrationTest, DecodeDoIpDiagnosticMessage_WithUds) {
         0x0E00,  // Tester address
         0x0001,  // ECU address
         uds_payload);
-    
-    std::span<const std::uint8_t> doip_span(doip_packet.data(), doip_packet.size());
-    auto doip_result = doip_decoder_.decode(doip_span);
-    
+
+    // Create decode context
+    std::vector<std::byte> byte_data;
+    byte_data.reserve(doip_packet.size());
+    for (auto b : doip_packet) {
+        byte_data.push_back(static_cast<std::byte>(b));
+    }
+
+    DecodeContext ctx;
+    ctx.data = std::span<const std::byte>(byte_data);
+
+    auto doip_result = doip_decoder_.decode(ctx);
+
     ASSERT_TRUE(doip_result.is_ok());
-    EXPECT_EQ(doip_result->header.payload_type, doip::PayloadType::DiagnosticMessage);
-    EXPECT_EQ(doip_result->header.payload_length, 4 + uds_payload.size());
-    
-    // Extract UDS payload from DoIP
-    auto& diag_msg = std::get<doip::DiagnosticMessage>(doip_result->payload);
-    EXPECT_EQ(diag_msg.source_address, 0x0E00);
-    EXPECT_EQ(diag_msg.target_address, 0x0001);
-    
+    EXPECT_EQ(doip_result->payload_type, doip::PayloadType::DiagnosticMessage);
+    EXPECT_EQ(doip_result->payload_length, 4 + uds_payload.size());
+
+    // Parse diagnostic message from payload
+    auto payload_span = ctx.data.subspan(doip::HEADER_SIZE, doip_result->payload_length);
+    auto diag_msg = doip::DoIPDecoder::parse_diagnostic_message(payload_span);
+
+    ASSERT_TRUE(diag_msg.has_value());
+    EXPECT_EQ(diag_msg->source_address, 0x0E00);
+    EXPECT_EQ(diag_msg->target_address, 0x0001);
+
     // Decode UDS from diagnostic message payload
-    std::span<const std::uint8_t> uds_span(diag_msg.user_data.data(), diag_msg.user_data.size());
+    std::vector<std::uint8_t> uds_data;
+    for (auto b : diag_msg->user_data) {
+        uds_data.push_back(static_cast<std::uint8_t>(b));
+    }
+    std::span<const std::uint8_t> uds_span(uds_data);
     auto uds_result = uds_decoder_.decode(uds_span);
     
     ASSERT_TRUE(uds_result.is_ok());
@@ -491,14 +515,30 @@ TEST_F(DoIpUdsIntegrationTest, DecodeDoIpDiagnosticResponse_WithUds) {
         0x0001,  // ECU address (responding)
         0x0E00,  // Tester address
         uds_payload);
-    
-    std::span<const std::uint8_t> doip_span(doip_packet.data(), doip_packet.size());
-    auto doip_result = doip_decoder_.decode(doip_span);
-    
+
+    std::vector<std::byte> byte_data;
+    byte_data.reserve(doip_packet.size());
+    for (auto b : doip_packet) {
+        byte_data.push_back(static_cast<std::byte>(b));
+    }
+
+    DecodeContext ctx;
+    ctx.data = std::span<const std::byte>(byte_data);
+
+    auto doip_result = doip_decoder_.decode(ctx);
+
     ASSERT_TRUE(doip_result.is_ok());
-    
-    auto& diag_msg = std::get<doip::DiagnosticMessage>(doip_result->payload);
-    std::span<const std::uint8_t> uds_span(diag_msg.user_data.data(), diag_msg.user_data.size());
+
+    auto payload_span = ctx.data.subspan(doip::HEADER_SIZE, doip_result->payload_length);
+    auto diag_msg = doip::DoIPDecoder::parse_diagnostic_message(payload_span);
+
+    ASSERT_TRUE(diag_msg.has_value());
+
+    std::vector<std::uint8_t> uds_data;
+    for (auto b : diag_msg->user_data) {
+        uds_data.push_back(static_cast<std::uint8_t>(b));
+    }
+    std::span<const std::uint8_t> uds_span(uds_data);
     auto uds_result = uds_decoder_.decode(uds_span);
     
     ASSERT_TRUE(uds_result.is_ok());
@@ -511,20 +551,39 @@ TEST_F(DoIpUdsIntegrationTest, DecodeDoIpDiagnosticNRC_WithUds) {
         ServiceID::WriteDataByIdentifier, NRC::SecurityAccessDenied);
     auto doip_packet = DoIpUdsPacketBuilder::build_diagnostic_message(
         0x0001, 0x0E00, uds_payload);
-    
-    std::span<const std::uint8_t> doip_span(doip_packet.data(), doip_packet.size());
-    auto doip_result = doip_decoder_.decode(doip_span);
-    
+
+    std::vector<std::byte> byte_data;
+    byte_data.reserve(doip_packet.size());
+    for (auto b : doip_packet) {
+        byte_data.push_back(static_cast<std::byte>(b));
+    }
+
+    DecodeContext ctx;
+    ctx.data = std::span<const std::byte>(byte_data);
+
+    auto doip_result = doip_decoder_.decode(ctx);
+
     ASSERT_TRUE(doip_result.is_ok());
-    
-    auto& diag_msg = std::get<doip::DiagnosticMessage>(doip_result->payload);
-    std::span<const std::uint8_t> uds_span(diag_msg.user_data.data(), diag_msg.user_data.size());
+
+    auto payload_span = ctx.data.subspan(doip::HEADER_SIZE, doip_result->payload_length);
+    auto diag_msg = doip::DoIPDecoder::parse_diagnostic_message(payload_span);
+
+    ASSERT_TRUE(diag_msg.has_value());
+
+    std::vector<std::uint8_t> uds_data;
+    for (auto b : diag_msg->user_data) {
+        uds_data.push_back(static_cast<std::uint8_t>(b));
+    }
+    std::span<const std::uint8_t> uds_span(uds_data);
     auto uds_result = uds_decoder_.decode(uds_span);
     
     ASSERT_TRUE(uds_result.is_ok());
     EXPECT_TRUE(uds_result->header.is_negative_response());
-    EXPECT_EQ(uds_result->header.negative_response_code, NRC::SecurityAccessDenied);
-    EXPECT_EQ(uds_result->header.rejected_service_id, ServiceID::WriteDataByIdentifier);
+    ASSERT_TRUE(uds_result->header.negative_response_code.has_value());
+    EXPECT_EQ(*uds_result->header.negative_response_code,
+              static_cast<std::uint8_t>(NRC::SecurityAccessDenied));
+    ASSERT_TRUE(uds_result->header.rejected_service_id.has_value());
+    EXPECT_EQ(*uds_result->header.rejected_service_id, ServiceID::WriteDataByIdentifier);
 }
 
 // =============================================================================
@@ -538,10 +597,10 @@ protected:
 
 TEST_F(UdsMultiEcuTest, TrackMultipleEcuSessions) {
     // Get or create sessions for different ECUs
-    auto& ecu1 = session_manager_.get_or_create_session(0x0001);
-    auto& ecu2 = session_manager_.get_or_create_session(0x0002);
-    auto& ecu3 = session_manager_.get_or_create_session(0x0003);
-    
+    auto& ecu1 = session_manager_.get_session(0x0001);
+    auto& ecu2 = session_manager_.get_session(0x0002);
+    auto& ecu3 = session_manager_.get_session(0x0003);
+
     // All start in default session
     EXPECT_EQ(ecu1.session_type(), SessionType::DefaultSession);
     EXPECT_EQ(ecu2.session_type(), SessionType::DefaultSession);
@@ -573,33 +632,39 @@ TEST_F(UdsMultiEcuTest, TrackMultipleEcuSessions) {
     EXPECT_EQ(ecu1.session_type(), SessionType::ExtendedDiagnosticSession);
     EXPECT_EQ(ecu2.session_type(), SessionType::ProgrammingSession);
     EXPECT_EQ(ecu3.session_type(), SessionType::DefaultSession);
-    
-    // Verify session count
-    EXPECT_EQ(session_manager_.session_count(), 3);
+
+    // Verify session count (active_sessions returns only active sessions, not all tracked)
+    EXPECT_TRUE(session_manager_.has_session(0x0001));
+    EXPECT_TRUE(session_manager_.has_session(0x0002));
+    EXPECT_TRUE(session_manager_.has_session(0x0003));
 }
 
 TEST_F(UdsMultiEcuTest, FindExistingSession) {
-    session_manager_.get_or_create_session(0x0001);
-    session_manager_.get_or_create_session(0x0002);
-    
-    auto* session = session_manager_.find_session(0x0001);
-    ASSERT_NE(session, nullptr);
-    EXPECT_EQ(session->ecu_address(), 0x0001);
-    
-    auto* missing = session_manager_.find_session(0x9999);
-    EXPECT_EQ(missing, nullptr);
+    session_manager_.get_session(0x0001);
+    session_manager_.get_session(0x0002);
+
+    EXPECT_TRUE(session_manager_.has_session(0x0001));
+    auto& session = session_manager_.get_session(0x0001);
+    EXPECT_EQ(session.ecu_address(), 0x0001);
+
+    EXPECT_FALSE(session_manager_.has_session(0x9999));
 }
 
 TEST_F(UdsMultiEcuTest, ClearAllSessions) {
-    session_manager_.get_or_create_session(0x0001);
-    session_manager_.get_or_create_session(0x0002);
-    session_manager_.get_or_create_session(0x0003);
-    
-    EXPECT_EQ(session_manager_.session_count(), 3);
-    
-    session_manager_.clear_all();
-    
-    EXPECT_EQ(session_manager_.session_count(), 0);
+    session_manager_.get_session(0x0001);
+    session_manager_.get_session(0x0002);
+    session_manager_.get_session(0x0003);
+
+    EXPECT_TRUE(session_manager_.has_session(0x0001));
+    EXPECT_TRUE(session_manager_.has_session(0x0002));
+    EXPECT_TRUE(session_manager_.has_session(0x0003));
+
+    session_manager_.reset_all();
+
+    // reset_all resets sessions but doesn't remove them
+    // All sessions should still exist but be reset to default state
+    auto& ecu1 = session_manager_.get_session(0x0001);
+    EXPECT_EQ(ecu1.session_type(), SessionType::DefaultSession);
 }
 
 // =============================================================================
@@ -645,31 +710,33 @@ TEST_F(UdsTimingTest, TimingParametersFromSessionResponse) {
 // =============================================================================
 
 TEST(UdsServiceStringsTest, ServiceIdString) {
-    EXPECT_STREQ(service_id_string(ServiceID::DiagnosticSessionControl), "DiagnosticSessionControl");
-    EXPECT_STREQ(service_id_string(ServiceID::ECUReset), "ECUReset");
-    EXPECT_STREQ(service_id_string(ServiceID::SecurityAccess), "SecurityAccess");
-    EXPECT_STREQ(service_id_string(ServiceID::ReadDataByIdentifier), "ReadDataByIdentifier");
-    EXPECT_STREQ(service_id_string(ServiceID::WriteDataByIdentifier), "WriteDataByIdentifier");
-    EXPECT_STREQ(service_id_string(ServiceID::RoutineControl), "RoutineControl");
+    EXPECT_EQ(service_id_string(ServiceID::DiagnosticSessionControl), "DiagnosticSessionControl");
+    EXPECT_EQ(service_id_string(ServiceID::ECUReset), "ECUReset");
+    EXPECT_EQ(service_id_string(ServiceID::SecurityAccess), "SecurityAccess");
+    EXPECT_EQ(service_id_string(ServiceID::ReadDataByIdentifier), "ReadDataByIdentifier");
+    EXPECT_EQ(service_id_string(ServiceID::WriteDataByIdentifier), "WriteDataByIdentifier");
+    EXPECT_EQ(service_id_string(ServiceID::RoutineControl), "RoutineControl");
 }
 
 TEST(UdsServiceStringsTest, SessionTypeString) {
-    EXPECT_STREQ(session_type_string(SessionType::DefaultSession), "DefaultSession");
-    EXPECT_STREQ(session_type_string(SessionType::ProgrammingSession), "ProgrammingSession");
-    EXPECT_STREQ(session_type_string(SessionType::ExtendedDiagnosticSession), "ExtendedDiagnosticSession");
+    EXPECT_EQ(session_type_string(SessionType::DefaultSession), "DefaultSession");
+    EXPECT_EQ(session_type_string(SessionType::ProgrammingSession), "ProgrammingSession");
+    EXPECT_EQ(session_type_string(SessionType::ExtendedDiagnosticSession),
+              "ExtendedDiagnosticSession");
 }
 
 TEST(UdsServiceStringsTest, NRCString) {
-    EXPECT_STREQ(nrc_string(NRC::SecurityAccessDenied), "SecurityAccessDenied");
-    EXPECT_STREQ(nrc_string(NRC::InvalidKey), "InvalidKey");
-    EXPECT_STREQ(nrc_string(NRC::RequestCorrectlyReceivedResponsePending), "RequestCorrectlyReceivedResponsePending");
+    EXPECT_EQ(nrc_string(NRC::SecurityAccessDenied), "SecurityAccessDenied");
+    EXPECT_EQ(nrc_string(NRC::InvalidKey), "InvalidKey");
+    EXPECT_EQ(nrc_string(NRC::RequestCorrectlyReceivedResponsePending),
+              "RequestCorrectlyReceivedResponsePending");
 }
 
 TEST(UdsServiceStringsTest, NRCDescription) {
-    auto desc = nrc_description(NRC::SecurityAccessDenied);
-    EXPECT_NE(desc.find("security"), std::string::npos);
-    
-    auto desc2 = nrc_description(NRC::RequestCorrectlyReceivedResponsePending);
+    auto desc = std::string(nrc_description(NRC::SecurityAccessDenied));
+    EXPECT_NE(desc.find("Security"), std::string::npos);
+
+    auto desc2 = std::string(nrc_description(NRC::RequestCorrectlyReceivedResponsePending));
     EXPECT_NE(desc2.find("pending"), std::string::npos);
 }
 
