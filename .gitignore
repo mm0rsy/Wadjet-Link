@@ -59,3 +59,5 @@ docs/xml/
 Thumbs.db
 
 build-nosanit/
+build-test/
+build_noasan/
