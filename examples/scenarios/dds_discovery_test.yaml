@@ -1,0 +1,233 @@
+# DDS Discovery Test Scenario
+#
+# 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
+#
+# This scenario verifies DDS/RTPS participant and endpoint discovery
+# using SPDP (Simple Participant Discovery Protocol) and SEDP
+# (Simple Endpoint Discovery Protocol).
+
+name: DDS Discovery Test
+description: Verify DDS participant and endpoint discovery via SPDP/SEDP
+version: "1.0"
+tags:
+  - dds
+  - rtps
+  - discovery
+  - spdp
+  - sedp
+  - ros2
+  - automotive
+
+timeout: 120s
+
+parameters:
+  interface:
+    default: eth0
+    description: Network interface to capture DDS traffic
+  domain_id:
+    default: 0
+    description: DDS domain ID to monitor
+  expected_participants:
+    default: 2
+    description: Minimum number of participants expected
+  expected_topics:
+    default: 1
+    description: Minimum number of topics expected
+
+# Port calculation for DDS domain
+# Discovery multicast: PB + DG * domainId = 7400 + 250 * domain_id
+# User multicast: PB + DG * domainId + d2 = 7401 + 250 * domain_id
+
+steps:
+  - log: "Starting DDS discovery test on domain {{ domain_id }}"
+  
+  - capture:
+      interface: "{{ interface }}"
+      filter: "udp portrange {{ 7400 + 250 * domain_id }}-{{ 7500 + 250 * domain_id }}"
+      timeout: 60s
+
+  # ==========================================================================
+  # Phase 1: SPDP Participant Discovery
+  # ==========================================================================
+  
+  - log: "Phase 1: Waiting for SPDP participant announcements..."
+  
+  - expect:
+      description: "Should receive SPDP participant announcements"
+      rtps:
+        submessage_kind: DATA
+        writer_entity_id: "0x000100c2"  # SPDP builtin participant writer
+      within: 15s
+      count: ">= 1"
+      save_as: spdp_announcements
+
+  - validate:
+      description: "SPDP announcements should have valid RTPS headers"
+      packets: "{{ spdp_announcements }}"
+      assertions:
+        - rtps.version.major == 2
+        - rtps.version.minor >= 2
+        - rtps.guid_prefix != "000000000000000000000000"
+
+  - expect:
+      description: "Should discover minimum number of participants"
+      rtps:
+        submessage_kind: DATA
+        writer_entity_id: "0x000100c2"
+      within: 30s
+      unique_guid_prefixes: ">= {{ expected_participants }}"
+
+  # ==========================================================================
+  # Phase 2: SEDP Endpoint Discovery
+  # ==========================================================================
+  
+  - log: "Phase 2: Waiting for SEDP endpoint announcements..."
+  
+  - expect:
+      description: "Should receive SEDP publication announcements"
+      rtps:
+        submessage_kind: DATA
+        writer_entity_id: "0x000003c2"  # SEDP publications writer
+      within: 20s
+      count: ">= 1"
+      save_as: sedp_publications
+      
+  - expect:
+      description: "Should receive SEDP subscription announcements"
+      rtps:
+        submessage_kind: DATA
+        writer_entity_id: "0x000004c2"  # SEDP subscriptions writer
+      within: 20s
+      count: ">= 1"
+      save_as: sedp_subscriptions
+
+  - validate:
+      description: "SEDP should announce at least expected number of topics"
+      unique_topics: ">= {{ expected_topics }}"
+      from_packets:
+        - "{{ sedp_publications }}"
+        - "{{ sedp_subscriptions }}"
+
+  # ==========================================================================
+  # Phase 3: Heartbeat/AckNack Exchange
+  # ==========================================================================
+  
+  - log: "Phase 3: Verifying reliable discovery exchange..."
+  
+  - expect:
+      description: "Should see HEARTBEAT messages for discovery writers"
+      rtps:
+        submessage_kind: HEARTBEAT
+      within: 30s
+      count: ">= 1"
+
+  - expect:
+      description: "Should see ACKNACK messages from discovery readers"
+      rtps:
+        submessage_kind: ACKNACK
+      within: 30s
+      count: ">= 1"
+
+  # ==========================================================================
+  # Phase 4: Multi-Vendor Interoperability (Optional)
+  # ==========================================================================
+  
+  - log: "Phase 4: Checking vendor diversity..."
+  
+  - collect:
+      description: "Collect vendor IDs from all RTPS packets"
+      field: rtps.vendor_id
+      save_as: vendors_seen
+
+  - log: "Vendors observed: {{ vendors_seen }}"
+
+  # ==========================================================================
+  # Phase 5: Liveliness and Lease Duration
+  # ==========================================================================
+  
+  - log: "Phase 5: Verifying participant liveliness..."
+  
+  - expect:
+      description: "Participants should send periodic SPDP announcements"
+      rtps:
+        submessage_kind: DATA
+        writer_entity_id: "0x000100c2"
+      within: 60s
+      count: ">= 2"
+      from_same_participant: true
+      interval_tolerance_ms: 5000
+
+  - log: "DDS Discovery test completed successfully!"
+
+# ==========================================================================
+# Expected Results
+# ==========================================================================
+
+assertions:
+  - name: spdp_functioning
+    description: "SPDP participant discovery must be functioning"
+    required: true
+    
+  - name: sedp_functioning
+    description: "SEDP endpoint discovery must be functioning"
+    required: true
+    
+  - name: reliable_exchange
+    description: "Reliable HEARTBEAT/ACKNACK exchange should occur"
+    required: true
+
+  - name: participant_count
+    description: "At least expected_participants participants discovered"
+    required: true
+
+# ==========================================================================
+# Diagnostic Information
+# ==========================================================================
+
+on_failure:
+  - collect_diagnostics:
+      - all_rtps_packets
+      - unique_guid_prefixes
+      - vendor_distribution
+      - submessage_type_counts
+      
+  - suggest:
+      - "Check that DDS applications are running on the network"
+      - "Verify domain ID matches (default is 0)"
+      - "Ensure multicast is enabled on the network interface"
+      - "Check firewall rules for UDP ports 7400-7500"
+      - "For ROS2, verify ROS_DOMAIN_ID environment variable"
+
+# ==========================================================================
+# Documentation
+# ==========================================================================
+
+notes: |
+  DDS Discovery Protocol Overview:
+  
+  1. SPDP (Simple Participant Discovery Protocol):
+     - Uses well-known multicast address and port
+     - Participants announce themselves with ParticipantBuiltinTopicData
+     - Includes GUID, vendor ID, protocol version, locators
+     - Periodic announcements based on lease duration
+  
+  2. SEDP (Simple Endpoint Discovery Protocol):
+     - Discovered through SPDP participant data
+     - Publications writer (0x000003c2) announces DataWriters
+     - Subscriptions writer (0x000004c2) announces DataReaders
+     - Includes topic name, type name, QoS policies
+  
+  3. Reliable Discovery:
+     - Discovery uses reliable QoS
+     - Writers send HEARTBEAT to indicate available data
+     - Readers send ACKNACK to acknowledge/request data
+  
+  Port Calculation:
+     Discovery Multicast = 7400 + 250 * domainId
+     User Multicast = 7401 + 250 * domainId
+     
+  Common Issues:
+     - Multicast not routing between network segments
+     - Firewall blocking UDP discovery ports
+     - Domain ID mismatch between participants
+     - MTU issues with large discovery messages
