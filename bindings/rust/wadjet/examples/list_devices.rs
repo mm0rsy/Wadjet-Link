@@ -20,14 +20,8 @@ fn main() -> wadjet::Result<()> {
         println!("  Status: {}", 
             if device.is_up { "UP" } else { "DOWN" }
         );
-        println!("  Running: {}", 
-            if device.is_running { "Yes" } else { "No" }
-        );
         println!("  Loopback: {}", 
             if device.is_loopback { "Yes" } else { "No" }
-        );
-        println!("  Wireless: {}", 
-            if device.is_wireless { "Yes" } else { "No" }
         );
         println!();
     }

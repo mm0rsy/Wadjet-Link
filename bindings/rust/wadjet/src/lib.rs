@@ -79,7 +79,7 @@ pub use error::{Error, Result};
 pub use capture::{CaptureSession, CaptureOptions, CaptureStatistics};
 pub use packet::{Packet, PacketView};
 pub use pcap::{PcapReader, PcapWriter};
-pub use decode::{DecodeResult, DecodedLayer, Protocol};
+pub use decode::{DecodeResult, Protocol};
 pub use device::DeviceInfo;
 pub use types::*;
 
@@ -146,7 +146,7 @@ pub fn version() -> String {
 ///     println!("Name: {}", device.name);
 ///     println!("  Description: {}", device.description);
 ///     println!("  Loopback: {}", device.is_loopback);
-///     println!("  Running: {}", device.is_running);
+///     println!("  Up: {}", device.is_up);
 /// }
 /// ```
 pub fn list_devices() -> Result<Vec<DeviceInfo>> {
