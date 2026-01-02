@@ -113,6 +113,9 @@ wadjet::
 │   │   ├── UdsDecoder      # Message decoder
 │   │   ├── UdsSession      # Session state tracking
 │   │   └── UdsSessionManager # Multi-ECU support
+│   ├── dds::               # DDS/RTPS (OMG)
+│   │   ├── RtpsDecoder     # RTPS message decoder
+│   │   └── RtpsTypes       # RTPS type definitions
 │   └── ProtocolDispatcher  # Full stack decoder
 │
 ├── testing::               # Test utilities
@@ -381,7 +384,7 @@ wadjet-link/
 │   ├── io/                   # Capture, replay, packets
 │   ├── pcap/                 # PCAP reader/writer
 │   ├── net/                  # Network primitives
-│   ├── protocols/            # Protocol decoders
+│   ├── protocols/            # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP, gPTP, UDS, DDS)
 │   ├── testing/              # Test utilities
 │   ├── scenario/             # YAML/JSON scenarios
 │   └── utils/                # Utilities
@@ -389,7 +392,9 @@ wadjet-link/
 ├── tests/                    # Unit and integration tests
 ├── examples/                 # Example code and scenarios
 ├── bindings/                 # Language bindings
-│   └── python/               # Python (pybind11)
+│   ├── c/                    # C API (libwadjet_c)
+│   ├── python/               # Python bindings (pybind11)
+│   └── rust/                 # Rust crates (wadjet-sys, wadjet)
 ├── tools/                    # CLI tools
 │   └── wadjet-run.cpp        # Scenario runner
 └── docs/                     # Documentation
