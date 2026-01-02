@@ -3,6 +3,7 @@ build/
 cmake-build-*/
 out/
 bindings/rust/target/
+bindings/python/tests/__pycache__/
 
 # IDE
 .idea/
