@@ -72,45 +72,41 @@ pub(crate) fn check_error(err: wadjet_sys::wadjet_error_t) -> Result<()> {
     
     match err {
         WADJET_OK => Ok(()),
-        WADJET_ERROR_INVALID_PARAMETER => {
+        WADJET_ERR_INVALID_ARGUMENT => {
             Err(Error::InvalidParameter(get_last_error_message()))
         }
-        WADJET_ERROR_OPERATION_FAILED => {
-            Err(Error::OperationFailed(get_last_error_message()))
-        }
-        WADJET_ERROR_DEVICE_NOT_FOUND => {
+        WADJET_ERR_NOT_FOUND => {
             Err(Error::DeviceNotFound(get_last_error_message()))
         }
-        WADJET_ERROR_PERMISSION_DENIED => {
+        WADJET_ERR_PERMISSION => {
             Err(Error::PermissionDenied(get_last_error_message()))
         }
-        WADJET_ERROR_BUSY => {
-            Err(Error::Busy(get_last_error_message()))
-        }
-        WADJET_ERROR_TIMEOUT => Err(Error::Timeout),
-        WADJET_ERROR_END_OF_FILE => Err(Error::EndOfFile),
-        WADJET_ERROR_BUFFER_TOO_SMALL => Err(Error::BufferTooSmall),
-        WADJET_ERROR_UNSUPPORTED => {
-            Err(Error::Unsupported(get_last_error_message()))
-        }
-        WADJET_ERROR_NOT_INITIALIZED => Err(Error::NotInitialized),
-        WADJET_ERROR_IO => {
+        WADJET_ERR_IO => {
             Err(Error::Io(get_last_error_message()))
         }
-        WADJET_ERROR_FILE_NOT_FOUND => {
-            Err(Error::FileNotFound(get_last_error_message()))
-        }
-        WADJET_ERROR_INVALID_FORMAT => {
+        WADJET_ERR_TIMEOUT => Err(Error::Timeout),
+        WADJET_ERR_DECODE => {
             Err(Error::InvalidFormat(get_last_error_message()))
         }
-        _ => Err(Error::Unknown(err as i32, get_last_error_message())),
+        WADJET_ERR_INVALID_STATE => {
+            Err(Error::OperationFailed(get_last_error_message()))
+        }
+        WADJET_ERR_OUT_OF_MEMORY => {
+            Err(Error::OperationFailed("Out of memory".into()))
+        }
+        WADJET_ERR_NOT_SUPPORTED => {
+            Err(Error::Unsupported(get_last_error_message()))
+        }
+        WADJET_ERR_UNKNOWN => {
+            Err(Error::Unknown(99, get_last_error_message()))
+        }
     }
 }
 
 /// Get the last error message from the C library
 pub(crate) fn get_last_error_message() -> String {
     unsafe {
-        let ptr = wadjet_sys::wadjet_last_error_message();
+        let ptr = wadjet_sys::wadjet_last_error();
         if ptr.is_null() {
             return String::from("No error message available");
         }

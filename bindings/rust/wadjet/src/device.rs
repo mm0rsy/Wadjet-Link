@@ -15,10 +15,6 @@ pub struct DeviceInfo {
     pub is_loopback: bool,
     /// Whether the device is up
     pub is_up: bool,
-    /// Whether the device is running
-    pub is_running: bool,
-    /// Whether this is a wireless device
-    pub is_wireless: bool,
 }
 
 impl DeviceInfo {
@@ -41,36 +37,42 @@ impl DeviceInfo {
             description,
             is_loopback: c.is_loopback,
             is_up: c.is_up,
-            is_running: c.is_running,
-            is_wireless: c.is_wireless,
         }
     }
 }
 
 /// List all available network capture devices.
 pub(crate) fn list_devices() -> Result<Vec<DeviceInfo>> {
-    let mut devices: *mut wadjet_sys::wadjet_device_info_t = ptr::null_mut();
-    let mut count: usize = 0;
+    let mut list: wadjet_sys::wadjet_device_list_t = ptr::null_mut();
 
     let err = unsafe {
-        wadjet_sys::wadjet_device_list(&mut devices, &mut count)
+        wadjet_sys::wadjet_device_enumerate(&mut list)
     };
 
     check_error(err)?;
 
-    if devices.is_null() || count == 0 {
+    if list.is_null() {
         return Ok(Vec::new());
     }
 
-    // Convert C array to Vec
-    let result: Vec<DeviceInfo> = unsafe {
-        let slice = std::slice::from_raw_parts(devices, count);
-        slice.iter().map(DeviceInfo::from_c).collect()
-    };
+    let count = unsafe { wadjet_sys::wadjet_device_list_count(list) };
+    
+    let mut result = Vec::with_capacity(count);
+    
+    for i in 0..count {
+        let mut info: wadjet_sys::wadjet_device_info_t = unsafe { std::mem::zeroed() };
+        let err = unsafe {
+            wadjet_sys::wadjet_device_list_get(list, i, &mut info)
+        };
+        
+        if err == wadjet_sys::wadjet_error_t::WADJET_OK {
+            result.push(DeviceInfo::from_c(&info));
+        }
+    }
 
     // Free the device list
     unsafe {
-        wadjet_sys::wadjet_device_list_free(devices, count);
+        wadjet_sys::wadjet_device_list_destroy(list);
     }
 
     Ok(result)
@@ -78,13 +80,13 @@ pub(crate) fn list_devices() -> Result<Vec<DeviceInfo>> {
 
 /// Find the default capture device.
 ///
-/// This returns the first device that is up, running, and not a loopback device.
+/// This returns the first device that is up and not a loopback device.
 pub fn default_device() -> Result<Option<DeviceInfo>> {
     let devices = list_devices()?;
     
     // Find first suitable device
     let device = devices.into_iter().find(|d| {
-        d.is_up && d.is_running && !d.is_loopback
+        d.is_up && !d.is_loopback
     });
 
     Ok(device)
