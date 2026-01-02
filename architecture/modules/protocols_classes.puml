@@ -323,6 +323,58 @@ package "wadjet::protocols" {
         }
     }
     
+    package "dds" {
+        enum SubmessageKind {
+            PAD
+            ACKNACK
+            HEARTBEAT
+            GAP
+            INFO_TS
+            INFO_SRC
+            INFO_REPLY
+            INFO_DST
+            INFO_REPLY_IP4
+            DATA
+            DATA_FRAG
+            NACK_FRAG
+            HEARTBEAT_FRAG
+        }
+        
+        struct GuidPrefix {
+            +bytes: array<uint8_t, 12>
+        }
+        
+        struct VendorId {
+            +bytes: array<uint8_t, 2>
+            --
+            +is_fastdds(): bool
+            +is_rti(): bool
+            +is_cyclonedds(): bool
+            +is_opendds(): bool
+        }
+        
+        class RtpsHeader {
+            +protocol: array<char, 4>
+            +version: ProtocolVersion
+            +vendor_id: VendorId
+            +guid_prefix: GuidPrefix
+            --
+            +is_valid(): bool
+        }
+        
+        class RtpsSubmessage {
+            +kind: SubmessageKind
+            +flags: uint8_t
+            +length: uint16_t
+            +data: span<const byte>
+        }
+        
+        class RtpsDecoder {
+            +decode(ctx): DecodeResultT<RtpsHeader>
+            +decode_submessages(data): vector<RtpsSubmessage>
+        }
+    }
+    
     ' ============================================
     ' Protocol Dispatcher
     ' ============================================
@@ -336,6 +388,7 @@ package "wadjet::protocols" {
         -someip_decoder_: SomeIpDecoder
         -someip_sd_decoder_: SomeIpSdDecoder
         -doip_decoder_: DoIPDecoder
+        -rtps_decoder_: RtpsDecoder
         --
         +decode(data): DecodeStackResult
         +decode_from_ip(data): DecodeStackResult
@@ -377,6 +430,7 @@ TcpDecoder --|> DecoderBase
 SomeIpDecoder --|> DecoderBase
 SomeIpSdDecoder --|> DecoderBase
 DoIPDecoder --|> DecoderBase
+RtpsDecoder --|> DecoderBase
 
 UdsSession o-- TimingParameters
 UdsSessionManager o-- "0..*" UdsSession
@@ -396,6 +450,7 @@ ProtocolDispatcher o-- TcpDecoder
 ProtocolDispatcher o-- SomeIpDecoder
 ProtocolDispatcher o-- SomeIpSdDecoder
 ProtocolDispatcher o-- DoIPDecoder
+ProtocolDispatcher o-- RtpsDecoder
 
 EthernetHeader o-- VlanTag
 SomeIpSdHeader o-- "0..*" SdEntry
