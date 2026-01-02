@@ -2,6 +2,7 @@
 build/
 cmake-build-*/
 out/
+bindings/rust/target/
 
 # IDE
 .idea/
@@ -58,6 +59,4 @@ docs/xml/
 .DS_Store
 Thumbs.db
 
-build-nosanit/
-build-test/
-build_noasan/
+build*/

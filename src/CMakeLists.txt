@@ -81,6 +81,9 @@ target_include_directories(wadjet
         ${PCAP_INCLUDE_DIRS}
 )
 
+# Enable PIC for shared library linking (e.g., C bindings shared library)
+set_target_properties(wadjet PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_link_libraries(wadjet
     PRIVATE
         wadjet_warnings
