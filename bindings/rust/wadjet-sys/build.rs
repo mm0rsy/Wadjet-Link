@@ -98,6 +98,10 @@ fn link_library() {
         // Build directory (when building from source)
         PathBuf::from("../../../../build/bindings/c"),
         PathBuf::from("../../../../build/lib"),
+        // Alternative build locations
+        PathBuf::from("../../../build/bindings/c"),
+        PathBuf::from("../../../build/lib"),
+        PathBuf::from("../../../build"),
         // Installed locations
         PathBuf::from("/usr/local/lib"),
         PathBuf::from("/usr/lib"),
