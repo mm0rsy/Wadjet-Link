@@ -35,6 +35,9 @@ Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstruct
 - **SOME/IP** — Service-oriented middleware protocol
 - **SOME/IP-SD** — Service Discovery messages
 - **DoIP** — Diagnostics over IP (ISO 13400)
+- **UDS** — Unified Diagnostic Services (ISO 14229)
+- **gPTP** — Generalized Precision Time Protocol (IEEE 802.1AS)
+- **DDS/RTPS** — Data Distribution Service Real-Time Publish-Subscribe
 
 ### 🧪 Testing Framework
 - **GoogleTest Integration** — Assert on live traffic with custom matchers
@@ -55,6 +58,11 @@ Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstruct
 - **Passive Monitoring** — Read-only mode, no impact on functional safety (ASIL)
 - **Deterministic Replay** — Reproduce issues from saved captures
 - **Comprehensive Logging** — Full audit trail for compliance
+
+### 🌐 Language Bindings
+- **C** — C99 compatible API for FFI integration ([bindings/c/](bindings/c/))
+- **Python** — pybind11-based bindings with pytest support ([bindings/python/](bindings/python/))
+- **Rust** — Safe idiomatic wrapper via bindgen FFI ([bindings/rust/](bindings/rust/))
 
 ## Use Cases
 
@@ -342,7 +350,7 @@ wadjet-link/
 │   ├── net/                 # Packet classes
 │   ├── pcap/                # PCAP file I/O
 │   ├── io/                  # Live capture
-│   ├── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP)
+│   ├── protocols/           # Protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP, UDS, gPTP, DDS)
 │   ├── testing/             # GoogleTest fixtures, matchers, generators
 │   └── scenario/            # YAML/JSON scenario types and runner
 ├── src/                     # Implementation
@@ -356,6 +364,10 @@ wadjet-link/
 │   ├── testing/             # Testing framework tests
 │   ├── scenario/            # Scenario parser and runner tests
 │   └── integration/         # Integration & E2E tests
+├── bindings/                # Language bindings
+│   ├── c/                   # C API (libwadjet_c)
+│   ├── python/              # Python bindings (pybind11)
+│   └── rust/                # Rust crates (wadjet-sys, wadjet)
 ├── examples/
 │   └── scenarios/           # Example YAML/JSON test scenarios
 ├── architecture/            # PlantUML diagrams
@@ -372,6 +384,9 @@ wadjet-link/
 | [architecture/](architecture/)   | PlantUML architecture diagrams    |
 | [docs/CODING_GUIDELINES.md](docs/CODING_GUIDELINES.md) | Code style guide |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines         |
+| [bindings/c/README.md](bindings/c/README.md) | C bindings documentation |
+| [bindings/python/README.md](bindings/python/README.md) | Python bindings documentation |
+| [bindings/rust/README.md](bindings/rust/README.md) | Rust bindings documentation |
 
 ---
 
