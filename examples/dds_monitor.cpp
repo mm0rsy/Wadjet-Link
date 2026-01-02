@@ -23,11 +23,11 @@
 
 #include <wadjet/io/capture_session.hpp>
 #include <wadjet/pcap/pcap_reader.hpp>
-#include <wadjet/protocols/dispatcher.hpp>
+#include <wadjet/protocols/dds/discovery.hpp>
 #include <wadjet/protocols/dds/rtps.hpp>
 #include <wadjet/protocols/dds/rtps_messages.hpp>
 #include <wadjet/protocols/dds/rtps_types.hpp>
-#include <wadjet/protocols/dds/discovery.hpp>
+#include <wadjet/protocols/dispatcher.hpp>
 
 #include <chrono>
 #include <filesystem>
@@ -36,6 +36,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include <thread>
 #include <vector>
 
 using namespace wadjet;
@@ -187,13 +188,13 @@ public:
     
     void print_verbose_submessage(const Submessage& submsg, const Config& cfg) const {
         std::cout << "  └─ " << submessage_kind_string(submsg.header.kind);
-        
-        if (submsg.header.flags.endian_little) {
+
+        if (submsg.header.flags.is_little_endian()) {
             std::cout << " [LE]";
         } else {
             std::cout << " [BE]";
         }
-        
+
         std::cout << " len=" << submsg.header.length;
         
         // Add submessage-specific details
@@ -260,20 +261,20 @@ private:
         const auto& writer_id = data.writer_id;
         
         // SPDP - Participant discovery
-        if (writer_id.entity_kind == EntityKind::BuiltinWriterWithKey &&
+        if (writer_id.kind == EntityKind::BuiltinWriterWithKey &&
             writer_id.entity_key == std::array<std::uint8_t, 3>{0x00, 0x01, 0x00}) {
             // This is SPDP announcements - could parse ParticipantBuiltinTopicData
             // For now, just track we received discovery
         }
-        
+
         // SEDP - Publication discovery
-        if (writer_id.entity_kind == EntityKind::BuiltinWriterWithKey &&
+        if (writer_id.kind == EntityKind::BuiltinWriterWithKey &&
             writer_id.entity_key == std::array<std::uint8_t, 3>{0x00, 0x00, 0x03}) {
             // Could parse PublicationBuiltinTopicData
         }
-        
-        // SEDP - Subscription discovery  
-        if (writer_id.entity_kind == EntityKind::BuiltinWriterWithKey &&
+
+        // SEDP - Subscription discovery
+        if (writer_id.kind == EntityKind::BuiltinWriterWithKey &&
             writer_id.entity_key == std::array<std::uint8_t, 3>{0x00, 0x00, 0x04}) {
             // Could parse SubscriptionBuiltinTopicData
         }
@@ -358,7 +359,7 @@ void process_packet(const DecodeStackResult& result, DdsTracker& tracker,
         std::cout << "\n[" << packet_num << "] RTPS ";
         
         if (ip) {
-            std::cout << ip->src_ip_string() << " → " << ip->dst_ip_string();
+            std::cout << ip->src_ip.to_string() << " → " << ip->dst_ip.to_string();
         }
         if (udp) {
             std::cout << " port " << udp->src_port << "→" << udp->dst_port;
@@ -380,12 +381,10 @@ int run_live_capture(const Config& cfg, DdsTracker& tracker) {
     std::cout << "   Press Ctrl+C to stop and show summary.\n\n";
     
     io::CaptureSessionOptions opts;
-    opts.interface_name = cfg.source;
-    opts.promisc_mode = true;
+    opts.promiscuous = true;
     opts.buffer_size = 16 * 1024 * 1024;  // 16MB buffer
-    opts.filter = "udp portrange 7400-7600";  // DDS port range
-    
-    auto session_result = io::CaptureSession::create(opts);
+
+    auto session_result = io::CaptureSession::create(cfg.source, opts);
     if (!session_result) {
         std::cerr << "Failed to create capture session: " 
                   << session_result.error().message << "\n";
@@ -393,21 +392,24 @@ int run_live_capture(const Config& cfg, DdsTracker& tracker) {
     }
     
     auto session = std::move(*session_result);
+
+    // Set BPF filter for DDS port range
+    auto filter_result = session.set_filter("udp portrange 7400-7600");
+    if (!filter_result) {
+        std::cerr << "Warning: Failed to set filter: " << filter_result.error().message << "\n";
+    }
+
     ProtocolDispatcher dispatcher;
     std::uint64_t packet_num = 0;
     
     // Capture loop
     auto start = std::chrono::steady_clock::now();
-    
-    session.start([&](const io::CapturedFrame& frame) {
-        auto result = dispatcher.decode(frame.data);
+
+    while (auto packet = session.next_packet(std::chrono::milliseconds(100))) {
+        auto result = dispatcher.decode(packet->view().data());
         process_packet(result, tracker, cfg, packet_num);
-    });
-    
-    // Wait for interrupt
-    std::this_thread::sleep_for(std::chrono::hours(24));  // Long timeout
-    
-    session.stop();
+    }
+
     return 0;
 }
 
@@ -426,7 +428,7 @@ int run_pcap_analysis(const Config& cfg, DdsTracker& tracker) {
     
     while (auto packet = reader->next_packet()) {
         total_packets++;
-        auto result = dispatcher.decode(packet->data);
+        auto result = dispatcher.decode(packet->view().data());
         process_packet(result, tracker, cfg, packet_num);
     }
     

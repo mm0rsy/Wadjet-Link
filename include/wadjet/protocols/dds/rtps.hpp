@@ -32,6 +32,7 @@
 /// }
 /// ```
 
+#include "wadjet/protocols/dds/rtps_messages.hpp"
 #include "wadjet/protocols/dds/rtps_types.hpp"
 #include "wadjet/protocols/decoder.hpp"
 
@@ -146,18 +147,8 @@ struct SubmessageHeader {
 };
 
 // =============================================================================
-// Forward Declarations for Submessage Bodies
+// Submessage Body Variant (types defined in rtps_messages.hpp)
 // =============================================================================
-
-struct DataSubmessage;
-struct HeartbeatSubmessage;
-struct AckNackSubmessage;
-struct GapSubmessage;
-struct InfoTimestampSubmessage;
-struct InfoSourceSubmessage;
-struct InfoDestinationSubmessage;
-struct InfoReplySubmessage;
-struct PadSubmessage;
 
 /// @brief Submessage body variant
 using SubmessageBody = std::variant<
@@ -225,9 +216,15 @@ struct RtpsHeader : public IDecodedHeader {
         return RTPS_HEADER_SIZE;
     }
 
-    [[nodiscard]] std::span<const std::byte> payload() const override {
-        return {};  // Payload is in submessages
+    [[nodiscard]] std::size_t payload_size() const override {
+        std::size_t total = 0;
+        for (const auto& sub : submessages) {
+            total += sub.header.total_size();
+        }
+        return total;
     }
+
+    [[nodiscard]] std::string to_string() const override { return summary(); }
 
     /// @brief Get summary string
     [[nodiscard]] std::string summary() const {
@@ -280,7 +277,14 @@ struct RtpsHeader : public IDecodedHeader {
 /// @brief RTPS protocol decoder
 class RtpsDecoder : public DecoderBase<RtpsDecoder, RtpsHeader> {
 public:
-    using ResultType = Result<RtpsHeader>;
+    using ResultType = DecodeResultT<RtpsHeader>;
+
+    // IProtocolDecoder interface
+    [[nodiscard]] std::string_view name() const override { return "RTPS"; }
+
+    [[nodiscard]] bool can_decode(const DecodeContext& ctx) const override {
+        return looks_like_rtps(ctx.data);
+    }
 
     /// @brief Decode RTPS message from raw bytes
     /// @param data Raw packet data starting at RTPS header

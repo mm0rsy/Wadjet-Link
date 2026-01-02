@@ -24,11 +24,8 @@ std::vector<std::byte> make_bytes(Args... args) {
 
 // Helper to create a basic RTPS header (20 bytes)
 // Format: "RTPS" + version(2) + vendor(2) + guidPrefix(12)
-std::vector<std::byte> make_rtps_header(
-    std::uint8_t major_ver = 2,
-    std::uint8_t minor_ver = 4,
-    VendorId vendor = VendorId::FastDDS) {
-    
+std::vector<std::byte> make_rtps_header(std::uint8_t major_ver = 2, std::uint8_t minor_ver = 4,
+                                        [[maybe_unused]] VendorId vendor = VendorId::Eprosima) {
     auto hdr = make_bytes(
         // Magic: "RTPS"
         'R', 'T', 'P', 'S',
@@ -219,7 +216,7 @@ TEST_F(RtpsDecoderTest, DecodeMinimalHeader) {
     const auto& header = *result;
     EXPECT_EQ(header.version.major, 2);
     EXPECT_EQ(header.version.minor, 4);
-    EXPECT_EQ(header.vendor_id.to_vendor(), VendorId::FastDDS);
+    EXPECT_EQ(header.vendor_id.to_enum(), VendorId::RTI);
 }
 
 TEST_F(RtpsDecoderTest, DecodeHeaderWithSubmessages) {
@@ -274,7 +271,7 @@ TEST_F(RtpsDecoderTest, ParseDataSubmessage) {
     const auto& header = *result;
     ASSERT_EQ(header.submessages.size(), 1);
     EXPECT_EQ(header.submessages[0].header.kind, SubmessageKind::DATA);
-    EXPECT_TRUE(header.submessages[0].header.flags.endian_little);
+    EXPECT_TRUE(header.submessages[0].header.flags.is_little_endian());
 }
 
 TEST_F(RtpsDecoderTest, ParseHeartbeatSubmessage) {
@@ -324,9 +321,8 @@ TEST_F(RtpsDecoderTest, ParseMultipleSubmessages) {
 
 TEST(RtpsTypesTest, GuidPrefixToString) {
     GuidPrefix prefix;
-    prefix.data = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 
-                   0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C};
-    
+    prefix.value = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C};
+
     std::string str = prefix.to_string();
     EXPECT_FALSE(str.empty());
     EXPECT_NE(str.find("01"), std::string::npos);
@@ -335,14 +331,14 @@ TEST(RtpsTypesTest, GuidPrefixToString) {
 TEST(RtpsTypesTest, EntityIdComparison) {
     EntityId id1, id2;
     id1.entity_key = {0x00, 0x00, 0x01};
-    id1.entity_kind = EntityKind::BuiltinParticipant;
-    
+    id1.kind = EntityKind::BuiltinParticipant;
+
     id2.entity_key = {0x00, 0x00, 0x01};
-    id2.entity_kind = EntityKind::BuiltinParticipant;
-    
+    id2.kind = EntityKind::BuiltinParticipant;
+
     EXPECT_EQ(id1, id2);
-    
-    id2.entity_kind = EntityKind::BuiltinWriter;
+
+    id2.kind = EntityKind::BuiltinWriterNoKey;
     EXPECT_NE(id1, id2);
 }
 
@@ -370,16 +366,16 @@ TEST(RtpsTypesTest, SequenceNumberComparison) {
 TEST(RtpsTypesTest, VendorIdIdentification) {
     VendorIdValue v;
     v.bytes[0] = 0x01;
-    v.bytes[1] = 0x01;
-    EXPECT_EQ(v.to_vendor(), VendorId::FastDDS);
-    
-    v.bytes[0] = 0x01;
     v.bytes[1] = 0x0F;
-    EXPECT_EQ(v.to_vendor(), VendorId::RTI);
-    
+    EXPECT_EQ(v.to_enum(), VendorId::Eprosima);
+
     v.bytes[0] = 0x01;
-    v.bytes[1] = 0x03;
-    EXPECT_EQ(v.to_vendor(), VendorId::CycloneDDS);
+    v.bytes[1] = 0x01;
+    EXPECT_EQ(v.to_enum(), VendorId::RTI);
+
+    v.bytes[0] = 0x01;
+    v.bytes[1] = 0x20;
+    EXPECT_EQ(v.to_enum(), VendorId::Eclipse);
 }
 
 TEST(RtpsTypesTest, TimeArithmetic) {

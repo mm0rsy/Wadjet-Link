@@ -169,6 +169,10 @@ struct GuidPrefix {
         return value == other.value;
     }
 
+    [[nodiscard]] bool operator<(const GuidPrefix& other) const {
+        return value < other.value;
+    }
+
     [[nodiscard]] bool is_unknown() const {
         for (auto b : value) {
             if (b != 0) return false;
@@ -217,6 +221,11 @@ struct EntityId {
 
     [[nodiscard]] bool operator==(const EntityId& other) const {
         return entity_key == other.entity_key && kind == other.kind;
+    }
+
+    [[nodiscard]] bool operator<(const EntityId& other) const {
+        if (entity_key != other.entity_key) return entity_key < other.entity_key;
+        return static_cast<std::uint8_t>(kind) < static_cast<std::uint8_t>(other.kind);
     }
 
     [[nodiscard]] std::string to_string() const {
@@ -289,6 +298,11 @@ struct GUID {
 
     [[nodiscard]] bool operator==(const GUID& other) const {
         return prefix == other.prefix && entity_id == other.entity_id;
+    }
+
+    [[nodiscard]] bool operator<(const GUID& other) const {
+        if (prefix != other.prefix) return prefix < other.prefix;
+        return entity_id < other.entity_id;
     }
 
     [[nodiscard]] std::string to_string() const {
@@ -435,6 +449,11 @@ struct Time {
         return buf;
     }
 
+    /// @brief Check if this is infinite time/duration
+    [[nodiscard]] bool is_infinite() const {
+        return seconds == 0x7FFFFFFF && fraction == 0xFFFFFFFF;
+    }
+
     /// @brief Invalid time
     static constexpr Time invalid() { return {-1, 0xFFFFFFFF}; }
 
@@ -444,6 +463,19 @@ struct Time {
     /// @brief Infinite time
     static constexpr Time infinite() { return {0x7FFFFFFF, 0xFFFFFFFF}; }
 };
+
+/// @brief Time subtraction operator
+[[nodiscard]] inline Time operator-(const Time& a, const Time& b) {
+    Time result;
+    result.seconds = a.seconds - b.seconds;
+    if (a.fraction >= b.fraction) {
+        result.fraction = a.fraction - b.fraction;
+    } else {
+        result.seconds -= 1;
+        result.fraction = static_cast<std::uint32_t>(0x100000000ULL + a.fraction - b.fraction);
+    }
+    return result;
+}
 
 // =============================================================================
 // Duration
@@ -515,39 +547,44 @@ struct BuiltinEndpointSet {
 
 /// @brief Calculate discovery multicast port for a domain
 [[nodiscard]] inline std::uint16_t discovery_multicast_port(std::uint16_t domain_id) {
-    return RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
-           RTPS_DISCOVERY_MULTICAST_PORT_OFFSET;
+    return static_cast<std::uint16_t>(RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
+                                      RTPS_DISCOVERY_MULTICAST_PORT_OFFSET);
 }
 
 /// @brief Calculate discovery unicast port for a domain and participant
 [[nodiscard]] inline std::uint16_t discovery_unicast_port(std::uint16_t domain_id,
                                                           std::uint16_t participant_id) {
-    return RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
-           RTPS_DISCOVERY_UNICAST_PORT_OFFSET + participant_id;
+    return static_cast<std::uint16_t>(RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
+                                      RTPS_DISCOVERY_UNICAST_PORT_OFFSET + participant_id);
 }
 
 /// @brief Calculate user multicast port for a domain
 [[nodiscard]] inline std::uint16_t user_multicast_port(std::uint16_t domain_id) {
-    return RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
-           RTPS_USER_MULTICAST_PORT_OFFSET;
+    return static_cast<std::uint16_t>(RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
+                                      RTPS_USER_MULTICAST_PORT_OFFSET);
 }
 
 /// @brief Calculate user unicast port for a domain and participant
 [[nodiscard]] inline std::uint16_t user_unicast_port(std::uint16_t domain_id,
                                                      std::uint16_t participant_id) {
-    return RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
-           RTPS_USER_UNICAST_PORT_OFFSET + participant_id;
+    return static_cast<std::uint16_t>(RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * domain_id +
+                                      RTPS_USER_UNICAST_PORT_OFFSET + participant_id);
 }
 
 /// @brief Check if a port is likely an RTPS discovery port
 [[nodiscard]] inline bool is_likely_rtps_port(std::uint16_t port) {
+    // Exclude well-known non-RTPS ports
+    constexpr std::uint16_t DOIP_PORT = 13400;  // DoIP discovery/diagnostic port
+    if (port == DOIP_PORT)
+        return false;
+
     // RTPS ports are typically in the 7400-7900+ range
     // Check for discovery multicast/unicast and user multicast/unicast patterns
     if (port < RTPS_PORT_BASE) return false;
     if (port > RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * 230 + 20) return false;
 
     // Check if it matches the pattern for any reasonable domain
-    std::uint16_t offset = (port - RTPS_PORT_BASE) % RTPS_PORT_DOMAIN_GAIN;
+    auto offset = static_cast<std::uint16_t>((port - RTPS_PORT_BASE) % RTPS_PORT_DOMAIN_GAIN);
     return offset == RTPS_DISCOVERY_MULTICAST_PORT_OFFSET ||
            offset >= RTPS_DISCOVERY_UNICAST_PORT_OFFSET;
 }
