@@ -60,7 +60,7 @@ class TestTimestamp:
         """Test Timestamp creation."""
         import wadjet
         
-        ts = wadjet.Timestamp(1234567890, 123456789)
+        ts = wadjet.Timestamp.from_unix(1234567890, 123456789)
         assert ts.seconds == 1234567890
         assert ts.nanoseconds == 123456789
     
@@ -75,8 +75,8 @@ class TestTimestamp:
         """Test Timestamp comparison."""
         import wadjet
         
-        ts1 = wadjet.Timestamp(100, 0)
-        ts2 = wadjet.Timestamp(200, 0)
+        ts1 = wadjet.Timestamp.from_unix(100, 0)
+        ts2 = wadjet.Timestamp.from_unix(200, 0)
         
         assert ts1 < ts2
         assert ts2 > ts1
