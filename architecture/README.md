@@ -46,9 +46,9 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 
 ## Test Architecture
 
-The project has a comprehensive test suite with **378 tests**:
+The project has a comprehensive test suite with **303+ tests**:
 
-### Unit Tests (111 tests)
+### Unit Tests (~120 tests)
 
 Located in `tests/` subdirectories by module:
 
@@ -56,34 +56,34 @@ Located in `tests/` subdirectories by module:
 - `tests/net/` - Packet, PacketView, MacAddress, IPv4Address
 - `tests/pcap/` - PcapReader, PcapWriter
 - `tests/io/` - Device, FrameFilter
-- `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP decoders
+- `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP, gPTP, UDS, DDS/RTPS decoders
 
-### Testing Framework Tests (158 tests)
+### Testing Framework Tests (~140 tests)
 
 Located in `tests/testing/`:
 
-- `test_matchers.cpp` - gMock-style packet matchers (33 tests)
-- `test_live_capture_fixture.cpp` - LiveCaptureTestFixture integration (24 tests)
-- `test_generators.cpp` - Property-based testing generators (40 tests)
-- `test_record_replay.cpp` - Record-then-assert mode (35 tests)
-- `test_live_assert.cpp` - Live-assert mode (26 tests)
+- `test_matchers.cpp` - gMock-style packet matchers
+- `test_live_capture_fixture.cpp` - LiveCaptureTestFixture integration
+- `test_generators.cpp` - Property-based testing generators
+- `test_record_replay.cpp` - Record-then-assert mode
+- `test_live_assert.cpp` - Live-assert mode
 
 ### Scenario Tests (41 tests)
 
 Located in `tests/scenario/`:
 
-- `test_scenario_parser.cpp` - YAML/JSON parser tests (21 tests)
-- `test_scenario_runner.cpp` - Runner and report generator tests (20 tests)
+- `test_scenario_parser.cpp` - YAML/JSON parser tests
+- `test_scenario_runner.cpp` - Runner and report generator tests
 
-### Integration Tests (26 tests)
+### Integration Tests (~26 tests)
 
 Located in `tests/integration/`:
 
-- `test_decode_pipeline.cpp` - Full Ethernet→IPv4→UDP/TCP→SOME/IP/DoIP decode chain
+- `test_decode_pipeline.cpp` - Full Ethernet→IPv4→UDP/TCP→SOME/IP/DoIP/DDS decode chain
 - `test_pcap_decode.cpp` - PCAP read/write + decode integration
 - `test_capture_session.cpp` - Live loopback capture (requires CAP_NET_RAW)
 
-### Skipped Tests (42 tests)
+### Skipped Tests
 
 Some tests require elevated privileges or specific hardware:
 
