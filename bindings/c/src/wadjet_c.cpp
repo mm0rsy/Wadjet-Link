@@ -82,7 +82,7 @@ struct wadjet_pcap_writer {
 };
 
 struct wadjet_packet {
-    net::Packet packet;
+    Packet packet;
 };
 
 struct wadjet_decode_result {
@@ -90,7 +90,7 @@ struct wadjet_decode_result {
 };
 
 struct wadjet_device_list {
-    std::vector<io::DeviceInfo> devices;
+    std::vector<io::NetworkDevice> devices;
 };
 
 struct wadjet_uds_decoder {
@@ -114,9 +114,12 @@ const char* wadjet_version(void) {
 }
 
 void wadjet_version_components(int* major, int* minor, int* patch) {
-    if (major) *major = WADJET_VERSION_MAJOR;
-    if (minor) *minor = WADJET_VERSION_MINOR;
-    if (patch) *patch = WADJET_VERSION_PATCH;
+    if (major)
+        *major = wadjet::VERSION_MAJOR;
+    if (minor)
+        *minor = wadjet::VERSION_MINOR;
+    if (patch)
+        *patch = wadjet::VERSION_PATCH;
 }
 
 // ============================================================================
@@ -319,9 +322,8 @@ wadjet_error_t wadjet_packet_create(
         return WADJET_ERR_OUT_OF_MEMORY;
     }
 
-    std::vector<std::byte> bytes(length);
-    std::memcpy(bytes.data(), data, length);
-    handle->packet = net::Packet(std::move(bytes));
+    std::span<const std::uint8_t> span(data, length);
+    handle->packet = Packet(span);
     *packet = handle;
     return WADJET_OK;
 }
@@ -356,11 +358,8 @@ wadjet_error_t wadjet_packet_timestamp(
     }
 
     auto ts = packet->packet.timestamp();
-    auto duration = ts.time_since_epoch();
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
-    auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds);
-    timestamp->seconds = seconds.count();
-    timestamp->nanoseconds = nanos.count();
+    timestamp->seconds = ts.seconds();
+    timestamp->nanoseconds = ts.nanoseconds();
     return WADJET_OK;
 }
 
@@ -378,11 +377,8 @@ wadjet_error_t wadjet_packet_view(
     view->length = span.size();
     
     auto ts = packet->packet.timestamp();
-    auto duration = ts.time_since_epoch();
-    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
-    auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(duration - seconds);
-    view->timestamp.seconds = seconds.count();
-    view->timestamp.nanoseconds = nanos.count();
+    view->timestamp.seconds = ts.seconds();
+    view->timestamp.nanoseconds = ts.nanoseconds();
     return WADJET_OK;
 }
 
@@ -517,14 +513,10 @@ wadjet_error_t wadjet_pcap_writer_write_raw(
         return WADJET_ERR_INVALID_ARGUMENT;
     }
 
-    std::vector<std::byte> bytes(length);
-    std::memcpy(bytes.data(), data, length);
-    
-    auto ts = core::Timestamp(
-        std::chrono::seconds(timestamp->seconds) +
-        std::chrono::nanoseconds(timestamp->nanoseconds));
-    
-    net::Packet pkt(std::move(bytes), ts);
+    auto ts = Timestamp::from_unix(timestamp->seconds, timestamp->nanoseconds);
+
+    std::span<const std::uint8_t> span(data, length);
+    Packet pkt(span, ts);
     auto result = writer->writer->write_packet(pkt);
     return handle_result(result);
 }
@@ -570,7 +562,8 @@ void wadjet_decode_result_destroy(wadjet_decode_result_t result) {
 
 bool wadjet_decode_result_success(wadjet_decode_result_t result) {
     if (!result) return false;
-    return result->result.success();
+    // DecodeStackResult has 'complete' field and optional 'error' field
+    return result->result.complete && !result->result.error.has_value();
 }
 
 bool wadjet_decode_result_has_layer(
@@ -614,12 +607,12 @@ wadjet_error_t wadjet_decode_result_ethernet(
     }
 
     const auto* eth = result->result.get_layer<protocols::ethernet::EthernetHeader>();
-    std::memcpy(header->src_mac.bytes, eth->src_mac.data(), 6);
-    std::memcpy(header->dst_mac.bytes, eth->dst_mac.data(), 6);
+    std::memcpy(header->src_mac.bytes, eth->src_mac.bytes.data(), 6);
+    std::memcpy(header->dst_mac.bytes, eth->dst_mac.bytes.data(), 6);
     header->ethertype = eth->ethertype;
-    header->has_vlan = eth->has_vlan;
-    header->vlan_id = eth->vlan_id;
-    header->vlan_priority = eth->vlan_priority;
+    header->has_vlan = eth->has_vlan();
+    header->vlan_id = eth->vlan_id();
+    header->vlan_priority = eth->vlan ? eth->vlan->pcp() : 0;
     return WADJET_OK;
 }
 
@@ -638,14 +631,14 @@ wadjet_error_t wadjet_decode_result_ipv4(
     }
 
     const auto* ipv4 = result->result.get_layer<protocols::ipv4::IPv4Header>();
-    std::memcpy(header->src_ip.bytes, ipv4->src_addr.data(), 4);
-    std::memcpy(header->dst_ip.bytes, ipv4->dst_addr.data(), 4);
+    std::memcpy(header->src_ip.bytes, ipv4->src_ip.bytes.data(), 4);
+    std::memcpy(header->dst_ip.bytes, ipv4->dst_ip.bytes.data(), 4);
     header->protocol = ipv4->protocol;
     header->ttl = ipv4->ttl;
     header->total_length = ipv4->total_length;
     header->identification = ipv4->identification;
-    header->dont_fragment = ipv4->dont_fragment;
-    header->more_fragments = ipv4->more_fragments;
+    header->dont_fragment = ipv4->flags.dont_fragment;
+    header->more_fragments = ipv4->flags.more_fragments;
     header->fragment_offset = ipv4->fragment_offset;
     return WADJET_OK;
 }
@@ -689,16 +682,16 @@ wadjet_error_t wadjet_decode_result_tcp(
     const auto* tcp = result->result.get_layer<protocols::tcp::TcpHeader>();
     header->src_port = tcp->src_port;
     header->dst_port = tcp->dst_port;
-    header->sequence_number = tcp->sequence_number;
-    header->ack_number = tcp->ack_number;
+    header->sequence_number = tcp->seq_num;
+    header->ack_number = tcp->ack_num;
     header->data_offset = tcp->data_offset;
-    header->syn = tcp->syn;
-    header->ack = tcp->ack;
-    header->fin = tcp->fin;
-    header->rst = tcp->rst;
-    header->psh = tcp->psh;
-    header->urg = tcp->urg;
-    header->window_size = tcp->window_size;
+    header->syn = tcp->flags.syn;
+    header->ack = tcp->flags.ack;
+    header->fin = tcp->flags.fin;
+    header->rst = tcp->flags.rst;
+    header->psh = tcp->flags.psh;
+    header->urg = tcp->flags.urg;
+    header->window_size = tcp->window;
     return WADJET_OK;
 }
 
@@ -766,9 +759,12 @@ wadjet_error_t wadjet_decode_result_gptp(wadjet_decode_result_t result,
     }
 
     const auto* gptp = result->result.get_layer<protocols::gptp::GptpHeader>();
-    header->transport_specific = gptp->transport_specific;
-    header->message_type = static_cast<wadjet_gptp_message_type_t>(gptp->message_type);
-    header->version = gptp->version;
+
+    // Convert enum to uint8_t
+    header->transport_specific = static_cast<uint8_t>(gptp->transport_specific);
+    header->message_type =
+        static_cast<wadjet_gptp_message_type_t>(static_cast<std::uint8_t>(gptp->message_type));
+    header->version = gptp->version_ptp;  // Use version_ptp field
     header->message_length = gptp->message_length;
     header->domain_number = gptp->domain_number;
     header->correction_field = gptp->correction_field.scaled_ns;
@@ -779,8 +775,8 @@ wadjet_error_t wadjet_decode_result_gptp(wadjet_decode_result_t result,
     header->source_port_identity.port_number = gptp->source_port_identity.port_number;
 
     header->sequence_id = gptp->sequence_id;
-    header->control = gptp->control;
-    header->log_message_interval = gptp->log_message_interval;
+    header->control = gptp->control_field;                            // Use control_field
+    header->log_message_interval = gptp->log_message_interval.value;  // Extract .value
     header->two_step = gptp->is_two_step();
     header->is_event = gptp->is_event();
     return WADJET_OK;
@@ -835,54 +831,43 @@ wadjet_error_t wadjet_decode_result_payload(
         return WADJET_ERR_INVALID_ARGUMENT;
     }
 
-    std::span<const std::byte> payload;
-
+    // Check that the requested protocol layer exists
+    bool has_layer = false;
     switch (protocol) {
         case WADJET_PROTOCOL_ETHERNET:
-            if (result->result.has_layer<protocols::ethernet::EthernetHeader>()) {
-                payload = result->result.payload_after<protocols::ethernet::EthernetHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::ethernet::EthernetHeader>();
             break;
         case WADJET_PROTOCOL_IPV4:
-            if (result->result.has_layer<protocols::ipv4::IPv4Header>()) {
-                payload = result->result.payload_after<protocols::ipv4::IPv4Header>();
-            }
+            has_layer = result->result.has_layer<protocols::ipv4::IPv4Header>();
             break;
         case WADJET_PROTOCOL_UDP:
-            if (result->result.has_layer<protocols::udp::UdpHeader>()) {
-                payload = result->result.payload_after<protocols::udp::UdpHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::udp::UdpHeader>();
             break;
         case WADJET_PROTOCOL_TCP:
-            if (result->result.has_layer<protocols::tcp::TcpHeader>()) {
-                payload = result->result.payload_after<protocols::tcp::TcpHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::tcp::TcpHeader>();
             break;
         case WADJET_PROTOCOL_SOMEIP:
-            if (result->result.has_layer<protocols::someip::SomeIpHeader>()) {
-                payload = result->result.payload_after<protocols::someip::SomeIpHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::someip::SomeIpHeader>();
             break;
         case WADJET_PROTOCOL_DOIP:
-            if (result->result.has_layer<protocols::doip::DoIPHeader>()) {
-                payload = result->result.payload_after<protocols::doip::DoIPHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::doip::DoIPHeader>();
             break;
         case WADJET_PROTOCOL_GPTP:
-            if (result->result.has_layer<protocols::gptp::GptpHeader>()) {
-                payload = result->result.payload_after<protocols::gptp::GptpHeader>();
-            }
+            has_layer = result->result.has_layer<protocols::gptp::GptpHeader>();
             break;
         default:
             set_last_error("Unknown protocol");
             return WADJET_ERR_INVALID_ARGUMENT;
     }
 
-    if (payload.empty() && !result->result.has_layer<protocols::ethernet::EthernetHeader>()) {
+    if (!has_layer) {
         set_last_error("Protocol layer not present");
         return WADJET_ERR_NOT_FOUND;
     }
 
+    // Return the final payload (data after all decoded headers)
+    // Note: DecodeStackResult.payload contains the remaining data after all layers
+    const auto& payload = result->result.payload;
     *data = reinterpret_cast<const uint8_t*>(payload.data());
     *length = payload.size();
     return WADJET_OK;
@@ -904,7 +889,13 @@ wadjet_error_t wadjet_device_enumerate(wadjet_device_list_t* list) {
         return WADJET_ERR_OUT_OF_MEMORY;
     }
 
-    handle->devices = io::enumerate_devices();
+    auto result = io::enumerate_devices();
+    if (!result.is_ok()) {
+        delete handle;
+        set_last_error(result.error());
+        return handle_result(result);
+    }
+    handle->devices = std::move(result.value());
     *list = handle;
     return WADJET_OK;
 }
@@ -1081,7 +1072,7 @@ wadjet_error_t wadjet_uds_decode(wadjet_uds_decoder_t decoder, const uint8_t* da
     std::span<const std::uint8_t> span(data, length);
     auto result = decoder->decoder.decode(span);
 
-    if (!result.has_value()) {
+    if (!result.is_ok()) {
         set_last_error("UDS decode error");
         return WADJET_ERR_DECODE;
     }
@@ -1104,9 +1095,14 @@ wadjet_error_t wadjet_uds_decode(wadjet_uds_decoder_t decoder, const uint8_t* da
         header->nrc = static_cast<wadjet_uds_nrc_t>(0);
     }
 
-    header->rejected_service_id = uds_header.rejected_service_id.value_or(0);
-    header->data = uds_header.data.data();
-    header->data_length = uds_header.data.size();
+    if (uds_header.rejected_service_id) {
+        header->rejected_service_id = static_cast<wadjet_uds_service_id_t>(
+            static_cast<std::uint8_t>(*uds_header.rejected_service_id));
+    } else {
+        header->rejected_service_id = static_cast<wadjet_uds_service_id_t>(0);
+    }
+    header->data = reinterpret_cast<const uint8_t*>(uds_header.service_data.data());
+    header->data_length = uds_header.service_data.size();
 
     return WADJET_OK;
 }
@@ -1114,21 +1110,21 @@ wadjet_error_t wadjet_uds_decode(wadjet_uds_decoder_t decoder, const uint8_t* da
 bool wadjet_uds_is_request(const uint8_t* data, size_t length) {
     if (!data || length == 0)
         return false;
-    std::span<const std::uint8_t> span(data, length);
+    std::span<const std::byte> span(reinterpret_cast<const std::byte*>(data), length);
     return protocols::uds::UdsDecoder::is_request(span);
 }
 
 bool wadjet_uds_is_positive_response(const uint8_t* data, size_t length) {
     if (!data || length == 0)
         return false;
-    std::span<const std::uint8_t> span(data, length);
+    std::span<const std::byte> span(reinterpret_cast<const std::byte*>(data), length);
     return protocols::uds::UdsDecoder::is_positive_response(span);
 }
 
 bool wadjet_uds_is_negative_response(const uint8_t* data, size_t length) {
     if (!data || length == 0)
         return false;
-    std::span<const std::uint8_t> span(data, length);
+    std::span<const std::byte> span(reinterpret_cast<const std::byte*>(data), length);
     return protocols::uds::UdsDecoder::is_negative_response(span);
 }
 
@@ -1229,30 +1225,44 @@ wadjet_error_t wadjet_decode_result_uds(wadjet_decode_result_t result,
 
     // UDS is typically extracted from DoIP payload, not directly from decode result
     // Check if we have DoIP with diagnostic message
-    if (!result->result.has_layer<protocols::doip::DoIpHeader>()) {
+    if (!result->result.has_layer<protocols::doip::DoIPHeader>()) {
         set_last_error("No DoIP layer found");
         return WADJET_ERR_NOT_FOUND;
     }
 
-    const auto* doip = result->result.get_layer<protocols::doip::DoIpHeader>();
+    const auto* doip = result->result.get_layer<protocols::doip::DoIPHeader>();
     if (!doip) {
         set_last_error("Failed to get DoIP header");
         return WADJET_ERR_NOT_FOUND;
     }
 
-    // Check for diagnostic message payload
-    if (!std::holds_alternative<protocols::doip::DiagnosticMessagePayload>(doip->payload)) {
+    // Check if it's a diagnostic message type
+    if (!doip->is_diagnostic_message()) {
         set_last_error("DoIP payload is not a diagnostic message");
         return WADJET_ERR_NOT_FOUND;
     }
 
-    const auto& diag = std::get<protocols::doip::DiagnosticMessagePayload>(doip->payload);
+    // Get the final payload (which should be after DoIP header for diagnostic messages)
+    const auto& payload = result->result.payload;
+    if (payload.empty()) {
+        set_last_error("No payload after DoIP header");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    // Parse the diagnostic message payload
+    auto diag_opt = protocols::doip::DoIPDecoder::parse_diagnostic_message(payload);
+    if (!diag_opt) {
+        set_last_error("Failed to parse DoIP diagnostic message");
+        return WADJET_ERR_DECODE;
+    }
+
+    const auto& diag = *diag_opt;
 
     // Decode UDS from user_data
     protocols::uds::UdsDecoder decoder;
     auto uds_result = decoder.decode(diag.user_data);
 
-    if (!uds_result.has_value()) {
+    if (!uds_result.is_ok()) {
         set_last_error("Failed to decode UDS from DoIP payload");
         return WADJET_ERR_DECODE;
     }
@@ -1275,9 +1285,14 @@ wadjet_error_t wadjet_decode_result_uds(wadjet_decode_result_t result,
         header->nrc = static_cast<wadjet_uds_nrc_t>(0);
     }
 
-    header->rejected_service_id = uds_header.rejected_service_id.value_or(0);
-    header->data = uds_header.data.data();
-    header->data_length = uds_header.data.size();
+    if (uds_header.rejected_service_id) {
+        header->rejected_service_id = static_cast<wadjet_uds_service_id_t>(
+            static_cast<std::uint8_t>(*uds_header.rejected_service_id));
+    } else {
+        header->rejected_service_id = static_cast<wadjet_uds_service_id_t>(0);
+    }
+    header->data = reinterpret_cast<const uint8_t*>(uds_header.service_data.data());
+    header->data_length = uds_header.service_data.size();
 
     return WADJET_OK;
 }

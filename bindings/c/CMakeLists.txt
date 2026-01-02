@@ -1,8 +1,16 @@
 # ============================================================================
 # Wadjet C Bindings
 # ============================================================================
+#
+# 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
+#
+# C bindings providing FFI compatibility for Rust, Python ctypes, and other
+# languages that can interface with C libraries.
 
 cmake_minimum_required(VERSION 3.16)
+
+# Include GNUInstallDirs for standard install paths
+include(GNUInstallDirs)
 
 # C shared library
 add_library(wadjet_c SHARED
@@ -73,3 +81,9 @@ install(EXPORT wadjet_c-targets
     NAMESPACE wadjet::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/wadjet_c
 )
+
+# Build examples if requested
+option(WADJET_BUILD_C_EXAMPLES "Build C bindings examples" ON)
+if(WADJET_BUILD_C_EXAMPLES)
+    add_subdirectory(examples)
+endif()
