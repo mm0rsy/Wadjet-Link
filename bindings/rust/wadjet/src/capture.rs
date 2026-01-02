@@ -12,12 +12,12 @@ pub struct CaptureOptions {
     pub snaplen: u32,
     /// Enable promiscuous mode (default: true)
     pub promiscuous: bool,
-    /// Timeout in milliseconds for reads (default: 1000)
-    pub timeout_ms: u32,
     /// Enable immediate mode for low latency (default: true)
     pub immediate_mode: bool,
     /// Buffer size in bytes (default: 2MB)
-    pub buffer_size: u32,
+    pub buffer_size: usize,
+    /// Timeout in milliseconds for reads (default: 1000)
+    pub timeout_ms: i32,
     /// BPF filter expression (optional)
     pub filter: Option<String>,
 }
@@ -27,9 +27,9 @@ impl Default for CaptureOptions {
         Self {
             snaplen: 65535,
             promiscuous: true,
-            timeout_ms: 1000,
             immediate_mode: true,
             buffer_size: 2 * 1024 * 1024,
+            timeout_ms: 1000,
             filter: None,
         }
     }
@@ -54,7 +54,7 @@ impl CaptureOptions {
     }
 
     /// Set the read timeout in milliseconds
-    pub fn timeout_ms(mut self, timeout_ms: u32) -> Self {
+    pub fn timeout_ms(mut self, timeout_ms: i32) -> Self {
         self.timeout_ms = timeout_ms;
         self
     }
@@ -66,7 +66,7 @@ impl CaptureOptions {
     }
 
     /// Set the buffer size
-    pub fn buffer_size(mut self, size: u32) -> Self {
+    pub fn buffer_size(mut self, size: usize) -> Self {
         self.buffer_size = size;
         self
     }
@@ -82,10 +82,9 @@ impl CaptureOptions {
         wadjet_sys::wadjet_capture_options_t {
             snaplen: self.snaplen,
             promiscuous: self.promiscuous,
-            timeout_ms: self.timeout_ms,
             immediate_mode: self.immediate_mode,
             buffer_size: self.buffer_size,
-            filter: ptr::null(),
+            timeout_ms: self.timeout_ms,
         }
     }
 }
@@ -95,10 +94,12 @@ impl CaptureOptions {
 pub struct CaptureStatistics {
     /// Packets received by the capture session
     pub packets_received: u64,
-    /// Packets dropped by the capture session
+    /// Packets dropped by kernel
     pub packets_dropped: u64,
-    /// Packets dropped by the interface
-    pub packets_dropped_interface: u64,
+    /// Packets filtered out
+    pub packets_filtered: u64,
+    /// Total bytes received
+    pub bytes_received: u64,
 }
 
 /// A live packet capture session.
@@ -119,7 +120,7 @@ pub struct CaptureStatistics {
 /// }
 /// ```
 pub struct CaptureSession {
-    handle: *mut wadjet_sys::wadjet_capture_session_t,
+    handle: wadjet_sys::wadjet_capture_session_t,
 }
 
 impl CaptureSession {
@@ -140,20 +141,12 @@ impl CaptureSession {
             crate::Error::InvalidParameter("Device name contains null byte".into())
         })?;
 
-        let mut c_options = options.to_c();
-        
-        // Handle filter string
-        let filter_c = options.filter.as_ref().map(|f| {
-            CString::new(f.as_str()).expect("Filter contains null byte")
-        });
-        if let Some(ref f) = filter_c {
-            c_options.filter = f.as_ptr();
-        }
+        let c_options = options.to_c();
 
-        let mut handle: *mut wadjet_sys::wadjet_capture_session_t = ptr::null_mut();
+        let mut handle: wadjet_sys::wadjet_capture_session_t = ptr::null_mut();
         
         let err = unsafe {
-            wadjet_sys::wadjet_capture_open(device_c.as_ptr(), &c_options, &mut handle)
+            wadjet_sys::wadjet_capture_create(device_c.as_ptr(), &c_options, &mut handle)
         };
         
         check_error(err)?;
@@ -164,7 +157,36 @@ impl CaptureSession {
             ));
         }
 
-        Ok(Self { handle })
+        let mut session = Self { handle };
+        
+        // Apply filter if set
+        if let Some(ref filter) = options.filter {
+            session.set_filter(filter)?;
+        }
+
+        Ok(session)
+    }
+
+    /// Start capturing packets.
+    pub fn start(&mut self) -> Result<()> {
+        let err = unsafe {
+            wadjet_sys::wadjet_capture_start(self.handle)
+        };
+        check_error(err)
+    }
+
+    /// Stop capturing packets.
+    pub fn stop(&mut self) {
+        unsafe {
+            wadjet_sys::wadjet_capture_stop(self.handle);
+        }
+    }
+
+    /// Check if capture is running.
+    pub fn is_running(&self) -> bool {
+        unsafe {
+            wadjet_sys::wadjet_capture_is_running(self.handle)
+        }
     }
 
     /// Get the next packet from the capture session.
@@ -173,14 +195,23 @@ impl CaptureSession {
     /// `Ok(None)` if the timeout expired with no packet,
     /// or an error if something went wrong.
     pub fn next_packet(&mut self) -> Result<Option<Packet>> {
-        let mut packet_handle: *mut wadjet_sys::wadjet_packet_t = ptr::null_mut();
+        self.next_packet_timeout(-1)
+    }
+
+    /// Get the next packet with a specific timeout.
+    ///
+    /// # Arguments
+    ///
+    /// * `timeout_ms` - Timeout in milliseconds (-1 for blocking)
+    pub fn next_packet_timeout(&mut self, timeout_ms: i32) -> Result<Option<Packet>> {
+        let mut packet_handle: wadjet_sys::wadjet_packet_t = ptr::null_mut();
         
         let err = unsafe {
-            wadjet_sys::wadjet_capture_next_packet(self.handle, &mut packet_handle)
+            wadjet_sys::wadjet_capture_next_packet(self.handle, timeout_ms, &mut packet_handle)
         };
 
         // Timeout is not an error, just means no packet available
-        if err == wadjet_sys::wadjet_error_t::WADJET_ERROR_TIMEOUT {
+        if err == wadjet_sys::wadjet_error_t::WADJET_ERR_TIMEOUT {
             return Ok(None);
         }
 
@@ -212,76 +243,30 @@ impl CaptureSession {
 
     /// Get capture statistics.
     pub fn statistics(&self) -> Result<CaptureStatistics> {
-        let mut received: u64 = 0;
-        let mut dropped: u64 = 0;
-        let mut dropped_if: u64 = 0;
+        let mut stats: wadjet_sys::wadjet_capture_stats_t = unsafe { std::mem::zeroed() };
 
         let err = unsafe {
-            wadjet_sys::wadjet_capture_stats(
-                self.handle,
-                &mut received,
-                &mut dropped,
-                &mut dropped_if,
-            )
+            wadjet_sys::wadjet_capture_stats(self.handle, &mut stats)
         };
 
         check_error(err)?;
 
         Ok(CaptureStatistics {
-            packets_received: received,
-            packets_dropped: dropped,
-            packets_dropped_interface: dropped_if,
+            packets_received: stats.packets_received,
+            packets_dropped: stats.packets_dropped,
+            packets_filtered: stats.packets_filtered,
+            bytes_received: stats.bytes_received,
         })
     }
 
-    /// Get the device name this session is capturing on.
-    pub fn device_name(&self) -> Option<String> {
+    /// Get the interface name this session is capturing on.
+    pub fn interface_name(&self) -> Option<String> {
         unsafe {
-            let ptr = wadjet_sys::wadjet_capture_device_name(self.handle);
+            let ptr = wadjet_sys::wadjet_capture_interface(self.handle);
             if ptr.is_null() {
                 return None;
             }
             Some(CStr::from_ptr(ptr).to_string_lossy().into_owned())
-        }
-    }
-
-    /// Get the link type (data link layer type).
-    pub fn link_type(&self) -> i32 {
-        unsafe { wadjet_sys::wadjet_capture_link_type(self.handle) }
-    }
-
-    /// Inject a packet on the network.
-    ///
-    /// # Arguments
-    ///
-    /// * `data` - The raw packet data to inject
-    ///
-    /// # Returns
-    ///
-    /// The number of bytes sent, or an error.
-    pub fn inject(&mut self, data: &[u8]) -> Result<usize> {
-        let mut bytes_sent: usize = 0;
-
-        let err = unsafe {
-            wadjet_sys::wadjet_capture_inject(
-                self.handle,
-                data.as_ptr(),
-                data.len(),
-                &mut bytes_sent,
-            )
-        };
-
-        check_error(err)?;
-        Ok(bytes_sent)
-    }
-
-    /// Break out of the capture loop.
-    ///
-    /// This can be called from a signal handler or another thread
-    /// to stop an ongoing capture.
-    pub fn break_loop(&mut self) {
-        unsafe {
-            wadjet_sys::wadjet_capture_break_loop(self.handle);
         }
     }
 }
@@ -290,7 +275,7 @@ impl Drop for CaptureSession {
     fn drop(&mut self) {
         if !self.handle.is_null() {
             unsafe {
-                wadjet_sys::wadjet_capture_close(self.handle);
+                wadjet_sys::wadjet_capture_destroy(self.handle);
             }
         }
     }

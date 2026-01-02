@@ -16,14 +16,12 @@ use std::ptr;
 ///
 /// let mut reader = PcapReader::open("capture.pcap")?;
 ///
-/// println!("Link type: {}", reader.link_type());
-///
 /// while let Some(packet) = reader.next_packet()? {
 ///     println!("Read packet: {} bytes", packet.len());
 /// }
 /// ```
 pub struct PcapReader {
-    handle: *mut wadjet_sys::wadjet_pcap_reader_t,
+    handle: wadjet_sys::wadjet_pcap_reader_t,
 }
 
 impl PcapReader {
@@ -38,7 +36,7 @@ impl PcapReader {
             crate::Error::InvalidParameter("Path contains null byte".into())
         })?;
 
-        let mut handle: *mut wadjet_sys::wadjet_pcap_reader_t = ptr::null_mut();
+        let mut handle: wadjet_sys::wadjet_pcap_reader_t = ptr::null_mut();
         
         let err = unsafe {
             wadjet_sys::wadjet_pcap_reader_open(path_c.as_ptr(), &mut handle)
@@ -61,14 +59,14 @@ impl PcapReader {
     /// `Ok(None)` if end of file was reached,
     /// or an error if something went wrong.
     pub fn next_packet(&mut self) -> Result<Option<Packet>> {
-        let mut packet_handle: *mut wadjet_sys::wadjet_packet_t = ptr::null_mut();
+        let mut packet_handle: wadjet_sys::wadjet_packet_t = ptr::null_mut();
         
         let err = unsafe {
-            wadjet_sys::wadjet_pcap_reader_next_packet(self.handle, &mut packet_handle)
+            wadjet_sys::wadjet_pcap_reader_next(self.handle, &mut packet_handle)
         };
 
-        // End of file is not an error
-        if err == wadjet_sys::wadjet_error_t::WADJET_ERROR_END_OF_FILE {
+        // End of file is not an error - WADJET_ERR_NOT_FOUND indicates EOF
+        if err == wadjet_sys::wadjet_error_t::WADJET_ERR_NOT_FOUND {
             return Ok(None);
         }
 
@@ -81,14 +79,15 @@ impl PcapReader {
         Ok(Some(Packet::from_handle(packet_handle)))
     }
 
-    /// Get the data link type of the PCAP file.
-    pub fn link_type(&self) -> i32 {
-        unsafe { wadjet_sys::wadjet_pcap_reader_link_type(self.handle) }
+    /// Check if more packets are available.
+    pub fn has_more(&self) -> bool {
+        unsafe { wadjet_sys::wadjet_pcap_reader_has_more(self.handle) }
     }
 
-    /// Get the snap length of the PCAP file.
-    pub fn snaplen(&self) -> u32 {
-        unsafe { wadjet_sys::wadjet_pcap_reader_snaplen(self.handle) }
+    /// Reset reader to beginning of file.
+    pub fn reset(&mut self) -> Result<()> {
+        let err = unsafe { wadjet_sys::wadjet_pcap_reader_reset(self.handle) };
+        check_error(err)
     }
 }
 
@@ -96,7 +95,7 @@ impl Drop for PcapReader {
     fn drop(&mut self) {
         if !self.handle.is_null() {
             unsafe {
-                wadjet_sys::wadjet_pcap_reader_close(self.handle);
+                wadjet_sys::wadjet_pcap_reader_destroy(self.handle);
             }
         }
     }
@@ -130,12 +129,9 @@ unsafe impl Send for PcapReader {}
 /// let data = [0x00, 0x01, 0x02, 0x03];
 /// let timestamp = Timestamp::now();
 /// writer.write_raw(&data, timestamp)?;
-///
-/// // Or write a Packet object
-/// // writer.write_packet(&packet)?;
 /// ```
 pub struct PcapWriter {
-    handle: *mut wadjet_sys::wadjet_pcap_writer_t,
+    handle: wadjet_sys::wadjet_pcap_writer_t,
 }
 
 impl PcapWriter {
@@ -145,45 +141,15 @@ impl PcapWriter {
     ///
     /// * `path` - Path to the PCAP file to create
     pub fn create<P: AsRef<Path>>(path: P) -> Result<Self> {
-        Self::create_with_link_type(path, 1) // DLT_EN10MB (Ethernet)
-    }
-
-    /// Create a new PCAP file with a specific link type.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Path to the PCAP file to create
-    /// * `link_type` - The data link type (e.g., 1 for Ethernet)
-    pub fn create_with_link_type<P: AsRef<Path>>(path: P, link_type: i32) -> Result<Self> {
-        Self::create_with_options(path, link_type, 65535)
-    }
-
-    /// Create a new PCAP file with full options.
-    ///
-    /// # Arguments
-    ///
-    /// * `path` - Path to the PCAP file to create
-    /// * `link_type` - The data link type
-    /// * `snaplen` - Maximum bytes per packet
-    pub fn create_with_options<P: AsRef<Path>>(
-        path: P,
-        link_type: i32,
-        snaplen: u32,
-    ) -> Result<Self> {
         let path_str = path.as_ref().to_string_lossy();
         let path_c = CString::new(path_str.as_ref()).map_err(|_| {
             crate::Error::InvalidParameter("Path contains null byte".into())
         })?;
 
-        let mut handle: *mut wadjet_sys::wadjet_pcap_writer_t = ptr::null_mut();
+        let mut handle: wadjet_sys::wadjet_pcap_writer_t = ptr::null_mut();
         
         let err = unsafe {
-            wadjet_sys::wadjet_pcap_writer_create(
-                path_c.as_ptr(),
-                link_type,
-                snaplen,
-                &mut handle,
-            )
+            wadjet_sys::wadjet_pcap_writer_create(path_c.as_ptr(), &mut handle)
         };
 
         check_error(err)?;
@@ -200,7 +166,7 @@ impl PcapWriter {
     /// Write a packet to the file.
     pub fn write_packet(&mut self, packet: &Packet) -> Result<()> {
         let err = unsafe {
-            wadjet_sys::wadjet_pcap_writer_write_packet(self.handle, packet.handle())
+            wadjet_sys::wadjet_pcap_writer_write(self.handle, packet.handle())
         };
         check_error(err)
     }
@@ -237,7 +203,7 @@ impl Drop for PcapWriter {
     fn drop(&mut self) {
         if !self.handle.is_null() {
             unsafe {
-                wadjet_sys::wadjet_pcap_writer_close(self.handle);
+                wadjet_sys::wadjet_pcap_writer_destroy(self.handle);
             }
         }
     }
