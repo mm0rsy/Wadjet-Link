@@ -53,7 +53,7 @@ try:
         CaptureSessionOptions,
         CaptureStats,
         TimestampSource,
-        available_devices,
+        list_interfaces as available_devices,
         
         # PCAP I/O
         PcapReader,
