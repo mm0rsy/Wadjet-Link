@@ -174,9 +174,14 @@ class ProtocolStack:
                 submessage_kinds=submsg_kinds,
             )
         
+        eth = result.ethernet() if result.has_ethernet() else None
+        vlan = None
+        if eth and eth.has_vlan:
+            vlan = eth.vlan
+        
         return cls(
-            ethernet=result.ethernet() if result.has_ethernet() else None,
-            vlan=result.vlan() if result.has_vlan() else None,
+            ethernet=eth,
+            vlan=vlan,
             ipv4=result.ipv4() if result.has_ipv4() else None,
             udp=result.udp() if result.has_udp() else None,
             tcp=result.tcp() if result.has_tcp() else None,
@@ -184,7 +189,7 @@ class ProtocolStack:
             someip_sd=result.someip_sd() if result.has_someip_sd() else None,
             doip=result.doip() if result.has_doip() else None,
             rtps=rtps_info,
-            payload=bytes(result.payload()),
+            payload=bytes(result.payload),
         )
     
     def layers(self) -> List[str]:
