@@ -28,11 +28,11 @@ void bind_pcap(py::module_& m) {
             Or using the high-level wrapper:
                 >>> packets = wadjet.read_pcap("capture.pcap")
         )doc")
-        .def_static("open", [](const std::string& path) {
+        .def_static("open", [](const std::string& path) -> PcapReader {
             auto result = PcapReader::open(path);
             if (!result) {
                 throw std::runtime_error("Failed to open PCAP file: " +
-                                        result.error().message());
+                                        result.error().message);
             }
             return std::move(*result);
         }, py::arg("path"), "Open a PCAP file for reading")
@@ -44,8 +44,10 @@ void bind_pcap(py::module_& m) {
                               "Get the link layer type")
         .def_property_readonly("snaplen", &PcapReader::snaplen,
                               "Get the snapshot length")
-        .def_property_readonly("path", &PcapReader::path,
-                              "Get the file path")
+        // Use description() instead of path()
+        .def_property_readonly("path", [](const PcapReader& reader) {
+            return reader.description();
+        }, "Get the file path/description")
         // Iterator support
         .def("__iter__", [](PcapReader& reader) {
             return &reader;
@@ -69,7 +71,7 @@ void bind_pcap(py::module_& m) {
             return false;  // Don't suppress exceptions
         })
         .def("__repr__", [](const PcapReader& reader) {
-            return "<PcapReader '" + reader.path().string() + "'>";
+            return "<PcapReader '" + reader.description() + "'>";
         });
 
     // =========================================================================
@@ -87,41 +89,48 @@ void bind_pcap(py::module_& m) {
             Or using the high-level wrapper:
                 >>> wadjet.write_pcap("output.pcap", packets)
         )doc")
+        // PcapWriter::create takes 2 args: path and Options struct
         .def_static("create", [](const std::string& path,
                                  std::uint32_t link_type,
-                                 std::uint32_t snaplen) {
-            auto result = PcapWriter::create(path, link_type, snaplen);
+                                 std::uint32_t snaplen) -> PcapWriter {
+            PcapWriterOptions options;
+            options.link_type = static_cast<LinkType>(link_type);
+            options.snaplen = snaplen;
+            auto result = PcapWriter::create(path, options);
             if (!result) {
                 throw std::runtime_error("Failed to create PCAP file: " +
-                                        result.error().message());
+                                        result.error().message);
             }
             return std::move(*result);
         }, py::arg("path"), 
            py::arg("link_type") = 1,  // DLT_EN10MB (Ethernet)
            py::arg("snaplen") = 65535,
            "Create a PCAP file for writing")
-        .def("write_packet", [](PcapWriter& writer, const wadjet::Packet& packet) {
+        .def("write_packet", [](PcapWriter& writer, const wadjet::Packet& packet) -> void {
             auto result = writer.write_packet(packet);
             if (!result) {
                 throw std::runtime_error("Failed to write packet: " +
-                                        result.error().message());
+                                        result.error().message);
             }
         }, py::arg("packet"), "Write a packet to the file")
         .def("write_packet", [](PcapWriter& writer, 
-                                const wadjet::PacketView& view) {
+                                const wadjet::PacketView& view) -> void {
             auto result = writer.write_packet(view);
             if (!result) {
                 throw std::runtime_error("Failed to write packet: " +
-                                        result.error().message());
+                                        result.error().message);
             }
         }, py::arg("packet_view"), "Write a packet view to the file")
         .def("flush", &PcapWriter::flush, "Flush buffered data to disk")
-        .def_property_readonly("packets_written", &PcapWriter::packets_written,
+        // Use packet_count() instead of packets_written()
+        .def_property_readonly("packets_written", &PcapWriter::packet_count,
                               "Get number of packets written")
         .def_property_readonly("bytes_written", &PcapWriter::bytes_written,
                               "Get number of bytes written")
-        .def_property_readonly("path", &PcapWriter::path,
-                              "Get the file path")
+        // Use description() instead of path()
+        .def_property_readonly("path", [](const PcapWriter& writer) {
+            return writer.description();
+        }, "Get the file path/description")
         // Context manager support
         .def("__enter__", [](PcapWriter& writer) -> PcapWriter& {
             return writer;
@@ -134,7 +143,7 @@ void bind_pcap(py::module_& m) {
             return false;  // Don't suppress exceptions
         })
         .def("__repr__", [](const PcapWriter& writer) {
-            return "<PcapWriter '" + writer.path().string() + 
-                   "' packets=" + std::to_string(writer.packets_written()) + ">";
+            return "<PcapWriter '" + writer.description() + 
+                   "' packets=" + std::to_string(writer.packet_count()) + ">";
         });
 }

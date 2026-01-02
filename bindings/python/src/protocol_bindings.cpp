@@ -38,26 +38,31 @@ void bind_protocols(py::module_& m) {
     py::class_<ethernet::EthernetHeader>(m, "EthernetHeader",
         "Decoded Ethernet frame header")
         .def_readonly("src_mac", &ethernet::EthernetHeader::src_mac,
-                     "Source MAC address (6 bytes)")
+                     "Source MAC address")
         .def_readonly("dst_mac", &ethernet::EthernetHeader::dst_mac,
-                     "Destination MAC address (6 bytes)")
+                     "Destination MAC address")
         .def_readonly("ethertype", &ethernet::EthernetHeader::ethertype,
                      "EtherType (or length for 802.3)")
         .def_readonly("vlan", &ethernet::EthernetHeader::vlan,
                      "Outer VLAN tag (if present)")
         .def_readonly("vlan_inner", &ethernet::EthernetHeader::vlan_inner,
                      "Inner VLAN tag (QinQ)")
-        .def_readonly("header_length", &ethernet::EthernetHeader::header_length,
-                     "Total header length including VLAN tags")
+        // header_len instead of header_length
+        .def_property_readonly("header_length", [](const ethernet::EthernetHeader& hdr) {
+            return hdr.header_len;
+        }, "Total header length including VLAN tags")
         .def("has_vlan", &ethernet::EthernetHeader::has_vlan,
              "Check if frame has VLAN tag")
-        .def("src_mac_string", &ethernet::EthernetHeader::src_mac_string,
-             "Get source MAC as string (xx:xx:xx:xx:xx:xx)")
-        .def("dst_mac_string", &ethernet::EthernetHeader::dst_mac_string,
-             "Get destination MAC as string")
+        // Use src_mac.to_string() and dst_mac.to_string() for string conversion
+        .def("src_mac_string", [](const ethernet::EthernetHeader& hdr) {
+            return hdr.src_mac.to_string();
+        }, "Get source MAC as string (xx:xx:xx:xx:xx:xx)")
+        .def("dst_mac_string", [](const ethernet::EthernetHeader& hdr) {
+            return hdr.dst_mac.to_string();
+        }, "Get destination MAC as string")
         .def("__repr__", [](const ethernet::EthernetHeader& hdr) {
-            return "<EthernetHeader " + hdr.src_mac_string() + 
-                   " -> " + hdr.dst_mac_string() + 
+            return "<EthernetHeader " + hdr.src_mac.to_string() + 
+                   " -> " + hdr.dst_mac.to_string() + 
                    " type=0x" + ([&]() {
                        char buf[5];
                        std::snprintf(buf, sizeof(buf), "%04x", hdr.ethertype);
@@ -83,22 +88,32 @@ void bind_protocols(py::module_& m) {
         .def_readonly("ttl", &ipv4::IPv4Header::ttl, "Time To Live")
         .def_readonly("protocol", &ipv4::IPv4Header::protocol,
                      "Protocol number (6=TCP, 17=UDP)")
-        .def_readonly("header_checksum", &ipv4::IPv4Header::header_checksum)
-        .def_readonly("src_addr", &ipv4::IPv4Header::src_addr, 
-                     "Source IP (network byte order)")
-        .def_readonly("dst_addr", &ipv4::IPv4Header::dst_addr,
-                     "Destination IP (network byte order)")
-        .def_readonly("header_length", &ipv4::IPv4Header::header_length,
-                     "Header length in bytes")
-        .def("src_ip_string", &ipv4::IPv4Header::src_ip_string,
-             "Get source IP as string")
-        .def("dst_ip_string", &ipv4::IPv4Header::dst_ip_string,
-             "Get destination IP as string")
-        .def("is_fragment", &ipv4::IPv4Header::is_fragment,
-             "Check if packet is a fragment")
+        // checksum, not header_checksum
+        .def_readonly("checksum", &ipv4::IPv4Header::checksum,
+                     "Header checksum")
+        // src_ip and dst_ip, not src_addr and dst_addr
+        .def_readonly("src_ip", &ipv4::IPv4Header::src_ip, 
+                     "Source IP address")
+        .def_readonly("dst_ip", &ipv4::IPv4Header::dst_ip,
+                     "Destination IP address")
+        // header_size() method instead of header_length member
+        .def("header_length", [](const ipv4::IPv4Header& hdr) {
+            return hdr.header_size();
+        }, "Header length in bytes")
+        // Use src_ip.to_string() and dst_ip.to_string()
+        .def("src_ip_string", [](const ipv4::IPv4Header& hdr) {
+            return hdr.src_ip.to_string();
+        }, "Get source IP as string")
+        .def("dst_ip_string", [](const ipv4::IPv4Header& hdr) {
+            return hdr.dst_ip.to_string();
+        }, "Get destination IP as string")
+        // is_fragmented() instead of is_fragment()
+        .def("is_fragment", [](const ipv4::IPv4Header& hdr) {
+            return hdr.is_fragmented();
+        }, "Check if packet is a fragment")
         .def("__repr__", [](const ipv4::IPv4Header& hdr) {
-            return "<IPv4Header " + hdr.src_ip_string() + 
-                   " -> " + hdr.dst_ip_string() + 
+            return "<IPv4Header " + hdr.src_ip.to_string() + 
+                   " -> " + hdr.dst_ip.to_string() + 
                    " proto=" + std::to_string(hdr.protocol) + ">";
         });
 
@@ -130,8 +145,10 @@ void bind_protocols(py::module_& m) {
         .def_readonly("window", &tcp::TcpHeader::window, "Window size")
         .def_readonly("checksum", &tcp::TcpHeader::checksum)
         .def_readonly("urgent_ptr", &tcp::TcpHeader::urgent_ptr)
-        .def_readonly("header_length", &tcp::TcpHeader::header_length,
-                     "Header length in bytes")
+        // No header_length member - use data_offset * 4 or header_size()
+        .def("header_length", [](const tcp::TcpHeader& hdr) {
+            return hdr.header_size();
+        }, "Header length in bytes")
         .def("is_syn", &tcp::TcpHeader::is_syn, "Check SYN flag")
         .def("is_ack", [](const tcp::TcpHeader& hdr) { 
             return hdr.flags.ack; 
@@ -193,7 +210,11 @@ void bind_protocols(py::module_& m) {
         .def("is_notification", &someip::SomeIpHeader::is_notification)
         .def("is_error", &someip::SomeIpHeader::is_error)
         .def("is_service_discovery", &someip::SomeIpHeader::is_service_discovery)
-        .def("payload_length", &someip::SomeIpHeader::payload_length)
+        // No payload_length() method - compute from length field
+        .def("payload_length", [](const someip::SomeIpHeader& hdr) {
+            // Length field includes 8 bytes (from Request ID onwards), so payload = length - 8
+            return hdr.length >= 8 ? hdr.length - 8 : 0;
+        }, "Get payload length")
         .def("__repr__", [](const someip::SomeIpHeader& hdr) {
             char buf[128];
             std::snprintf(buf, sizeof(buf), 
@@ -211,8 +232,9 @@ void bind_protocols(py::module_& m) {
         .def_readonly("flags", &someip_sd::SomeIpSdHeader::flags)
         .def_readonly("entries", &someip_sd::SomeIpSdHeader::entries)
         .def_readonly("options", &someip_sd::SomeIpSdHeader::options)
-        .def("reboot_flag", &someip_sd::SomeIpSdHeader::reboot_flag)
-        .def("unicast_flag", &someip_sd::SomeIpSdHeader::unicast_flag)
+        // No reboot_flag() or unicast_flag() methods - use is_reboot() and is_unicast()
+        .def("reboot_flag", &someip_sd::SomeIpSdHeader::is_reboot, "Check reboot flag")
+        .def("unicast_flag", &someip_sd::SomeIpSdHeader::is_unicast, "Check unicast flag")
         .def("__repr__", [](const someip_sd::SomeIpSdHeader& hdr) {
             return "<SomeIpSdHeader entries=" + 
                    std::to_string(hdr.entries.size()) + 
@@ -247,16 +269,16 @@ void bind_protocols(py::module_& m) {
 
     py::class_<doip::DoIPHeader>(m, "DoIPHeader",
         "Decoded DoIP header")
-        .def_readonly("version", &doip::DoIPHeader::version)
-        .def_readonly("inverse_version", &doip::DoIPHeader::inverse_version)
+        // protocol_version and inverse_protocol_version, not version and inverse_version
+        .def_readonly("protocol_version", &doip::DoIPHeader::protocol_version,
+                     "Protocol version")
+        .def_readonly("inverse_protocol_version", &doip::DoIPHeader::inverse_protocol_version,
+                     "Inverse protocol version")
         .def_readonly("payload_type", &doip::DoIPHeader::payload_type)
         .def_readonly("payload_length", &doip::DoIPHeader::payload_length)
         .def("is_version_valid", &doip::DoIPHeader::is_version_valid)
         .def("is_diagnostic_message", &doip::DoIPHeader::is_diagnostic_message)
-        .def("is_routing_activation", [](const doip::DoIPHeader& hdr) {
-            return hdr.payload_type == doip::PayloadType::RoutingActivationRequest ||
-                   hdr.payload_type == doip::PayloadType::RoutingActivationResponse;
-        })
+        .def("is_routing_activation", &doip::DoIPHeader::is_routing_activation)
         .def("__repr__", [](const doip::DoIPHeader& hdr) {
             return "<DoIPHeader type=" + 
                    std::to_string(static_cast<int>(hdr.payload_type)) +
@@ -281,7 +303,6 @@ void bind_protocols(py::module_& m) {
 
     py::class_<gptp::ClockIdentity>(m, "ClockIdentity",
                                     "PTP clock identity (8 bytes, typically EUI-64)")
-        .def_readonly("bytes", &gptp::ClockIdentity::bytes)
         .def("to_string", &gptp::ClockIdentity::to_string)
         .def("__repr__", [](const gptp::ClockIdentity& ci) {
             return "<ClockIdentity " + ci.to_string() + ">";
@@ -296,12 +317,7 @@ void bind_protocols(py::module_& m) {
                    std::to_string(pi.port_number) + ">";
         });
 
-    py::class_<gptp::ScaledNs>(m, "ScaledNs", "Scaled nanoseconds (64.16 fixed-point)")
-        .def_readonly("scaled_ns", &gptp::ScaledNs::scaled_ns)
-        .def("to_nanoseconds", &gptp::ScaledNs::to_nanoseconds)
-        .def("__repr__", [](const gptp::ScaledNs& ns) {
-            return "<ScaledNs " + std::to_string(ns.to_nanoseconds()) + "ns>";
-        });
+    // No ScaledNs class - the field is ScaledNanoseconds
 
     py::class_<gptp::GptpTimestamp>(m, "GptpTimestamp",
                                     "PTP timestamp (48-bit seconds + 32-bit nanoseconds)")
@@ -317,25 +333,34 @@ void bind_protocols(py::module_& m) {
     py::class_<gptp::GptpHeader>(m, "GptpHeader", "Decoded gPTP header (IEEE 802.1AS)")
         .def_readonly("transport_specific", &gptp::GptpHeader::transport_specific)
         .def_readonly("message_type", &gptp::GptpHeader::message_type)
-        .def_readonly("version", &gptp::GptpHeader::version)
+        // version_ptp not version
+        .def_property_readonly("version", [](const gptp::GptpHeader& hdr) {
+            return hdr.version_ptp;
+        })
         .def_readonly("message_length", &gptp::GptpHeader::message_length)
         .def_readonly("domain_number", &gptp::GptpHeader::domain_number)
         .def_readonly("flags", &gptp::GptpHeader::flags)
         .def_readonly("correction_field", &gptp::GptpHeader::correction_field)
         .def_readonly("source_port_identity", &gptp::GptpHeader::source_port_identity)
         .def_readonly("sequence_id", &gptp::GptpHeader::sequence_id)
-        .def_readonly("control", &gptp::GptpHeader::control)
+        // control_field not control
+        .def_property_readonly("control", [](const gptp::GptpHeader& hdr) {
+            return hdr.control_field;
+        })
         .def_readonly("log_message_interval", &gptp::GptpHeader::log_message_interval)
         .def("is_two_step", &gptp::GptpHeader::is_two_step)
         .def("is_event", &gptp::GptpHeader::is_event)
-        .def("is_general", &gptp::GptpHeader::is_general)
-        .def("message_type_string",
-             [](const gptp::GptpHeader& hdr) {
-                 return std::string(gptp::message_type_to_string(hdr.message_type));
-             })
+        // No is_general method - it's the opposite of is_event
+        .def("is_general", [](const gptp::GptpHeader& hdr) {
+            return !hdr.is_event();
+        })
+        // Use message_type_string() function, not method - actually use message_type_name() 
+        .def("message_type_string", [](const gptp::GptpHeader& hdr) {
+            return std::string(hdr.message_type_name());
+        })
         .def("__repr__", [](const gptp::GptpHeader& hdr) {
             return "<GptpHeader type=" +
-                   std::string(gptp::message_type_to_string(hdr.message_type)) +
+                   std::string(gptp::message_type_string(hdr.message_type)) +
                    " seq=" + std::to_string(hdr.sequence_id) +
                    " domain=" + std::to_string(hdr.domain_number) + ">";
         });
@@ -455,8 +480,9 @@ void bind_protocols(py::module_& m) {
             "decode",
             [](uds::UdsDecoder& decoder, py::bytes data) {
                 std::string str = data;
-                std::span<const std::uint8_t> span(
-                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                // UdsDecoder takes span<const std::byte>, not span<const uint8_t>
+                std::span<const std::byte> span(
+                    reinterpret_cast<const std::byte*>(str.data()), str.size());
                 return decoder.decode(span);
             },
             py::arg("data"), "Decode UDS message from bytes")
@@ -464,8 +490,9 @@ void bind_protocols(py::module_& m) {
             "is_request",
             [](py::bytes data) {
                 std::string str = data;
-                std::span<const std::uint8_t> span(
-                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                // Static methods take span<const std::byte>
+                std::span<const std::byte> span(
+                    reinterpret_cast<const std::byte*>(str.data()), str.size());
                 return uds::UdsDecoder::is_request(span);
             },
             py::arg("data"), "Check if data is a UDS request")
@@ -473,8 +500,8 @@ void bind_protocols(py::module_& m) {
             "is_positive_response",
             [](py::bytes data) {
                 std::string str = data;
-                std::span<const std::uint8_t> span(
-                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                std::span<const std::byte> span(
+                    reinterpret_cast<const std::byte*>(str.data()), str.size());
                 return uds::UdsDecoder::is_positive_response(span);
             },
             py::arg("data"), "Check if data is a UDS positive response")
@@ -482,8 +509,8 @@ void bind_protocols(py::module_& m) {
             "is_negative_response",
             [](py::bytes data) {
                 std::string str = data;
-                std::span<const std::uint8_t> span(
-                    reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
+                std::span<const std::byte> span(
+                    reinterpret_cast<const std::byte*>(str.data()), str.size());
                 return uds::UdsDecoder::is_negative_response(span);
             },
             py::arg("data"), "Check if data is a UDS negative response");
@@ -518,6 +545,7 @@ void bind_protocols(py::module_& m) {
             "process_message",
             [](uds::UdsSession& session, py::bytes data, bool is_request) {
                 std::string str = data;
+                // UdsSession takes span<const std::uint8_t>
                 std::span<const std::uint8_t> span(
                     reinterpret_cast<const std::uint8_t*>(str.data()), str.size());
                 return session.process_message(span, is_request);

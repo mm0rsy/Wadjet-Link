@@ -33,11 +33,11 @@ PYBIND11_MODULE(_wadjet, m) {
     // Version information
     m.def("version_string", &wadjet::version_string,
           "Get the full version string");
-    m.def("version_major", &wadjet::version_major,
+    m.def("version_major", []() { return wadjet::VERSION_MAJOR; },
           "Get the major version number");
-    m.def("version_minor", &wadjet::version_minor,
+    m.def("version_minor", []() { return wadjet::VERSION_MINOR; },
           "Get the minor version number");
-    m.def("version_patch", &wadjet::version_patch,
+    m.def("version_patch", []() { return wadjet::VERSION_PATCH; },
           "Get the patch version number");
     
     m.attr("__version__") = wadjet::version_string();

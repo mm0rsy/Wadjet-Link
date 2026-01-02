@@ -127,29 +127,29 @@ void bind_capture(py::module_& m) {
                 ...         process(packet)
         )doc")
         .def_static("create", [](const std::string& interface,
-                                  CaptureSessionOptions options) {
+                                  CaptureSessionOptions options) -> CaptureSession {
             auto result = CaptureSession::create(interface, options);
             if (!result) {
                 throw std::runtime_error("Failed to create capture session: " +
-                                        result.error().message());
+                                        result.error().message);
             }
             return std::move(*result);
         }, py::arg("interface"), 
            py::arg("options") = CaptureSessionOptions{},
            "Create a capture session on the specified interface")
-        .def("set_filter", [](CaptureSession& session, std::string_view expr) {
+        .def("set_filter", [](CaptureSession& session, std::string_view expr) -> void {
             auto result = session.set_filter(expr);
             if (!result) {
                 throw std::runtime_error("Failed to set filter: " +
-                                        result.error().message());
+                                        result.error().message);
             }
         }, py::arg("expression"),
            "Set a BPF filter (e.g., 'udp port 30490')")
-        .def("start", [](CaptureSession& session) {
+        .def("start", [](CaptureSession& session) -> void {
             auto result = session.start();
             if (!result) {
                 throw std::runtime_error("Failed to start capture: " +
-                                        result.error().message());
+                                        result.error().message);
             }
         }, "Start capturing (non-blocking)")
         .def("stop", &CaptureSession::stop, "Stop capturing")
@@ -167,11 +167,11 @@ void bind_capture(py::module_& m) {
         .def_property_readonly("active_timestamp_source", 
                               &CaptureSession::active_timestamp_source,
                               "Get the active timestamp source")
-        .def_static("query_hw_timestamp_caps", [](const std::string& interface) {
+        .def_static("query_hw_timestamp_caps", [](const std::string& interface) -> HardwareTimestampCaps {
             auto result = CaptureSession::query_hw_timestamp_caps(interface);
             if (!result) {
                 throw std::runtime_error("Failed to query capabilities: " +
-                                        result.error().message());
+                                        result.error().message);
             }
             return *result;
         }, py::arg("interface"),
@@ -189,33 +189,44 @@ void bind_capture(py::module_& m) {
         });
 
     // =========================================================================
-    // Device enumeration
+    // Device enumeration - use enumerate_devices() and get_device()
     // =========================================================================
-    m.def("list_interfaces", []() {
-        return list_interfaces();
+    m.def("list_interfaces", []() -> std::vector<NetworkDevice> {
+        auto result = enumerate_devices();
+        if (!result) {
+            throw std::runtime_error("Failed to enumerate devices: " +
+                                    result.error().message);
+        }
+        return std::move(*result);
     }, "List available network interfaces");
 
-    m.def("get_interface_info", [](const std::string& name) {
-        auto result = get_interface_info(name);
+    m.def("get_interface_info", [](const std::string& name) -> NetworkDevice {
+        auto result = get_device(name);
         if (!result) {
             throw std::runtime_error("Failed to get interface info: " +
-                                    result.error().message());
+                                    result.error().message);
         }
-        return *result;
+        return std::move(*result);
     }, py::arg("name"), "Get information about a network interface");
 
     // =========================================================================
-    // InterfaceInfo
+    // NetworkDevice (the actual struct name in device.hpp)
     // =========================================================================
-    py::class_<InterfaceInfo>(m, "InterfaceInfo",
+    py::class_<NetworkDevice>(m, "InterfaceInfo",
         "Information about a network interface")
-        .def_readonly("name", &InterfaceInfo::name)
-        .def_readonly("description", &InterfaceInfo::description)
-        .def_readonly("mac_address", &InterfaceInfo::mac_address)
-        .def_readonly("mtu", &InterfaceInfo::mtu)
-        .def_readonly("is_up", &InterfaceInfo::is_up)
-        .def_readonly("is_loopback", &InterfaceInfo::is_loopback)
-        .def("__repr__", [](const InterfaceInfo& info) {
+        .def_readonly("name", &NetworkDevice::name)
+        .def_readonly("description", &NetworkDevice::description)
+        .def_property_readonly("mac_address", [](const NetworkDevice& dev) {
+            return dev.mac.to_string();
+        })
+        .def_readonly("mac", &NetworkDevice::mac)
+        .def_readonly("index", &NetworkDevice::index)
+        .def_readonly("mtu", &NetworkDevice::mtu)
+        .def_readonly("is_up", &NetworkDevice::is_up)
+        .def_readonly("is_running", &NetworkDevice::is_running)
+        .def_readonly("is_loopback", &NetworkDevice::is_loopback)
+        .def_readonly("supports_promiscuous", &NetworkDevice::supports_promiscuous)
+        .def("__repr__", [](const NetworkDevice& info) {
             return "<InterfaceInfo " + info.name + 
                    (info.is_up ? " UP" : " DOWN") + ">";
         });

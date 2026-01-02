@@ -22,8 +22,9 @@ void bind_core(py::module_& m) {
             
             Supports nanosecond precision when hardware timestamping is available.
         )doc")
-        .def(py::init<>(), "Create a zero timestamp")
-        .def(py::init<std::int64_t, std::int64_t>(),
+        .def(py::init<>(), "Create a zero timestamp (epoch)")
+        // No constructor taking (seconds, nanoseconds) - use from_unix static factory
+        .def_static("from_unix", &wadjet::Timestamp::from_unix,
              py::arg("seconds"), py::arg("nanoseconds"),
              "Create timestamp from seconds and nanoseconds")
         .def_property_readonly("seconds", &wadjet::Timestamp::seconds,
@@ -56,6 +57,50 @@ void bind_core(py::module_& m) {
         })
         .def_static("now", &wadjet::Timestamp::now,
                    "Get current timestamp");
+
+    // =========================================================================
+    // MacAddress
+    // =========================================================================
+    py::class_<wadjet::MacAddress>(m, "MacAddress",
+        "MAC address (6 bytes)")
+        .def(py::init<>())
+        .def_static("from_string", &wadjet::MacAddress::from_string,
+             py::arg("str"), "Parse MAC address from string 'xx:xx:xx:xx:xx:xx'")
+        .def("to_string", &wadjet::MacAddress::to_string,
+             "Convert to string 'xx:xx:xx:xx:xx:xx'")
+        .def("is_broadcast", &wadjet::MacAddress::is_broadcast,
+             "Check if this is a broadcast address")
+        .def("is_multicast", &wadjet::MacAddress::is_multicast,
+             "Check if this is a multicast address")
+        .def("__repr__", [](const wadjet::MacAddress& mac) {
+            return "<MacAddress " + mac.to_string() + ">";
+        })
+        .def("__eq__", [](const wadjet::MacAddress& a, const wadjet::MacAddress& b) {
+            return a == b;
+        });
+
+    // =========================================================================
+    // IPv4Address
+    // =========================================================================
+    py::class_<wadjet::IPv4Address>(m, "IPv4Address",
+        "IPv4 address (4 bytes)")
+        .def(py::init<>())
+        .def_static("from_string", &wadjet::IPv4Address::from_string,
+             py::arg("str"), "Parse IPv4 address from string 'x.x.x.x'")
+        .def("to_string", &wadjet::IPv4Address::to_string,
+             "Convert to string 'x.x.x.x'")
+        .def("is_loopback", &wadjet::IPv4Address::is_loopback,
+             "Check if this is a loopback address")
+        .def("is_broadcast", &wadjet::IPv4Address::is_broadcast,
+             "Check if this is a broadcast address")
+        .def("is_multicast", &wadjet::IPv4Address::is_multicast,
+             "Check if this is a multicast address")
+        .def("__repr__", [](const wadjet::IPv4Address& ip) {
+            return "<IPv4Address " + ip.to_string() + ">";
+        })
+        .def("__eq__", [](const wadjet::IPv4Address& a, const wadjet::IPv4Address& b) {
+            return a == b;
+        });
 
     // =========================================================================
     // ByteSpan (exposed as bytes in Python)

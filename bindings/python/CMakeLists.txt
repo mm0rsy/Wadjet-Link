@@ -9,9 +9,32 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-# Find Python and pybind11
+# Find Python
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
-find_package(pybind11 CONFIG REQUIRED)
+
+# Try to find pybind11 - first via CMake config, then via Python module
+find_package(pybind11 CONFIG QUIET)
+if(NOT pybind11_FOUND)
+    # Try to find pybind11 via Python
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import pybind11; print(pybind11.get_cmake_dir())"
+        OUTPUT_VARIABLE PYBIND11_CMAKE_DIR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE PYBIND11_PYTHON_RESULT
+    )
+    if(PYBIND11_PYTHON_RESULT EQUAL 0 AND EXISTS "${PYBIND11_CMAKE_DIR}")
+        list(APPEND CMAKE_PREFIX_PATH "${PYBIND11_CMAKE_DIR}")
+        find_package(pybind11 CONFIG REQUIRED)
+    else()
+        message(FATAL_ERROR 
+            "pybind11 not found. Install it via:\n"
+            "  pip install pybind11\n"
+            "  OR\n"
+            "  apt install pybind11-dev (Debian/Ubuntu)\n"
+            "  brew install pybind11 (macOS)")
+    endif()
+endif()
 
 # ============================================================================
 # Python Extension Module
