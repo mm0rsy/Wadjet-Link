@@ -75,7 +75,7 @@ def write_pcap(
     path_str = str(path)
     with _PcapWriter.create(path_str, link_type) as writer:
         for packet in packets:
-            writer.write(packet)
+            writer.write_packet(packet)
 
 
 class PcapReader:
@@ -107,7 +107,7 @@ class PcapWriter:
     
     Example:
         >>> with PcapWriter("output.pcap") as writer:
-        ...     writer.write(packet)
+        ...     writer.write_packet(packet)
     """
     
     def __init__(self, path: Union[str, Path], link_type: int = 1):
@@ -150,7 +150,7 @@ def filter_pcap(
         with _PcapWriter.create(str(output_path), 1) as writer:
             for packet in reader:
                 if predicate(packet):
-                    writer.write(packet)
+                    writer.write_packet(packet)
                     count += 1
     return count
 
