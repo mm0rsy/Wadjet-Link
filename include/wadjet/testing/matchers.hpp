@@ -1731,7 +1731,7 @@ public:
         if (listener->IsInterested()) {
             *listener << "has vendor " << rtps->vendor_id.to_string();
         }
-        return rtps->vendor_id.to_vendor() == expected_;
+        return rtps->vendor_id.to_enum() == expected_;
     }
 
     void DescribeTo(std::ostream* os) const {
@@ -1753,7 +1753,7 @@ inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> HasRtpsVendor(
 
 /// @brief Convenience: Check for FastDDS vendor
 inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromFastDDS() {
-    return HasRtpsVendor(protocols::dds::VendorId::FastDDS);
+    return HasRtpsVendor(protocols::dds::VendorId::Eprosima);
 }
 
 /// @brief Convenience: Check for RTI Connext vendor
@@ -1763,12 +1763,12 @@ inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromRTI() {
 
 /// @brief Convenience: Check for CycloneDDS vendor
 inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromCycloneDDS() {
-    return HasRtpsVendor(protocols::dds::VendorId::CycloneDDS);
+    return HasRtpsVendor(protocols::dds::VendorId::Eclipse);
 }
 
 /// @brief Convenience: Check for OpenDDS vendor
 inline ::testing::PolymorphicMatcher<HasRtpsVendorMatcher> IsFromOpenDDS() {
-    return HasRtpsVendor(protocols::dds::VendorId::OpenDDS);
+    return HasRtpsVendor(protocols::dds::VendorId::OCI);
 }
 
 /// @brief Matcher: RTPS message has specific GUID prefix
@@ -1960,7 +1960,7 @@ public:
             if (submsg.header.kind == protocols::dds::SubmessageKind::DATA) {
                 if (auto* data_submsg = std::get_if<protocols::dds::DataSubmessage>(&submsg.body)) {
                     // Check for SPDP writer (participant announcements)
-                    if (data_submsg->writer_id.entity_kind ==
+                    if (data_submsg->writer_id.kind ==
                             protocols::dds::EntityKind::BuiltinWriterWithKey &&
                         data_submsg->writer_id.entity_key ==
                             std::array<std::uint8_t, 3>{0x00, 0x01, 0x00}) {
@@ -1970,7 +1970,7 @@ public:
                         return true;
                     }
                     // Check for SEDP publication writer
-                    if (data_submsg->writer_id.entity_kind ==
+                    if (data_submsg->writer_id.kind ==
                             protocols::dds::EntityKind::BuiltinWriterWithKey &&
                         data_submsg->writer_id.entity_key ==
                             std::array<std::uint8_t, 3>{0x00, 0x00, 0x03}) {
@@ -1980,7 +1980,7 @@ public:
                         return true;
                     }
                     // Check for SEDP subscription writer
-                    if (data_submsg->writer_id.entity_kind ==
+                    if (data_submsg->writer_id.kind ==
                             protocols::dds::EntityKind::BuiltinWriterWithKey &&
                         data_submsg->writer_id.entity_key ==
                             std::array<std::uint8_t, 3>{0x00, 0x00, 0x04}) {
