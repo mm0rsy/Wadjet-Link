@@ -2,20 +2,17 @@
 
 use crate::packet::Packet;
 use crate::types::{MacAddress, Ipv4Address};
-use std::ffi::CStr;
 use std::ptr;
 
 /// Protocol identifiers
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Protocol {
-    /// Unknown protocol
-    Unknown,
     /// Ethernet II
     Ethernet,
+    /// VLAN (802.1Q)
+    Vlan,
     /// IPv4
     Ipv4,
-    /// IPv6
-    Ipv6,
     /// UDP
     Udp,
     /// TCP
@@ -30,24 +27,19 @@ pub enum Protocol {
     Gptp,
     /// UDS (Unified Diagnostic Services)
     Uds,
-    /// ARP
-    Arp,
-    /// ICMP
-    Icmp,
-    /// VLAN (802.1Q)
-    Vlan,
     /// DDS/RTPS
     Rtps,
+    /// Unknown protocol
+    Unknown(u32),
 }
 
 impl Protocol {
     fn from_c(proto: wadjet_sys::wadjet_protocol_t) -> Self {
         use wadjet_sys::wadjet_protocol_t::*;
         match proto {
-            WADJET_PROTOCOL_UNKNOWN => Protocol::Unknown,
             WADJET_PROTOCOL_ETHERNET => Protocol::Ethernet,
+            WADJET_PROTOCOL_VLAN => Protocol::Vlan,
             WADJET_PROTOCOL_IPV4 => Protocol::Ipv4,
-            WADJET_PROTOCOL_IPV6 => Protocol::Ipv6,
             WADJET_PROTOCOL_UDP => Protocol::Udp,
             WADJET_PROTOCOL_TCP => Protocol::Tcp,
             WADJET_PROTOCOL_SOMEIP => Protocol::SomeIp,
@@ -55,10 +47,26 @@ impl Protocol {
             WADJET_PROTOCOL_DOIP => Protocol::DoIp,
             WADJET_PROTOCOL_GPTP => Protocol::Gptp,
             WADJET_PROTOCOL_UDS => Protocol::Uds,
-            WADJET_PROTOCOL_ARP => Protocol::Arp,
-            WADJET_PROTOCOL_ICMP => Protocol::Icmp,
-            WADJET_PROTOCOL_VLAN => Protocol::Vlan,
-            _ => Protocol::Unknown,
+            WADJET_PROTOCOL_RTPS => Protocol::Rtps,
+            _ => Protocol::Unknown(proto as u32),
+        }
+    }
+    
+    fn to_c(&self) -> wadjet_sys::wadjet_protocol_t {
+        use wadjet_sys::wadjet_protocol_t::*;
+        match self {
+            Protocol::Ethernet => WADJET_PROTOCOL_ETHERNET,
+            Protocol::Vlan => WADJET_PROTOCOL_VLAN,
+            Protocol::Ipv4 => WADJET_PROTOCOL_IPV4,
+            Protocol::Udp => WADJET_PROTOCOL_UDP,
+            Protocol::Tcp => WADJET_PROTOCOL_TCP,
+            Protocol::SomeIp => WADJET_PROTOCOL_SOMEIP,
+            Protocol::SomeIpSd => WADJET_PROTOCOL_SOMEIP_SD,
+            Protocol::DoIp => WADJET_PROTOCOL_DOIP,
+            Protocol::Gptp => WADJET_PROTOCOL_GPTP,
+            Protocol::Uds => WADJET_PROTOCOL_UDS,
+            Protocol::Rtps => WADJET_PROTOCOL_RTPS,
+            Protocol::Unknown(_) => WADJET_PROTOCOL_ETHERNET, // Default fallback
         }
     }
 }
@@ -66,20 +74,29 @@ impl Protocol {
 /// Ethernet header information
 #[derive(Debug, Clone)]
 pub struct EthernetHeader {
-    /// Destination MAC address
-    pub dst_mac: MacAddress,
     /// Source MAC address
     pub src_mac: MacAddress,
+    /// Destination MAC address
+    pub dst_mac: MacAddress,
     /// EtherType
-    pub ether_type: u16,
+    pub ethertype: u16,
+    /// Whether VLAN tag is present
+    pub has_vlan: bool,
+    /// VLAN ID (if has_vlan)
+    pub vlan_id: u16,
+    /// VLAN priority (if has_vlan)
+    pub vlan_priority: u8,
 }
 
 impl EthernetHeader {
     fn from_c(c: &wadjet_sys::wadjet_ethernet_header_t) -> Self {
         Self {
-            dst_mac: MacAddress::from_c(&c.dst_mac),
             src_mac: MacAddress::from_c(&c.src_mac),
-            ether_type: c.ether_type,
+            dst_mac: MacAddress::from_c(&c.dst_mac),
+            ethertype: c.ethertype,
+            has_vlan: c.has_vlan,
+            vlan_id: c.vlan_id,
+            vlan_priority: c.vlan_priority,
         }
     }
 }
@@ -87,47 +104,38 @@ impl EthernetHeader {
 /// IPv4 header information
 #[derive(Debug, Clone)]
 pub struct Ipv4Header {
-    /// IP version (should be 4)
-    pub version: u8,
-    /// Header length in 32-bit words
-    pub ihl: u8,
-    /// Type of Service / DSCP
-    pub tos: u8,
-    /// Total length including header
-    pub total_length: u16,
-    /// Identification
-    pub identification: u16,
-    /// Flags
-    pub flags: u8,
-    /// Fragment offset
-    pub fragment_offset: u16,
-    /// Time to Live
-    pub ttl: u8,
-    /// Protocol number
-    pub protocol: u8,
-    /// Header checksum
-    pub checksum: u16,
     /// Source IP address
     pub src_ip: Ipv4Address,
     /// Destination IP address
     pub dst_ip: Ipv4Address,
+    /// Protocol number
+    pub protocol: u8,
+    /// Time to Live
+    pub ttl: u8,
+    /// Total length including header
+    pub total_length: u16,
+    /// Identification
+    pub identification: u16,
+    /// Don't fragment flag
+    pub dont_fragment: bool,
+    /// More fragments flag
+    pub more_fragments: bool,
+    /// Fragment offset
+    pub fragment_offset: u16,
 }
 
 impl Ipv4Header {
     fn from_c(c: &wadjet_sys::wadjet_ipv4_header_t) -> Self {
         Self {
-            version: c.version,
-            ihl: c.ihl,
-            tos: c.tos,
-            total_length: c.total_length,
-            identification: c.identification,
-            flags: c.flags,
-            fragment_offset: c.fragment_offset,
-            ttl: c.ttl,
-            protocol: c.protocol,
-            checksum: c.checksum,
             src_ip: Ipv4Address::from_c(&c.src_ip),
             dst_ip: Ipv4Address::from_c(&c.dst_ip),
+            protocol: c.protocol,
+            ttl: c.ttl,
+            total_length: c.total_length,
+            identification: c.identification,
+            dont_fragment: c.dont_fragment,
+            more_fragments: c.more_fragments,
+            fragment_offset: c.fragment_offset,
         }
     }
 }
@@ -164,19 +172,25 @@ pub struct TcpHeader {
     /// Destination port
     pub dst_port: u16,
     /// Sequence number
-    pub seq_num: u32,
+    pub sequence_number: u32,
     /// Acknowledgment number
-    pub ack_num: u32,
+    pub ack_number: u32,
     /// Data offset
     pub data_offset: u8,
-    /// TCP flags
-    pub flags: u8,
+    /// SYN flag
+    pub syn: bool,
+    /// ACK flag
+    pub ack: bool,
+    /// FIN flag
+    pub fin: bool,
+    /// RST flag
+    pub rst: bool,
+    /// PSH flag
+    pub psh: bool,
+    /// URG flag
+    pub urg: bool,
     /// Window size
-    pub window: u16,
-    /// Checksum
-    pub checksum: u16,
-    /// Urgent pointer
-    pub urgent_ptr: u16,
+    pub window_size: u16,
 }
 
 impl TcpHeader {
@@ -184,39 +198,42 @@ impl TcpHeader {
         Self {
             src_port: c.src_port,
             dst_port: c.dst_port,
-            seq_num: c.seq_num,
-            ack_num: c.ack_num,
+            sequence_number: c.sequence_number,
+            ack_number: c.ack_number,
             data_offset: c.data_offset,
-            flags: c.flags,
-            window: c.window,
-            checksum: c.checksum,
-            urgent_ptr: c.urgent_ptr,
+            syn: c.syn,
+            ack: c.ack,
+            fin: c.fin,
+            rst: c.rst,
+            psh: c.psh,
+            urg: c.urg,
+            window_size: c.window_size,
         }
     }
 
     /// Check if SYN flag is set
     pub fn is_syn(&self) -> bool {
-        self.flags & 0x02 != 0
+        self.syn
     }
 
     /// Check if ACK flag is set
     pub fn is_ack(&self) -> bool {
-        self.flags & 0x10 != 0
+        self.ack
     }
 
     /// Check if FIN flag is set
     pub fn is_fin(&self) -> bool {
-        self.flags & 0x01 != 0
+        self.fin
     }
 
     /// Check if RST flag is set
     pub fn is_rst(&self) -> bool {
-        self.flags & 0x04 != 0
+        self.rst
     }
 
     /// Check if PSH flag is set
     pub fn is_psh(&self) -> bool {
-        self.flags & 0x08 != 0
+        self.psh
     }
 }
 
@@ -238,9 +255,79 @@ pub struct SomeIpHeader {
     /// Interface version
     pub interface_version: u8,
     /// Message type
-    pub message_type: u8,
+    pub message_type: SomeIpMessageType,
     /// Return code
-    pub return_code: u8,
+    pub return_code: SomeIpReturnCode,
+    /// Whether this is a Service Discovery message
+    pub is_service_discovery: bool,
+}
+
+/// SOME/IP message types
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SomeIpMessageType {
+    /// Request
+    Request,
+    /// Request (no return)
+    RequestNoReturn,
+    /// Notification
+    Notification,
+    /// Response
+    Response,
+    /// Error
+    Error,
+    /// Unknown
+    Unknown(u8),
+}
+
+impl From<wadjet_sys::wadjet_someip_message_type_t> for SomeIpMessageType {
+    fn from(value: wadjet_sys::wadjet_someip_message_type_t) -> Self {
+        use wadjet_sys::wadjet_someip_message_type_t::*;
+        match value {
+            WADJET_SOMEIP_REQUEST => SomeIpMessageType::Request,
+            WADJET_SOMEIP_REQUEST_NO_RETURN => SomeIpMessageType::RequestNoReturn,
+            WADJET_SOMEIP_NOTIFICATION => SomeIpMessageType::Notification,
+            WADJET_SOMEIP_RESPONSE => SomeIpMessageType::Response,
+            WADJET_SOMEIP_ERROR => SomeIpMessageType::Error,
+            _ => SomeIpMessageType::Unknown(value as u8),
+        }
+    }
+}
+
+/// SOME/IP return codes
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SomeIpReturnCode {
+    /// OK
+    Ok,
+    /// Not OK
+    NotOk,
+    /// Unknown service
+    UnknownService,
+    /// Unknown method
+    UnknownMethod,
+    /// Not ready
+    NotReady,
+    /// Not reachable
+    NotReachable,
+    /// Timeout
+    Timeout,
+    /// Unknown
+    Unknown(u8),
+}
+
+impl From<wadjet_sys::wadjet_someip_return_code_t> for SomeIpReturnCode {
+    fn from(value: wadjet_sys::wadjet_someip_return_code_t) -> Self {
+        use wadjet_sys::wadjet_someip_return_code_t::*;
+        match value {
+            WADJET_SOMEIP_RC_OK => SomeIpReturnCode::Ok,
+            WADJET_SOMEIP_RC_NOT_OK => SomeIpReturnCode::NotOk,
+            WADJET_SOMEIP_RC_UNKNOWN_SERVICE => SomeIpReturnCode::UnknownService,
+            WADJET_SOMEIP_RC_UNKNOWN_METHOD => SomeIpReturnCode::UnknownMethod,
+            WADJET_SOMEIP_RC_NOT_READY => SomeIpReturnCode::NotReady,
+            WADJET_SOMEIP_RC_NOT_REACHABLE => SomeIpReturnCode::NotReachable,
+            WADJET_SOMEIP_RC_TIMEOUT => SomeIpReturnCode::Timeout,
+            _ => SomeIpReturnCode::Unknown(value as u8),
+        }
+    }
 }
 
 impl SomeIpHeader {
@@ -253,29 +340,30 @@ impl SomeIpHeader {
             session_id: c.session_id,
             protocol_version: c.protocol_version,
             interface_version: c.interface_version,
-            message_type: c.message_type,
-            return_code: c.return_code,
+            message_type: SomeIpMessageType::from(c.message_type),
+            return_code: SomeIpReturnCode::from(c.return_code),
+            is_service_discovery: c.is_service_discovery,
         }
     }
 
     /// Check if this is a request
     pub fn is_request(&self) -> bool {
-        self.message_type == 0x00
+        matches!(self.message_type, SomeIpMessageType::Request)
     }
 
     /// Check if this is a response
     pub fn is_response(&self) -> bool {
-        self.message_type == 0x80
+        matches!(self.message_type, SomeIpMessageType::Response)
     }
 
     /// Check if this is a notification
     pub fn is_notification(&self) -> bool {
-        self.message_type == 0x02
+        matches!(self.message_type, SomeIpMessageType::Notification)
     }
 
     /// Check if this is an error
     pub fn is_error(&self) -> bool {
-        self.message_type == 0x81
+        matches!(self.message_type, SomeIpMessageType::Error)
     }
 }
 
@@ -287,9 +375,57 @@ pub struct DoIpHeader {
     /// Inverse protocol version
     pub inverse_version: u8,
     /// Payload type
-    pub payload_type: u16,
+    pub payload_type: DoIpPayloadType,
     /// Payload length
     pub payload_length: u32,
+    /// Whether the version is valid
+    pub version_valid: bool,
+}
+
+/// DoIP payload types
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DoIpPayloadType {
+    /// Generic NACK
+    GenericNack,
+    /// Vehicle ID Request
+    VehicleIdRequest,
+    /// Vehicle ID Response
+    VehicleIdResponse,
+    /// Routing Activation Request
+    RoutingActivationRequest,
+    /// Routing Activation Response
+    RoutingActivationResponse,
+    /// Alive Check Request
+    AliveCheckRequest,
+    /// Alive Check Response
+    AliveCheckResponse,
+    /// Diagnostic Message
+    DiagnosticMessage,
+    /// Diagnostic Message Positive Ack
+    DiagnosticMessagePositiveAck,
+    /// Diagnostic Message Negative Ack
+    DiagnosticMessageNegativeAck,
+    /// Unknown
+    Unknown(u16),
+}
+
+impl From<wadjet_sys::wadjet_doip_payload_type_t> for DoIpPayloadType {
+    fn from(value: wadjet_sys::wadjet_doip_payload_type_t) -> Self {
+        use wadjet_sys::wadjet_doip_payload_type_t::*;
+        match value {
+            WADJET_DOIP_GENERIC_NACK => DoIpPayloadType::GenericNack,
+            WADJET_DOIP_VEHICLE_ID_REQUEST => DoIpPayloadType::VehicleIdRequest,
+            WADJET_DOIP_VEHICLE_ID_RESPONSE => DoIpPayloadType::VehicleIdResponse,
+            WADJET_DOIP_ROUTING_ACTIVATION_REQUEST => DoIpPayloadType::RoutingActivationRequest,
+            WADJET_DOIP_ROUTING_ACTIVATION_RESPONSE => DoIpPayloadType::RoutingActivationResponse,
+            WADJET_DOIP_ALIVE_CHECK_REQUEST => DoIpPayloadType::AliveCheckRequest,
+            WADJET_DOIP_ALIVE_CHECK_RESPONSE => DoIpPayloadType::AliveCheckResponse,
+            WADJET_DOIP_DIAGNOSTIC_MESSAGE => DoIpPayloadType::DiagnosticMessage,
+            WADJET_DOIP_DIAGNOSTIC_MESSAGE_POSITIVE_ACK => DoIpPayloadType::DiagnosticMessagePositiveAck,
+            WADJET_DOIP_DIAGNOSTIC_MESSAGE_NEGATIVE_ACK => DoIpPayloadType::DiagnosticMessageNegativeAck,
+            _ => DoIpPayloadType::Unknown(value as u16),
+        }
+    }
 }
 
 impl DoIpHeader {
@@ -297,27 +433,26 @@ impl DoIpHeader {
         Self {
             protocol_version: c.protocol_version,
             inverse_version: c.inverse_version,
-            payload_type: c.payload_type,
+            payload_type: DoIpPayloadType::from(c.payload_type),
             payload_length: c.payload_length,
+            version_valid: c.version_valid,
         }
     }
 
     /// Get the payload type name
     pub fn payload_type_name(&self) -> &'static str {
         match self.payload_type {
-            0x0000 => "Generic NACK",
-            0x0001 => "Vehicle Identification Request",
-            0x0002 => "Vehicle Identification Request with EID",
-            0x0003 => "Vehicle Identification Request with VIN",
-            0x0004 => "Vehicle Announcement",
-            0x0005 => "Routing Activation Request",
-            0x0006 => "Routing Activation Response",
-            0x0007 => "Alive Check Request",
-            0x0008 => "Alive Check Response",
-            0x8001 => "Diagnostic Message",
-            0x8002 => "Diagnostic Message Positive Ack",
-            0x8003 => "Diagnostic Message Negative Ack",
-            _ => "Unknown",
+            DoIpPayloadType::GenericNack => "Generic NACK",
+            DoIpPayloadType::VehicleIdRequest => "Vehicle Identification Request",
+            DoIpPayloadType::VehicleIdResponse => "Vehicle Announcement",
+            DoIpPayloadType::RoutingActivationRequest => "Routing Activation Request",
+            DoIpPayloadType::RoutingActivationResponse => "Routing Activation Response",
+            DoIpPayloadType::AliveCheckRequest => "Alive Check Request",
+            DoIpPayloadType::AliveCheckResponse => "Alive Check Response",
+            DoIpPayloadType::DiagnosticMessage => "Diagnostic Message",
+            DoIpPayloadType::DiagnosticMessagePositiveAck => "Diagnostic Message Positive Ack",
+            DoIpPayloadType::DiagnosticMessageNegativeAck => "Diagnostic Message Negative Ack",
+            DoIpPayloadType::Unknown(_) => "Unknown",
         }
     }
 }
@@ -442,9 +577,23 @@ pub struct GptpHeader {
 
 impl GptpHeader {
     fn from_c(c: &wadjet_sys::wadjet_gptp_header_t) -> Self {
+        let msg_type = match c.message_type {
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_SYNC => GptpMessageType::Sync,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_DELAY_REQ => GptpMessageType::DelayReq,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_PDELAY_REQ => GptpMessageType::PdelayReq,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_PDELAY_RESP => GptpMessageType::PdelayResp,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_FOLLOW_UP => GptpMessageType::FollowUp,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_DELAY_RESP => GptpMessageType::DelayResp,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_PDELAY_RESP_FOLLOW_UP => GptpMessageType::PdelayRespFollowUp,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_ANNOUNCE => GptpMessageType::Announce,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_SIGNALING => GptpMessageType::Signaling,
+            wadjet_sys::wadjet_gptp_message_type_t::WADJET_GPTP_MANAGEMENT => GptpMessageType::Management,
+            _ => GptpMessageType::Unknown,
+        };
+        
         Self {
             transport_specific: c.transport_specific,
-            message_type: GptpMessageType::from(c.message_type as u8),
+            message_type: msg_type,
             version: c.version,
             message_length: c.message_length,
             domain_number: c.domain_number,
@@ -1203,13 +1352,10 @@ impl Default for UdsDecoder {
     }
 }
 
-/// A decoded protocol layer
-#[derive(Debug, Clone)]
-pub struct DecodedLayer {
-    protocol: Protocol,
-    offset: usize,
-    length: usize,
-    // Protocol-specific headers
+/// Result of decoding a packet
+pub struct DecodeResult {
+    handle: wadjet_sys::wadjet_decode_result_t,
+    // Cached headers - populated on first access
     ethernet: Option<EthernetHeader>,
     ipv4: Option<Ipv4Header>,
     udp: Option<UdpHeader>,
@@ -1217,252 +1363,170 @@ pub struct DecodedLayer {
     someip: Option<SomeIpHeader>,
     doip: Option<DoIpHeader>,
     gptp: Option<GptpHeader>,
-    uds: Option<UdsHeader>,
-}
-
-impl DecodedLayer {
-    /// Get the protocol type
-    pub fn protocol(&self) -> Protocol {
-        self.protocol
-    }
-
-    /// Get the offset of this layer in the packet
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-
-    /// Get the length of this layer
-    pub fn length(&self) -> usize {
-        self.length
-    }
-
-    /// Get Ethernet header if this is an Ethernet layer
-    pub fn ethernet(&self) -> Option<&EthernetHeader> {
-        self.ethernet.as_ref()
-    }
-
-    /// Get IPv4 header if this is an IPv4 layer
-    pub fn ipv4(&self) -> Option<&Ipv4Header> {
-        self.ipv4.as_ref()
-    }
-
-    /// Get UDP header if this is a UDP layer
-    pub fn udp(&self) -> Option<&UdpHeader> {
-        self.udp.as_ref()
-    }
-
-    /// Get TCP header if this is a TCP layer
-    pub fn tcp(&self) -> Option<&TcpHeader> {
-        self.tcp.as_ref()
-    }
-
-    /// Get SOME/IP header if this is a SOME/IP layer
-    pub fn someip(&self) -> Option<&SomeIpHeader> {
-        self.someip.as_ref()
-    }
-
-    /// Get DoIP header if this is a DoIP layer
-    pub fn doip(&self) -> Option<&DoIpHeader> {
-        self.doip.as_ref()
-    }
-
-    /// Get gPTP header if this is a gPTP layer
-    pub fn gptp(&self) -> Option<&GptpHeader> {
-        self.gptp.as_ref()
-    }
-
-    /// Get UDS header if this is a UDS layer
-    pub fn uds(&self) -> Option<&UdsHeader> {
-        self.uds.as_ref()
-    }
-}
-
-/// Result of decoding a packet
-pub struct DecodeResult {
-    handle: *mut wadjet_sys::wadjet_decode_result_t,
-    layers: Vec<DecodedLayer>,
 }
 
 impl DecodeResult {
     /// Decode a packet
     pub(crate) fn decode_packet(packet: &Packet) -> Option<Self> {
-        let mut handle: *mut wadjet_sys::wadjet_decode_result_t = ptr::null_mut();
+        let data = packet.data();
+        if data.is_empty() {
+            return None;
+        }
+        
+        let mut handle: wadjet_sys::wadjet_decode_result_t = ptr::null_mut();
         
         let err = unsafe {
-            wadjet_sys::wadjet_decode_packet(packet.handle(), &mut handle)
+            wadjet_sys::wadjet_decode_packet(data.as_ptr(), data.len(), &mut handle)
         };
 
         if err != wadjet_sys::wadjet_error_t::WADJET_OK || handle.is_null() {
             return None;
         }
 
-        // Get the number of layers
-        let layer_count = unsafe { wadjet_sys::wadjet_decode_layer_count(handle) };
-        
-        // Extract layer information
-        let mut layers = Vec::with_capacity(layer_count);
-        
-        for i in 0..layer_count {
-            let proto = unsafe { wadjet_sys::wadjet_decode_layer_protocol(handle, i) };
-            let offset = unsafe { wadjet_sys::wadjet_decode_layer_offset(handle, i) };
-            let length = unsafe { wadjet_sys::wadjet_decode_layer_length(handle, i) };
-            
-            let protocol = Protocol::from_c(proto);
-            
-            // Extract protocol-specific headers
-            let (ethernet, ipv4, udp, tcp, someip, doip, gptp) = unsafe {
-                let mut eth = None;
-                let mut ip4 = None;
-                let mut u = None;
-                let mut t = None;
-                let mut sip = None;
-                let mut dip = None;
-                let mut gtp = None;
-
-                match protocol {
-                    Protocol::Ethernet => {
-                        let mut hdr = wadjet_sys::wadjet_ethernet_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_ethernet_header(handle, i, &mut hdr) {
-                            eth = Some(EthernetHeader::from_c(&hdr));
-                        }
-                    }
-                    Protocol::Ipv4 => {
-                        let mut hdr = wadjet_sys::wadjet_ipv4_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_ipv4_header(handle, i, &mut hdr) {
-                            ip4 = Some(Ipv4Header::from_c(&hdr));
-                        }
-                    }
-                    Protocol::Udp => {
-                        let mut hdr = wadjet_sys::wadjet_udp_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_udp_header(handle, i, &mut hdr) {
-                            u = Some(UdpHeader::from_c(&hdr));
-                        }
-                    }
-                    Protocol::Tcp => {
-                        let mut hdr = wadjet_sys::wadjet_tcp_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_tcp_header(handle, i, &mut hdr) {
-                            t = Some(TcpHeader::from_c(&hdr));
-                        }
-                    }
-                    Protocol::SomeIp => {
-                        let mut hdr = wadjet_sys::wadjet_someip_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_someip_header(handle, i, &mut hdr) {
-                            sip = Some(SomeIpHeader::from_c(&hdr));
-                        }
-                    }
-                    Protocol::DoIp => {
-                        let mut hdr = wadjet_sys::wadjet_doip_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_doip_header(handle, i, &mut hdr) {
-                            dip = Some(DoIpHeader::from_c(&hdr));
-                        }
-                    }
-                    Protocol::Gptp => {
-                        let mut hdr = wadjet_sys::wadjet_gptp_header_t::default();
-                        if wadjet_sys::wadjet_decode_get_gptp_header(handle, i, &mut hdr) {
-                            gtp = Some(GptpHeader::from_c(&hdr));
-                        }
-                    }
-                    _ => {}
-                }
-
-                (eth, ip4, u, t, sip, dip, gtp)
-            };
-
-            // For UDS, we decode from payload if available
-            let uds = if protocol == Protocol::Uds {
-                // Try to get payload at this layer
-                let payload = unsafe {
-                    let ptr = wadjet_sys::wadjet_decode_payload(handle);
-                    let len = wadjet_sys::wadjet_decode_payload_length(handle);
-                    if !ptr.is_null() && len > 0 {
-                        Some(std::slice::from_raw_parts(ptr, len))
-                    } else {
-                        None
-                    }
-                };
-                
-                payload.and_then(|p| {
-                    let decoder = UdsDecoder::new();
-                    decoder.decode(p)
-                })
-            } else {
-                None
-            };
-
-            layers.push(DecodedLayer {
-                protocol,
-                offset,
-                length,
-                ethernet,
-                ipv4,
-                udp,
-                tcp,
-                someip,
-                doip,
-                gptp,
-                uds,
-            });
-        }
-
-        Some(Self { handle, layers })
-    }
-
-    /// Get the decoded layers
-    pub fn layers(&self) -> &[DecodedLayer] {
-        &self.layers
-    }
-
-    /// Get the number of layers
-    pub fn layer_count(&self) -> usize {
-        self.layers.len()
-    }
-
-    /// Get a specific layer by index
-    pub fn layer(&self, index: usize) -> Option<&DecodedLayer> {
-        self.layers.get(index)
-    }
-
-    /// Get the payload data (data after all headers)
-    pub fn payload(&self) -> &[u8] {
-        unsafe {
-            let ptr = wadjet_sys::wadjet_decode_payload(self.handle);
-            let len = wadjet_sys::wadjet_decode_payload_length(self.handle);
-            if ptr.is_null() || len == 0 {
-                return &[];
-            }
-            std::slice::from_raw_parts(ptr, len)
-        }
-    }
-
-    /// Decode UDS message from payload
-    pub fn decode_uds(&self) -> Option<UdsHeader> {
-        let payload = self.payload();
-        if payload.is_empty() {
+        // Check if decode was successful
+        let success = unsafe { wadjet_sys::wadjet_decode_result_success(handle) };
+        if !success {
+            unsafe { wadjet_sys::wadjet_decode_result_destroy(handle) };
             return None;
         }
-        let decoder = UdsDecoder::new();
-        decoder.decode(payload)
+
+        // Extract all available headers
+        let ethernet = unsafe {
+            let mut hdr: wadjet_sys::wadjet_ethernet_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_ethernet(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(EthernetHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let ipv4 = unsafe {
+            let mut hdr: wadjet_sys::wadjet_ipv4_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_ipv4(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(Ipv4Header::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let udp = unsafe {
+            let mut hdr: wadjet_sys::wadjet_udp_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_udp(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(UdpHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let tcp = unsafe {
+            let mut hdr: wadjet_sys::wadjet_tcp_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_tcp(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(TcpHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let someip = unsafe {
+            let mut hdr: wadjet_sys::wadjet_someip_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_someip(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(SomeIpHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let doip = unsafe {
+            let mut hdr: wadjet_sys::wadjet_doip_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_doip(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(DoIpHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        let gptp = unsafe {
+            let mut hdr: wadjet_sys::wadjet_gptp_header_t = std::mem::zeroed();
+            if wadjet_sys::wadjet_decode_result_gptp(handle, &mut hdr) == wadjet_sys::wadjet_error_t::WADJET_OK {
+                Some(GptpHeader::from_c(&hdr))
+            } else {
+                None
+            }
+        };
+
+        Some(Self {
+            handle,
+            ethernet,
+            ipv4,
+            udp,
+            tcp,
+            someip,
+            doip,
+            gptp,
+        })
     }
 
-    /// Get a summary string of the decoded packet
-    pub fn summary(&self) -> String {
+    /// Get Ethernet header if present
+    pub fn ethernet(&self) -> Option<&EthernetHeader> {
+        self.ethernet.as_ref()
+    }
+
+    /// Get IPv4 header if present
+    pub fn ipv4(&self) -> Option<&Ipv4Header> {
+        self.ipv4.as_ref()
+    }
+
+    /// Get UDP header if present
+    pub fn udp(&self) -> Option<&UdpHeader> {
+        self.udp.as_ref()
+    }
+
+    /// Get TCP header if present
+    pub fn tcp(&self) -> Option<&TcpHeader> {
+        self.tcp.as_ref()
+    }
+
+    /// Get SOME/IP header if present
+    pub fn someip(&self) -> Option<&SomeIpHeader> {
+        self.someip.as_ref()
+    }
+
+    /// Get DoIP header if present
+    pub fn doip(&self) -> Option<&DoIpHeader> {
+        self.doip.as_ref()
+    }
+
+    /// Get gPTP header if present
+    pub fn gptp(&self) -> Option<&GptpHeader> {
+        self.gptp.as_ref()
+    }
+
+    /// Check if the result has a specific protocol layer
+    pub fn has_layer(&self, protocol: Protocol) -> bool {
         unsafe {
-            let ptr = wadjet_sys::wadjet_decode_summary(self.handle);
-            if ptr.is_null() {
-                return String::new();
-            }
-            CStr::from_ptr(ptr).to_string_lossy().into_owned()
+            wadjet_sys::wadjet_decode_result_has_layer(self.handle, protocol.to_c())
         }
     }
 
-    /// Check if this packet contains a specific protocol
-    pub fn has_protocol(&self, protocol: Protocol) -> bool {
-        self.layers.iter().any(|l| l.protocol == protocol)
-    }
-
-    /// Find the first layer of a specific protocol
-    pub fn find_layer(&self, protocol: Protocol) -> Option<&DecodedLayer> {
-        self.layers.iter().find(|l| l.protocol == protocol)
+    /// Get the payload data after a specific protocol layer
+    pub fn payload_after(&self, protocol: Protocol) -> Option<&[u8]> {
+        let mut data: *const u8 = ptr::null();
+        let mut length: usize = 0;
+        
+        let err = unsafe {
+            wadjet_sys::wadjet_decode_result_payload(
+                self.handle,
+                protocol.to_c(),
+                &mut data,
+                &mut length,
+            )
+        };
+        
+        if err != wadjet_sys::wadjet_error_t::WADJET_OK || data.is_null() || length == 0 {
+            return None;
+        }
+        
+        Some(unsafe { std::slice::from_raw_parts(data, length) })
     }
 }
 
@@ -1479,8 +1543,13 @@ impl Drop for DecodeResult {
 impl std::fmt::Debug for DecodeResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DecodeResult")
-            .field("layer_count", &self.layer_count())
-            .field("layers", &self.layers)
+            .field("has_ethernet", &self.ethernet.is_some())
+            .field("has_ipv4", &self.ipv4.is_some())
+            .field("has_udp", &self.udp.is_some())
+            .field("has_tcp", &self.tcp.is_some())
+            .field("has_someip", &self.someip.is_some())
+            .field("has_doip", &self.doip.is_some())
+            .field("has_gptp", &self.gptp.is_some())
             .finish()
     }
 }
@@ -1497,13 +1566,16 @@ mod tests {
         let tcp = TcpHeader {
             src_port: 80,
             dst_port: 12345,
-            seq_num: 0,
-            ack_num: 0,
+            sequence_number: 0,
+            ack_number: 0,
             data_offset: 5,
-            flags: 0x12, // SYN + ACK
-            window: 65535,
-            checksum: 0,
-            urgent_ptr: 0,
+            syn: true,
+            ack: true,
+            fin: false,
+            rst: false,
+            psh: false,
+            urg: false,
+            window_size: 65535,
         };
 
         assert!(tcp.is_syn());
@@ -1522,16 +1594,17 @@ mod tests {
             session_id: 1,
             protocol_version: 1,
             interface_version: 1,
-            message_type: 0x00,
-            return_code: 0,
+            message_type: SomeIpMessageType::Request,
+            return_code: SomeIpReturnCode::Ok,
+            is_service_discovery: false,
         };
 
         assert!(someip.is_request());
         
-        someip.message_type = 0x80;
+        someip.message_type = SomeIpMessageType::Response;
         assert!(someip.is_response());
         
-        someip.message_type = 0x02;
+        someip.message_type = SomeIpMessageType::Notification;
         assert!(someip.is_notification());
     }
 
@@ -1540,8 +1613,9 @@ mod tests {
         let doip = DoIpHeader {
             protocol_version: 0x02,
             inverse_version: 0xFD,
-            payload_type: 0x8001,
+            payload_type: DoIpPayloadType::DiagnosticMessage,
             payload_length: 100,
+            version_valid: true,
         };
 
         assert_eq!(doip.payload_type_name(), "Diagnostic Message");

@@ -138,19 +138,19 @@ impl From<Ipv4Address> for Ipv4Addr {
     }
 }
 
-/// Timestamp with microsecond precision
+/// Timestamp with nanosecond precision
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
 pub struct Timestamp {
     /// Seconds since Unix epoch
-    pub seconds: u64,
-    /// Microseconds component
-    pub microseconds: u32,
+    pub seconds: i64,
+    /// Nanoseconds within second
+    pub nanoseconds: i64,
 }
 
 impl Timestamp {
     /// Create a new timestamp
-    pub const fn new(seconds: u64, microseconds: u32) -> Self {
-        Self { seconds, microseconds }
+    pub const fn new(seconds: i64, nanoseconds: i64) -> Self {
+        Self { seconds, nanoseconds }
     }
 
     /// Get current time
@@ -160,16 +160,21 @@ impl Timestamp {
         Self::from_c(&ts)
     }
 
+    /// Convert to total nanoseconds
+    pub fn as_nanos(&self) -> i128 {
+        (self.seconds as i128) * 1_000_000_000 + (self.nanoseconds as i128)
+    }
+
     /// Convert to total microseconds
-    pub fn as_micros(&self) -> u128 {
-        (self.seconds as u128) * 1_000_000 + (self.microseconds as u128)
+    pub fn as_micros(&self) -> i128 {
+        (self.seconds as i128) * 1_000_000 + (self.nanoseconds as i128) / 1000
     }
 
     /// Convert from C type
     pub(crate) fn from_c(c: &wadjet_sys::wadjet_timestamp_t) -> Self {
         Self {
             seconds: c.seconds,
-            microseconds: c.microseconds,
+            nanoseconds: c.nanoseconds,
         }
     }
 
@@ -177,20 +182,20 @@ impl Timestamp {
     pub(crate) fn to_c(&self) -> wadjet_sys::wadjet_timestamp_t {
         wadjet_sys::wadjet_timestamp_t {
             seconds: self.seconds,
-            microseconds: self.microseconds,
+            nanoseconds: self.nanoseconds,
         }
     }
 }
 
 impl fmt::Debug for Timestamp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Timestamp({}.{:06})", self.seconds, self.microseconds)
+        write!(f, "Timestamp({}.{:09})", self.seconds, self.nanoseconds)
     }
 }
 
 impl fmt::Display for Timestamp {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}.{:06}", self.seconds, self.microseconds)
+        write!(f, "{}.{:09}", self.seconds, self.nanoseconds)
     }
 }
 
