@@ -46,13 +46,17 @@ package "Wadjet-Link Library" {
         component [SOME/IP] as SOMEIP <<protocol>>
         component [SOME/IP-SD] as SOMEIPSD <<protocol>>
         component [DoIP] as DoIP <<protocol>>
+        component [gPTP\n(IEEE 802.1AS)] as gPTP <<protocol>>
+        component [UDS\n(ISO 14229)] as UDS <<protocol>>
+        component [DDS/RTPS\n(OMG)] as DDS <<protocol>>
         component [ProtocolDispatcher\n(Stack Chaining)] as Dispatcher <<protocol>>
     }
 }
 
-package "Planned Protocols" #EEEEEE {
-    component [gPTP\n(IEEE 802.1AS)] as gPTP
-    component [UDS over IP] as UDS
+package "Language Bindings" #E8FFE8 {
+    component [C API\n(libwadjet_c)] as CBindings
+    component [Python\n(pybind11)] as PyBindings
+    component [Rust\n(wadjet-sys/wadjet)] as RustBindings
 }
 
 package "Scenario Module" #FDF8E8 {
@@ -103,15 +107,25 @@ Transport --> PacketView : parses
 SOMEIP --> PacketView : parses
 SOMEIPSD --> SOMEIP : extends
 DoIP --> PacketView : parses
+gPTP --> PacketView : parses
+UDS --> DoIP : uses
+DDS --> PacketView : parses
 Dispatcher --> Ethernet : chains
 Dispatcher --> IPv4 : chains
 Dispatcher --> Transport : chains
 Dispatcher --> SOMEIP : chains
 Dispatcher --> DoIP : chains
+Dispatcher --> gPTP : chains
+Dispatcher --> UDS : chains
+Dispatcher --> DDS : chains
 
-' Planned protocol dependencies
-UDS ..> DoIP : uses
-gPTP ..> PacketView : uses
+' Bindings dependencies
+CBindings --> Dispatcher : wraps
+CBindings --> Capture : wraps
+CBindings --> PcapReader : wraps
+CBindings --> PcapWriter : wraps
+PyBindings --> CBindings : uses
+RustBindings --> CBindings : FFI
 
 ' Scenario module dependencies
 YamlParser --> YamlCpp : uses
