@@ -43,16 +43,17 @@ inline constexpr LogicalAddress ECU_START = 0x0001;
 struct VIN {
     std::array<char, 17> data{};
 
-    [[nodiscard]] std::string to_string() const {
-        return std::string(data.data(), 17);
-    }
+    [[nodiscard]] std::string to_string() const { return std::string(data.data(), 17); }
 
     [[nodiscard]] bool is_valid() const {
         // VIN should contain only alphanumeric characters (excluding I, O, Q)
         for (char c : data) {
-            if (c == '\0') return false;
-            if (!std::isalnum(static_cast<unsigned char>(c))) return false;
-            if (c == 'I' || c == 'O' || c == 'Q') return false;
+            if (c == '\0')
+                return false;
+            if (!std::isalnum(static_cast<unsigned char>(c)))
+                return false;
+            if (c == 'I' || c == 'O' || c == 'Q')
+                return false;
         }
         return true;
     }
@@ -60,13 +61,13 @@ struct VIN {
 
 /// @brief ECU information collected during diagnostic session
 struct ECUInfo {
-    LogicalAddress logical_address{0};          ///< DoIP logical address
-    std::optional<VIN> vin;                     ///< Vehicle Identification Number
-    std::optional<std::string> hardware_id;     ///< Hardware part number
-    std::optional<std::string> software_id;     ///< Software version
-    std::optional<std::string> supplier_id;     ///< Supplier identifier
-    std::optional<std::string> ecu_name;        ///< ECU name/description
-    std::vector<std::uint8_t> serial_number;    ///< ECU serial number
+    LogicalAddress logical_address{0};        ///< DoIP logical address
+    std::optional<VIN> vin;                   ///< Vehicle Identification Number
+    std::optional<std::string> hardware_id;   ///< Hardware part number
+    std::optional<std::string> software_id;   ///< Software version
+    std::optional<std::string> supplier_id;   ///< Supplier identifier
+    std::optional<std::string> ecu_name;      ///< ECU name/description
+    std::vector<std::uint8_t> serial_number;  ///< ECU serial number
 
     /// @brief Check if basic identification is available
     [[nodiscard]] bool has_identification() const {
@@ -96,9 +97,7 @@ struct DiagnosticTiming {
     std::chrono::milliseconds p4_server{0};
 
     /// @brief Default timing values
-    [[nodiscard]] static DiagnosticTiming defaults() {
-        return DiagnosticTiming{};
-    }
+    [[nodiscard]] static DiagnosticTiming defaults() { return DiagnosticTiming{}; }
 
     /// @brief Programming session timing (typically same as default for DoIP)
     [[nodiscard]] static DiagnosticTiming programming() {
@@ -132,9 +131,12 @@ enum class MessageDirection {
 /// @brief Convert direction to string
 [[nodiscard]] inline std::string_view direction_string(MessageDirection dir) {
     switch (dir) {
-        case MessageDirection::Request: return "Request";
-        case MessageDirection::Response: return "Response";
-        case MessageDirection::Unknown: return "Unknown";
+        case MessageDirection::Request:
+            return "Request";
+        case MessageDirection::Response:
+            return "Response";
+        case MessageDirection::Unknown:
+            return "Unknown";
     }
     return "Unknown";
 }
@@ -145,10 +147,10 @@ enum class MessageDirection {
 
 /// @brief Transport layer type for diagnostic messages
 enum class TransportType {
-    DoIP,      ///< Diagnostics over IP (ISO 13400)
-    ISO_TP,    ///< ISO 15765-2 over CAN
-    Raw_UDP,   ///< Raw UDP transport
-    Raw_TCP,   ///< Raw TCP transport
+    DoIP,     ///< Diagnostics over IP (ISO 13400)
+    ISO_TP,   ///< ISO 15765-2 over CAN
+    Raw_UDP,  ///< Raw UDP transport
+    Raw_TCP,  ///< Raw TCP transport
     Unknown,
 };
 

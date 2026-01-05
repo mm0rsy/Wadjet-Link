@@ -33,36 +33,36 @@ namespace wadjet::protocols::diagnostic {
 /// @brief Events that occur during diagnostic sessions
 enum class DiagnosticEvent {
     // Connection events
-    RoutingActivated,       ///< DoIP routing activation successful
-    RoutingDeactivated,     ///< Routing deactivated or lost
-    ConnectionLost,         ///< TCP connection lost
+    RoutingActivated,    ///< DoIP routing activation successful
+    RoutingDeactivated,  ///< Routing deactivated or lost
+    ConnectionLost,      ///< TCP connection lost
 
     // Session events
-    SessionStarted,         ///< Diagnostic session started
-    SessionChanged,         ///< Session type changed
-    SessionTimeout,         ///< S3 timeout occurred
-    SessionEnded,           ///< Session explicitly ended
+    SessionStarted,  ///< Diagnostic session started
+    SessionChanged,  ///< Session type changed
+    SessionTimeout,  ///< S3 timeout occurred
+    SessionEnded,    ///< Session explicitly ended
 
     // Security events
-    SecurityUnlocked,       ///< Security level unlocked
-    SecurityLocked,         ///< Security level locked (failed)
-    SecurityLockout,        ///< Lockout due to failed attempts
+    SecurityUnlocked,  ///< Security level unlocked
+    SecurityLocked,    ///< Security level locked (failed)
+    SecurityLockout,   ///< Lockout due to failed attempts
 
     // Communication events
-    RequestSent,            ///< Request sent to ECU
-    ResponseReceived,       ///< Response received from ECU
-    ResponsePending,        ///< ECU sent ResponsePending (0x78)
-    ResponseTimeout,        ///< No response within timeout
-    NegativeResponse,       ///< Negative response received
+    RequestSent,       ///< Request sent to ECU
+    ResponseReceived,  ///< Response received from ECU
+    ResponsePending,   ///< ECU sent ResponsePending (0x78)
+    ResponseTimeout,   ///< No response within timeout
+    NegativeResponse,  ///< Negative response received
 
     // Diagnostic events
-    DTCsRead,               ///< DTCs were read
-    DTCsCleared,            ///< DTCs were cleared
-    DataIdentifierRead,     ///< Data identifier read
-    FlashStarted,           ///< Flash download started
-    FlashProgress,          ///< Flash download progress
-    FlashCompleted,         ///< Flash download completed
-    FlashFailed,            ///< Flash download failed
+    DTCsRead,            ///< DTCs were read
+    DTCsCleared,         ///< DTCs were cleared
+    DataIdentifierRead,  ///< Data identifier read
+    FlashStarted,        ///< Flash download started
+    FlashProgress,       ///< Flash download progress
+    FlashCompleted,      ///< Flash download completed
+    FlashFailed,         ///< Flash download failed
 };
 
 /// @brief Convert event to string
@@ -130,9 +130,7 @@ struct DiagnosticSessionState {
 
 /// @brief Callback for diagnostic events
 using DiagnosticEventCallback = std::function<void(
-    DiagnosticEvent event,
-    const DiagnosticSessionState& state,
-    const RequestResponsePair* pair)>;
+    DiagnosticEvent event, const DiagnosticSessionState& state, const RequestResponsePair* pair)>;
 
 // =============================================================================
 // Diagnostic Session Manager
@@ -204,18 +202,17 @@ public:
     /// @param payload DoIP payload data
     /// @param timestamp Packet timestamp
     /// @return True if packet contained diagnostic data
-    bool process_doip_packet(const doip::DoIPHeader& header,
-                             std::span<const std::byte> payload,
-                             std::chrono::steady_clock::time_point timestamp = 
-                                 std::chrono::steady_clock::now());
+    bool process_doip_packet(
+        const doip::DoIPHeader& header, std::span<const std::byte> payload,
+        std::chrono::steady_clock::time_point timestamp = std::chrono::steady_clock::now());
 
     /// @brief Process raw DoIP data (header + payload)
     /// @param data Raw DoIP packet data
     /// @param timestamp Packet timestamp
     /// @return True if packet was valid and processed
-    bool process_doip_raw(std::span<const std::byte> data,
-                          std::chrono::steady_clock::time_point timestamp =
-                              std::chrono::steady_clock::now());
+    bool process_doip_raw(
+        std::span<const std::byte> data,
+        std::chrono::steady_clock::time_point timestamp = std::chrono::steady_clock::now());
 
     /// @brief Process a UDS message directly (without DoIP)
     /// @param uds_data Raw UDS message data
@@ -223,12 +220,10 @@ public:
     /// @param target_address Target logical address
     /// @param is_request True if this is a request message
     /// @param timestamp Message timestamp
-    bool process_uds_message(std::span<const std::byte> uds_data,
-                             LogicalAddress source_address,
-                             LogicalAddress target_address,
-                             bool is_request,
-                             std::chrono::steady_clock::time_point timestamp =
-                                 std::chrono::steady_clock::now());
+    bool process_uds_message(
+        std::span<const std::byte> uds_data, LogicalAddress source_address,
+        LogicalAddress target_address, bool is_request,
+        std::chrono::steady_clock::time_point timestamp = std::chrono::steady_clock::now());
 
     // =========================================================================
     // Session State
@@ -237,8 +232,7 @@ public:
     /// @brief Get session state for an ECU
     /// @param ecu_address ECU logical address
     /// @return Session state or nullptr if not tracked
-    [[nodiscard]] const DiagnosticSessionState* get_session_state(
-        LogicalAddress ecu_address) const;
+    [[nodiscard]] const DiagnosticSessionState* get_session_state(LogicalAddress ecu_address) const;
 
     /// @brief Get all tracked ECU addresses
     [[nodiscard]] std::vector<LogicalAddress> get_tracked_ecus() const;
@@ -255,8 +249,8 @@ public:
     [[nodiscard]] const RequestCorrelator& correlator() const { return correlator_; }
 
     /// @brief Get completed request/response pairs for an ECU
-    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>>
-    get_completed_pairs(LogicalAddress ecu_address, std::size_t max_count = 100) const;
+    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>> get_completed_pairs(
+        LogicalAddress ecu_address, std::size_t max_count = 100) const;
 
     // =========================================================================
     // ECU Information
@@ -331,26 +325,19 @@ private:
                                     std::chrono::steady_clock::time_point timestamp);
     void process_vehicle_identification(const doip::VehicleIdentificationResponse& resp);
 
-    void handle_uds_message(const uds::UdsHeader& header,
-                            const uds::UdsServiceMessage& message,
-                            LogicalAddress source,
-                            LogicalAddress target,
-                            bool is_request,
+    void handle_uds_message(const uds::UdsHeader& header, const uds::UdsServiceMessage& message,
+                            LogicalAddress source, LogicalAddress target, bool is_request,
                             std::chrono::steady_clock::time_point timestamp);
 
-    void update_session_state(LogicalAddress ecu_address,
-                              const uds::UdsHeader& header,
-                              const uds::UdsServiceMessage& message,
-                              bool is_request);
+    void update_session_state(LogicalAddress ecu_address, const uds::UdsHeader& header,
+                              const uds::UdsServiceMessage& message, bool is_request);
 
-    void update_ecu_info(LogicalAddress address,
-                         const uds::UdsHeader& header,
+    void update_ecu_info(LogicalAddress address, const uds::UdsHeader& header,
                          const uds::UdsServiceMessage& message);
 
     DiagnosticSessionState& get_or_create_state(LogicalAddress address);
 
-    void emit_event(DiagnosticEvent event,
-                    const DiagnosticSessionState& state,
+    void emit_event(DiagnosticEvent event, const DiagnosticSessionState& state,
                     const RequestResponsePair* pair = nullptr);
 
     Options options_;

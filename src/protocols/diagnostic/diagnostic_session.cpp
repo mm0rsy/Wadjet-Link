@@ -11,28 +11,50 @@ namespace wadjet::protocols::diagnostic {
 
 std::string_view diagnostic_event_string(DiagnosticEvent event) {
     switch (event) {
-        case DiagnosticEvent::RoutingActivated: return "RoutingActivated";
-        case DiagnosticEvent::RoutingDeactivated: return "RoutingDeactivated";
-        case DiagnosticEvent::ConnectionLost: return "ConnectionLost";
-        case DiagnosticEvent::SessionStarted: return "SessionStarted";
-        case DiagnosticEvent::SessionChanged: return "SessionChanged";
-        case DiagnosticEvent::SessionTimeout: return "SessionTimeout";
-        case DiagnosticEvent::SessionEnded: return "SessionEnded";
-        case DiagnosticEvent::SecurityUnlocked: return "SecurityUnlocked";
-        case DiagnosticEvent::SecurityLocked: return "SecurityLocked";
-        case DiagnosticEvent::SecurityLockout: return "SecurityLockout";
-        case DiagnosticEvent::RequestSent: return "RequestSent";
-        case DiagnosticEvent::ResponseReceived: return "ResponseReceived";
-        case DiagnosticEvent::ResponsePending: return "ResponsePending";
-        case DiagnosticEvent::ResponseTimeout: return "ResponseTimeout";
-        case DiagnosticEvent::NegativeResponse: return "NegativeResponse";
-        case DiagnosticEvent::DTCsRead: return "DTCsRead";
-        case DiagnosticEvent::DTCsCleared: return "DTCsCleared";
-        case DiagnosticEvent::DataIdentifierRead: return "DataIdentifierRead";
-        case DiagnosticEvent::FlashStarted: return "FlashStarted";
-        case DiagnosticEvent::FlashProgress: return "FlashProgress";
-        case DiagnosticEvent::FlashCompleted: return "FlashCompleted";
-        case DiagnosticEvent::FlashFailed: return "FlashFailed";
+        case DiagnosticEvent::RoutingActivated:
+            return "RoutingActivated";
+        case DiagnosticEvent::RoutingDeactivated:
+            return "RoutingDeactivated";
+        case DiagnosticEvent::ConnectionLost:
+            return "ConnectionLost";
+        case DiagnosticEvent::SessionStarted:
+            return "SessionStarted";
+        case DiagnosticEvent::SessionChanged:
+            return "SessionChanged";
+        case DiagnosticEvent::SessionTimeout:
+            return "SessionTimeout";
+        case DiagnosticEvent::SessionEnded:
+            return "SessionEnded";
+        case DiagnosticEvent::SecurityUnlocked:
+            return "SecurityUnlocked";
+        case DiagnosticEvent::SecurityLocked:
+            return "SecurityLocked";
+        case DiagnosticEvent::SecurityLockout:
+            return "SecurityLockout";
+        case DiagnosticEvent::RequestSent:
+            return "RequestSent";
+        case DiagnosticEvent::ResponseReceived:
+            return "ResponseReceived";
+        case DiagnosticEvent::ResponsePending:
+            return "ResponsePending";
+        case DiagnosticEvent::ResponseTimeout:
+            return "ResponseTimeout";
+        case DiagnosticEvent::NegativeResponse:
+            return "NegativeResponse";
+        case DiagnosticEvent::DTCsRead:
+            return "DTCsRead";
+        case DiagnosticEvent::DTCsCleared:
+            return "DTCsCleared";
+        case DiagnosticEvent::DataIdentifierRead:
+            return "DataIdentifierRead";
+        case DiagnosticEvent::FlashStarted:
+            return "FlashStarted";
+        case DiagnosticEvent::FlashProgress:
+            return "FlashProgress";
+        case DiagnosticEvent::FlashCompleted:
+            return "FlashCompleted";
+        case DiagnosticEvent::FlashFailed:
+            return "FlashFailed";
     }
     return "Unknown";
 }
@@ -42,8 +64,7 @@ std::string_view diagnostic_event_string(DiagnosticEvent event) {
 // =============================================================================
 
 DiagnosticSessionManager::DiagnosticSessionManager(Options opts)
-    : options_(std::move(opts))
-    , correlator_(options_.correlator_options) {
+    : options_(std::move(opts)), correlator_(options_.correlator_options) {
     // Register correlator event callback to forward events
     correlator_.on_event([this](CorrelationEvent event, const RequestResponsePair* pair,
                                 [[maybe_unused]] const PendingRequest* pending) {
@@ -74,8 +95,7 @@ DiagnosticSessionManager::DiagnosticSessionManager(Options opts)
 }
 
 bool DiagnosticSessionManager::process_doip_packet(
-    const doip::DoIPHeader& header,
-    std::span<const std::byte> payload,
+    const doip::DoIPHeader& header, std::span<const std::byte> payload,
     std::chrono::steady_clock::time_point timestamp) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -129,9 +149,8 @@ bool DiagnosticSessionManager::process_doip_packet(
     return false;
 }
 
-bool DiagnosticSessionManager::process_doip_raw(
-    std::span<const std::byte> data,
-    std::chrono::steady_clock::time_point timestamp) {
+bool DiagnosticSessionManager::process_doip_raw(std::span<const std::byte> data,
+                                                std::chrono::steady_clock::time_point timestamp) {
     // Decode DoIP header
     DecodeContext ctx;
     ctx.data = data;
@@ -158,10 +177,8 @@ bool DiagnosticSessionManager::process_doip_raw(
 }
 
 bool DiagnosticSessionManager::process_uds_message(
-    std::span<const std::byte> uds_data,
-    LogicalAddress source_address,
-    LogicalAddress target_address,
-    bool is_request,
+    std::span<const std::byte> uds_data, LogicalAddress source_address,
+    LogicalAddress target_address, bool is_request,
     std::chrono::steady_clock::time_point timestamp) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -174,16 +191,14 @@ bool DiagnosticSessionManager::process_uds_message(
 
     const auto& decode = result.value();
 
-    handle_uds_message(decode.header, decode.message,
-                       source_address, target_address,
-                       is_request, timestamp);
+    handle_uds_message(decode.header, decode.message, source_address, target_address, is_request,
+                       timestamp);
 
     return true;
 }
 
 void DiagnosticSessionManager::process_diagnostic_message(
-    const doip::DiagnosticMessagePayload& msg,
-    std::chrono::steady_clock::time_point timestamp) {
+    const doip::DiagnosticMessagePayload& msg, std::chrono::steady_clock::time_point timestamp) {
     stats_.diagnostic_messages++;
 
     // Decode UDS from diagnostic message payload
@@ -198,18 +213,15 @@ void DiagnosticSessionManager::process_diagnostic_message(
     // Determine if request or response
     bool is_request = uds::UdsDecoder::is_request(msg.user_data);
 
-    handle_uds_message(decode.header, decode.message,
-                       msg.source_address, msg.target_address,
+    handle_uds_message(decode.header, decode.message, msg.source_address, msg.target_address,
                        is_request, timestamp);
 }
 
-void DiagnosticSessionManager::handle_uds_message(
-    const uds::UdsHeader& header,
-    const uds::UdsServiceMessage& message,
-    LogicalAddress source,
-    LogicalAddress target,
-    bool is_request,
-    std::chrono::steady_clock::time_point timestamp) {
+void DiagnosticSessionManager::handle_uds_message(const uds::UdsHeader& header,
+                                                  const uds::UdsServiceMessage& message,
+                                                  LogicalAddress source, LogicalAddress target,
+                                                  bool is_request,
+                                                  std::chrono::steady_clock::time_point timestamp) {
     // Create transport info
     TransportInfo transport;
     transport.type = TransportType::DoIP;
@@ -253,11 +265,10 @@ void DiagnosticSessionManager::handle_uds_message(
     }
 }
 
-void DiagnosticSessionManager::update_session_state(
-    LogicalAddress ecu_address,
-    const uds::UdsHeader& header,
-    const uds::UdsServiceMessage& message,
-    bool is_request) {
+void DiagnosticSessionManager::update_session_state(LogicalAddress ecu_address,
+                                                    const uds::UdsHeader& header,
+                                                    const uds::UdsServiceMessage& message,
+                                                    bool is_request) {
     auto& state = get_or_create_state(ecu_address);
     state.last_activity = std::chrono::steady_clock::now();
 
@@ -296,7 +307,8 @@ void DiagnosticSessionManager::update_session_state(
             if (!header.is_negative_response()) {
                 // Extract security level from sub-function
                 // Odd access_type = seed request, even access_type = key response
-                auto level = static_cast<std::uint8_t>((resp->access_type + 1) / 2);  // Convert to security level
+                auto level = static_cast<std::uint8_t>((resp->access_type + 1) /
+                                                       2);  // Convert to security level
                 bool is_seed_response = (resp->access_type % 2 == 1);
                 if (is_seed_response) {
                     // Seed received, waiting for key
@@ -362,8 +374,7 @@ void DiagnosticSessionManager::update_session_state(
 }
 
 void DiagnosticSessionManager::update_ecu_info(
-    LogicalAddress address,
-    [[maybe_unused]] const uds::UdsHeader& header,
+    LogicalAddress address, [[maybe_unused]] const uds::UdsHeader& header,
     [[maybe_unused]] const uds::UdsServiceMessage& message) {
     auto& info = ecu_info_[address];
     info.logical_address = address;
@@ -400,8 +411,7 @@ void DiagnosticSessionManager::process_vehicle_identification(
     info.vin = vin;
 }
 
-DiagnosticSessionState& DiagnosticSessionManager::get_or_create_state(
-    LogicalAddress address) {
+DiagnosticSessionState& DiagnosticSessionManager::get_or_create_state(LogicalAddress address) {
     auto it = sessions_.find(address);
     if (it == sessions_.end()) {
         auto& state = sessions_[address];
@@ -439,9 +449,8 @@ bool DiagnosticSessionManager::is_tracking(LogicalAddress ecu_address) const {
     return sessions_.find(ecu_address) != sessions_.end();
 }
 
-std::vector<std::shared_ptr<RequestResponsePair>>
-DiagnosticSessionManager::get_completed_pairs(LogicalAddress ecu_address,
-                                               std::size_t max_count) const {
+std::vector<std::shared_ptr<RequestResponsePair>> DiagnosticSessionManager::get_completed_pairs(
+    LogicalAddress ecu_address, std::size_t max_count) const {
     auto all_pairs = correlator_.get_completed(max_count * 2);
 
     std::vector<std::shared_ptr<RequestResponsePair>> result;
@@ -478,7 +487,7 @@ std::vector<ECUInfo> DiagnosticSessionManager::get_all_ecu_info() const {
 }
 
 void DiagnosticSessionManager::set_timing(LogicalAddress ecu_address,
-                                           const DiagnosticTiming& timing) {
+                                          const DiagnosticTiming& timing) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto& state = get_or_create_state(ecu_address);

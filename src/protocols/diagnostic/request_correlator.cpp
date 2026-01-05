@@ -5,8 +5,7 @@
 
 namespace wadjet::protocols::diagnostic {
 
-RequestCorrelator::RequestCorrelator(Options opts)
-    : options_(std::move(opts)) {}
+RequestCorrelator::RequestCorrelator(Options opts) : options_(std::move(opts)) {}
 
 void RequestCorrelator::record_request(const uds::UdsHeader& header,
                                        const uds::UdsServiceMessage& message,
@@ -39,8 +38,7 @@ void RequestCorrelator::record_request(const uds::UdsHeader& header,
 }
 
 std::shared_ptr<RequestResponsePair> RequestCorrelator::process_response(
-    const uds::UdsHeader& header,
-    const uds::UdsServiceMessage& message,
+    const uds::UdsHeader& header, const uds::UdsServiceMessage& message,
     const TransportInfo& transport) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -55,7 +53,8 @@ std::shared_ptr<RequestResponsePair> RequestCorrelator::process_response(
 
     // Check for ResponsePending (NRC 0x78)
     if (header.is_negative_response() &&
-        header.negative_response_code == static_cast<std::uint8_t>(uds::NRC::RequestCorrectlyReceivedResponsePending)) {
+        header.negative_response_code ==
+            static_cast<std::uint8_t>(uds::NRC::RequestCorrectlyReceivedResponsePending)) {
         pending->pending_count++;
         stats_.response_pending_count++;
         emit_event(CorrelationEvent::ResponsePending, nullptr, pending);
@@ -107,9 +106,8 @@ std::shared_ptr<RequestResponsePair> RequestCorrelator::process_response(
     return pair;
 }
 
-PendingRequest* RequestCorrelator::find_pending_for_response(
-    const uds::UdsHeader& header,
-    const TransportInfo& transport) {
+PendingRequest* RequestCorrelator::find_pending_for_response(const uds::UdsHeader& header,
+                                                             const TransportInfo& transport) {
     // Response addresses are reversed from request
     AddressPairKey key{transport.target_address, transport.source_address};
 
@@ -138,8 +136,7 @@ PendingRequest* RequestCorrelator::find_pending_for_response(
     return &pending_list.front();
 }
 
-std::size_t RequestCorrelator::pending_count(
-    LogicalAddress source, LogicalAddress target) const {
+std::size_t RequestCorrelator::pending_count(LogicalAddress source, LogicalAddress target) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     AddressPairKey key{source, target};
@@ -160,8 +157,8 @@ std::size_t RequestCorrelator::total_pending() const {
     return total;
 }
 
-std::vector<PendingRequest> RequestCorrelator::get_pending(
-    LogicalAddress source, LogicalAddress target) const {
+std::vector<PendingRequest> RequestCorrelator::get_pending(LogicalAddress source,
+                                                           LogicalAddress target) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     AddressPairKey key{source, target};
@@ -172,8 +169,8 @@ std::vector<PendingRequest> RequestCorrelator::get_pending(
     return std::vector<PendingRequest>(it->second.begin(), it->second.end());
 }
 
-std::vector<std::shared_ptr<RequestResponsePair>>
-RequestCorrelator::get_completed(std::size_t max_count) const {
+std::vector<std::shared_ptr<RequestResponsePair>> RequestCorrelator::get_completed(
+    std::size_t max_count) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::vector<std::shared_ptr<RequestResponsePair>> result;
@@ -188,15 +185,14 @@ RequestCorrelator::get_completed(std::size_t max_count) const {
     return result;
 }
 
-std::vector<std::shared_ptr<RequestResponsePair>>
-RequestCorrelator::get_completed_by_service(uds::ServiceID service,
-                                            std::size_t max_count) const {
+std::vector<std::shared_ptr<RequestResponsePair>> RequestCorrelator::get_completed_by_service(
+    uds::ServiceID service, std::size_t max_count) const {
     std::lock_guard<std::mutex> lock(mutex_);
 
     std::vector<std::shared_ptr<RequestResponsePair>> result;
 
-    for (auto it = completed_.rbegin();
-         it != completed_.rend() && result.size() < max_count; ++it) {
+    for (auto it = completed_.rbegin(); it != completed_.rend() && result.size() < max_count;
+         ++it) {
         if ((*it)->request.header.service_id == service) {
             result.push_back(*it);
         }
@@ -268,8 +264,7 @@ void RequestCorrelator::reset_statistics() {
     stats_ = Statistics{};
 }
 
-void RequestCorrelator::emit_event(CorrelationEvent event,
-                                   const RequestResponsePair* pair,
+void RequestCorrelator::emit_event(CorrelationEvent event, const RequestResponsePair* pair,
                                    const PendingRequest* pending) {
     for (const auto& callback : callbacks_) {
         callback(event, pair, pending);

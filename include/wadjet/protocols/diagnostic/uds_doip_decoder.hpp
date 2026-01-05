@@ -43,29 +43,23 @@ struct UdsOverDoipResult {
     }
 
     /// @brief Check if this is a positive UDS response
-    [[nodiscard]] bool is_positive_response() const {
-        return !uds_header.is_negative_response();
-    }
+    [[nodiscard]] bool is_positive_response() const { return !uds_header.is_negative_response(); }
 
     /// @brief Check if this is a negative UDS response
-    [[nodiscard]] bool is_negative_response() const {
-        return uds_header.is_negative_response();
-    }
+    [[nodiscard]] bool is_negative_response() const { return uds_header.is_negative_response(); }
 
     /// @brief Get the UDS service ID
-    [[nodiscard]] uds::ServiceID service_id() const {
-        return uds_header.service_id;
-    }
+    [[nodiscard]] uds::ServiceID service_id() const { return uds_header.service_id; }
 };
 
 /// @brief Error when decoding UDS over DoIP
 struct UdsOverDoipError {
     enum class Code {
-        DoipDecodeFailed,       ///< Failed to decode DoIP header
-        NotDiagnosticMessage,   ///< DoIP message is not a diagnostic message
-        PayloadTooShort,        ///< Payload too short for UDS
-        UdsDecodeFailed,        ///< Failed to decode UDS message
-        InvalidVersion,         ///< Invalid DoIP version
+        DoipDecodeFailed,      ///< Failed to decode DoIP header
+        NotDiagnosticMessage,  ///< DoIP message is not a diagnostic message
+        PayloadTooShort,       ///< Payload too short for UDS
+        UdsDecodeFailed,       ///< Failed to decode UDS message
+        InvalidVersion,        ///< Invalid DoIP version
     };
 
     Code code;

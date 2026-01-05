@@ -51,8 +51,7 @@ struct RequestResponsePair {
         /// @brief Total time from request to final response
         [[nodiscard]] std::chrono::milliseconds response_time(
             const std::chrono::steady_clock::time_point& request_time) const {
-            return std::chrono::duration_cast<std::chrono::milliseconds>(
-                timestamp - request_time);
+            return std::chrono::duration_cast<std::chrono::milliseconds>(timestamp - request_time);
         }
     };
 
@@ -136,20 +135,18 @@ struct PendingRequest {
 
 /// @brief Events emitted by the correlator
 enum class CorrelationEvent {
-    RequestSent,            ///< New request recorded
-    ResponseReceived,       ///< Response matched to request
-    ResponsePending,        ///< ResponsePending (0x78) received
-    RequestTimeout,         ///< Request timed out without response
-    UnmatchedResponse,      ///< Response without matching request
-    PositiveResponse,       ///< Positive response received
-    NegativeResponse,       ///< Negative response received
+    RequestSent,        ///< New request recorded
+    ResponseReceived,   ///< Response matched to request
+    ResponsePending,    ///< ResponsePending (0x78) received
+    RequestTimeout,     ///< Request timed out without response
+    UnmatchedResponse,  ///< Response without matching request
+    PositiveResponse,   ///< Positive response received
+    NegativeResponse,   ///< Negative response received
 };
 
 /// @brief Callback for correlation events
 using CorrelationCallback = std::function<void(
-    CorrelationEvent event,
-    const RequestResponsePair* pair,
-    const PendingRequest* pending)>;
+    CorrelationEvent event, const RequestResponsePair* pair, const PendingRequest* pending)>;
 
 // =============================================================================
 // Request Correlator
@@ -210,8 +207,7 @@ public:
     /// @param header Decoded UDS header
     /// @param message Decoded UDS message
     /// @param transport Transport layer information
-    void record_request(const uds::UdsHeader& header,
-                        const uds::UdsServiceMessage& message,
+    void record_request(const uds::UdsHeader& header, const uds::UdsServiceMessage& message,
                         const TransportInfo& transport);
 
     // =========================================================================
@@ -223,33 +219,31 @@ public:
     /// @param message Decoded UDS message
     /// @param transport Transport layer information
     /// @return Correlated pair if matched, nullptr if no match
-    std::shared_ptr<RequestResponsePair> process_response(
-        const uds::UdsHeader& header,
-        const uds::UdsServiceMessage& message,
-        const TransportInfo& transport);
+    std::shared_ptr<RequestResponsePair> process_response(const uds::UdsHeader& header,
+                                                          const uds::UdsServiceMessage& message,
+                                                          const TransportInfo& transport);
 
     // =========================================================================
     // Query
     // =========================================================================
 
     /// @brief Get pending request count for an address pair
-    [[nodiscard]] std::size_t pending_count(
-        LogicalAddress source, LogicalAddress target) const;
+    [[nodiscard]] std::size_t pending_count(LogicalAddress source, LogicalAddress target) const;
 
     /// @brief Get total pending request count
     [[nodiscard]] std::size_t total_pending() const;
 
     /// @brief Get all pending requests for an address pair
-    [[nodiscard]] std::vector<PendingRequest> get_pending(
-        LogicalAddress source, LogicalAddress target) const;
+    [[nodiscard]] std::vector<PendingRequest> get_pending(LogicalAddress source,
+                                                          LogicalAddress target) const;
 
     /// @brief Get completed pairs (limited history)
-    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>> 
-    get_completed(std::size_t max_count = 100) const;
+    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>> get_completed(
+        std::size_t max_count = 100) const;
 
     /// @brief Get all completed pairs for a specific service
-    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>>
-    get_completed_by_service(uds::ServiceID service, std::size_t max_count = 100) const;
+    [[nodiscard]] std::vector<std::shared_ptr<RequestResponsePair>> get_completed_by_service(
+        uds::ServiceID service, std::size_t max_count = 100) const;
 
     // =========================================================================
     // Timeout Management
@@ -304,7 +298,8 @@ public:
 
         /// @brief Match rate (0.0 - 1.0)
         [[nodiscard]] double match_rate() const {
-            if (requests_recorded == 0) return 0.0;
+            if (requests_recorded == 0)
+                return 0.0;
             return static_cast<double>(responses_matched) / static_cast<double>(requests_recorded);
         }
     };
@@ -328,19 +323,17 @@ private:
 
     struct AddressPairKeyHash {
         std::size_t operator()(const AddressPairKey& k) const {
-            return std::hash<std::uint32_t>{}(
-                (static_cast<std::uint32_t>(k.source) << 16) | k.target);
+            return std::hash<std::uint32_t>{}((static_cast<std::uint32_t>(k.source) << 16) |
+                                              k.target);
         }
     };
 
     /// @brief Find matching pending request
-    PendingRequest* find_pending_for_response(
-        const uds::UdsHeader& header,
-        const TransportInfo& transport);
+    PendingRequest* find_pending_for_response(const uds::UdsHeader& header,
+                                              const TransportInfo& transport);
 
     /// @brief Emit event to callbacks
-    void emit_event(CorrelationEvent event,
-                    const RequestResponsePair* pair,
+    void emit_event(CorrelationEvent event, const RequestResponsePair* pair,
                     const PendingRequest* pending);
 
     Options options_;

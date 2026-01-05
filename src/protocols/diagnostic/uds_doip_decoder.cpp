@@ -5,8 +5,7 @@
 
 namespace wadjet::protocols::diagnostic {
 
-UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
-    std::span<const std::byte> data) const {
+UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(std::span<const std::byte> data) const {
     // First decode DoIP
     DecodeContext ctx;
     ctx.data = data;
@@ -16,7 +15,7 @@ UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
 
     if (!doip_result) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::DoipDecodeFailed,
-                                      "Failed to decode DoIP header"));
+                                                  "Failed to decode DoIP header"));
     }
 
     const auto& doip_header = doip_result.value();
@@ -24,13 +23,13 @@ UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
     // Check if it's a diagnostic message
     if (!is_diagnostic_message(doip_header)) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::NotDiagnosticMessage,
-                                      "DoIP message is not a diagnostic message"));
+                                                  "DoIP message is not a diagnostic message"));
     }
 
     // Get payload
     if (data.size() < doip::HEADER_SIZE + doip_header.payload_length) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::PayloadTooShort,
-                                      "Insufficient data for DoIP payload"));
+                                                  "Insufficient data for DoIP payload"));
     }
 
     auto payload = data.subspan(doip::HEADER_SIZE, doip_header.payload_length);
@@ -38,30 +37,27 @@ UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
     return decode(doip_header, payload);
 }
 
-UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
-    const doip::DoIPHeader& header,
-    std::span<const std::byte> payload) const {
+UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(const doip::DoIPHeader& header,
+                                                      std::span<const std::byte> payload) const {
     // Check if it's a diagnostic message
     if (!is_diagnostic_message(header)) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::NotDiagnosticMessage,
-                                      "DoIP message is not a diagnostic message"));
+                                                  "DoIP message is not a diagnostic message"));
     }
 
     // Parse diagnostic message payload (source + target + UDS data)
     // Minimum: 2 bytes source + 2 bytes target + 1 byte SID
     if (payload.size() < 5) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::PayloadTooShort,
-                                      "Diagnostic message payload too short"));
+                                                  "Diagnostic message payload too short"));
     }
 
     // Extract addresses (big-endian)
     auto source_address = static_cast<LogicalAddress>(
-        (static_cast<std::uint16_t>(payload[0]) << 8) |
-        static_cast<std::uint16_t>(payload[1]));
+        (static_cast<std::uint16_t>(payload[0]) << 8) | static_cast<std::uint16_t>(payload[1]));
 
     auto target_address = static_cast<LogicalAddress>(
-        (static_cast<std::uint16_t>(payload[2]) << 8) |
-        static_cast<std::uint16_t>(payload[3]));
+        (static_cast<std::uint16_t>(payload[2]) << 8) | static_cast<std::uint16_t>(payload[3]));
 
     // Extract UDS data
     auto uds_data = payload.subspan(4);
@@ -70,7 +66,7 @@ UdsOverDoipDecoder::Result UdsOverDoipDecoder::decode(
     auto uds_result = uds_decoder_.decode(uds_data);
     if (!uds_result) {
         return Result::err(UdsOverDoipError::make(UdsOverDoipError::Code::UdsDecodeFailed,
-                                      "Failed to decode UDS message"));
+                                                  "Failed to decode UDS message"));
     }
 
     const auto& uds_decode = uds_result.value();
@@ -100,8 +96,7 @@ bool UdsOverDoipDecoder::is_diagnostic_message(const doip::DoIPHeader& header) {
     return header.payload_type == doip::PayloadType::DiagnosticMessage;
 }
 
-bool UdsOverDoipDecoder::looks_like_diagnostic_message(
-    std::span<const std::byte> data) {
+bool UdsOverDoipDecoder::looks_like_diagnostic_message(std::span<const std::byte> data) {
     if (data.size() < doip::HEADER_SIZE) {
         return false;
     }
@@ -114,9 +109,8 @@ bool UdsOverDoipDecoder::looks_like_diagnostic_message(
     }
 
     // Check payload type (bytes 2-3, big-endian)
-    auto payload_type = static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[2]) << 8) |
-        static_cast<std::uint16_t>(data[3]));
+    auto payload_type = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[2]) << 8) |
+                                                   static_cast<std::uint16_t>(data[3]));
 
     return payload_type == static_cast<std::uint16_t>(doip::PayloadType::DiagnosticMessage);
 }
