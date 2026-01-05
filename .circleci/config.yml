@@ -13,7 +13,7 @@ executors:
   linux-gcc:
     docker:
       - image: cimg/base:current-22.04
-    resource_class: medium
+    resource_class: large
     environment:
       CC: gcc-13
       CXX: g++-13
@@ -21,7 +21,7 @@ executors:
   linux-clang:
     docker:
       - image: cimg/base:current-22.04
-    resource_class: medium
+    resource_class: large
     environment:
       CC: clang-17
       CXX: clang++-17
@@ -107,7 +107,7 @@ commands:
     steps:
       - run:
           name: Build
-          command: cmake --build build --parallel $(nproc)
+          command: cmake --build build --parallel 4
 
   run-tests:
     description: "Run tests"
