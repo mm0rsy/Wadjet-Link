@@ -67,3 +67,64 @@ jobs:
         run: |
           find include src tests -name '*.cpp' -o -name '*.hpp' | \
             xargs clang-format-17 --dry-run --Werror
+
+  rust-bindings:
+    name: Rust Bindings
+    runs-on: ubuntu-24.04
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            libpcap-dev \
+            g++-13 \
+            libclang-dev \
+            llvm-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Build C library
+        env:
+          CC: gcc-13
+          CXX: g++-13
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DWADJET_BUILD_C_BINDINGS=ON \
+            -DWADJET_BUILD_TESTS=OFF
+          cmake --build build --parallel
+
+      - name: Build Rust bindings
+        working-directory: bindings/rust
+        env:
+          WADJET_C_HEADER: ${{ github.workspace }}/bindings/c/include/wadjet_c.h
+          WADJET_C_LIB_DIR: ${{ github.workspace }}/build/bindings/c
+        run: |
+          cargo build --workspace
+
+      - name: Check Rust formatting
+        working-directory: bindings/rust
+        run: cargo fmt --all -- --check
+
+      - name: Rust clippy
+        working-directory: bindings/rust
+        env:
+          WADJET_C_HEADER: ${{ github.workspace }}/bindings/c/include/wadjet_c.h
+          WADJET_C_LIB_DIR: ${{ github.workspace }}/build/bindings/c
+        run: cargo clippy --workspace -- -D warnings
+
+      - name: Generate Rust docs
+        working-directory: bindings/rust
+        env:
+          WADJET_C_HEADER: ${{ github.workspace }}/bindings/c/include/wadjet_c.h
+          WADJET_C_LIB_DIR: ${{ github.workspace }}/build/bindings/c
+        run: cargo doc --workspace --no-deps
