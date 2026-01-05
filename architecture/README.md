@@ -46,9 +46,9 @@ This folder contains architectural documentation for the Wadjet-Link project usi
 
 ## Test Architecture
 
-The project has a comprehensive test suite with **303+ tests**:
+The project has a comprehensive test suite with **543 tests**:
 
-### Unit Tests (~120 tests)
+### Unit Tests (~150 tests)
 
 Located in `tests/` subdirectories by module:
 
@@ -58,7 +58,7 @@ Located in `tests/` subdirectories by module:
 - `tests/io/` - Device, FrameFilter
 - `tests/protocols/` - Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP, gPTP, UDS, DDS/RTPS decoders
 
-### Testing Framework Tests (~140 tests)
+### Testing Framework Tests (~200 tests)
 
 Located in `tests/testing/`:
 
@@ -68,20 +68,26 @@ Located in `tests/testing/`:
 - `test_record_replay.cpp` - Record-then-assert mode
 - `test_live_assert.cpp` - Live-assert mode
 
-### Scenario Tests (41 tests)
+### Scenario Tests (~50 tests)
 
 Located in `tests/scenario/`:
 
 - `test_scenario_parser.cpp` - YAML/JSON parser tests
 - `test_scenario_runner.cpp` - Runner and report generator tests
 
-### Integration Tests (~26 tests)
+### Integration Tests (~40 tests)
 
 Located in `tests/integration/`:
 
 - `test_decode_pipeline.cpp` - Full Ethernet→IPv4→UDP/TCP→SOME/IP/DoIP/DDS decode chain
 - `test_pcap_decode.cpp` - PCAP read/write + decode integration
 - `test_capture_session.cpp` - Live loopback capture (requires CAP_NET_RAW)
+
+### Bindings Tests (~100 tests)
+
+- C bindings unit tests
+- Python bindings tests (pytest)
+- Rust bindings tests
 
 ### Skipped Tests
 

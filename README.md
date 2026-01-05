@@ -3,6 +3,7 @@
 ### *Restoring the complete picture of the automotive stream.*
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/mm0rsy/Wadjet-Link/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/mm0rsy/Wadjet-Link/tree/master)
 [![Protocol: Automotive Ethernet](https://img.shields.io/badge/Protocol-100/1000Base--T1-orange)](https://standards.ieee.org/standard/802_3bw-2015.html)
 [![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![Build](https://img.shields.io/badge/build-CMake-green)](https://cmake.org/)
@@ -157,11 +158,12 @@ wadjet-run --list --dir scenarios/
 | Dependency      | Minimum Version | Purpose                           |
 | --------------- | --------------- | --------------------------------- |
 | CMake           | 3.20+           | Build system                      |
-| GCC             | 11+             | C++20 compiler                    |
-| Clang           | 14+             | Alternative C++20 compiler        |
+| GCC             | 13+             | C++20 compiler (CI uses GCC 13)   |
+| Clang           | 17+             | Alternative C++20 compiler (CI)   |
 | libpcap-dev     | 1.10+           | BPF filter compilation            |
 | pkg-config      | Any             | Library discovery                 |
 | Git             | Any             | Fetching GoogleTest               |
+| clang-format    | 18+             | Code formatting (CI enforced)     |
 
 ### Runtime Dependencies
 
@@ -310,11 +312,12 @@ sudo ./build/tests/wadjet_integration_tests
 
 | Test Suite | Tests | Description |
 |------------|-------|-------------|
-| Unit Tests | 111 | Core, Net, PCAP, I/O, Protocol decoders |
-| Testing Framework | 158 | gMock matchers, Live capture fixtures, Generators, Record-Replay, Live-Assert |
-| Scenario Tests | 41 | YAML/JSON parsers, Runner, Report generators |
-| Integration Tests | 26 | Decode pipeline, PCAP roundtrip, Live capture |
-| **Total** | **378** | |
+| Unit Tests | ~150 | Core, Net, PCAP, I/O, Protocol decoders |
+| Testing Framework | ~200 | gMock matchers, Live capture fixtures, Generators, Record-Replay, Live-Assert |
+| Scenario Tests | ~50 | YAML/JSON parsers, Runner, Report generators |
+| Integration Tests | ~40 | Decode pipeline, PCAP roundtrip, Live capture |
+| Bindings Tests | ~100 | C bindings, Python bindings, Rust bindings |
+| **Total** | **543** | |
 
 ### Advanced Testing Features
 

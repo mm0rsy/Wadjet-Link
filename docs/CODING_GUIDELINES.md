@@ -148,3 +148,45 @@ TEST(PacketParser, ParsesValidSOMEIPHeader) {
     EXPECT_EQ(result->service_id, 0x1234);
 }
 ```
+
+## Code Formatting
+
+All code must be formatted with **clang-format 18+** before committing:
+
+```bash
+# Check formatting (dry-run)
+find include src tests -name '*.cpp' -o -name '*.hpp' | xargs clang-format --dry-run --Werror
+
+# Fix formatting in-place
+find include src tests -name '*.cpp' -o -name '*.hpp' | xargs clang-format -i
+```
+
+The project uses a `.clang-format` configuration file based on Google style with modifications:
+- `IndentWidth: 4`
+- `ColumnLimit: 100`
+- `PointerAlignment: Left`
+
+**CI will reject commits that fail the formatting check.**
+
+## Continuous Integration
+
+All pull requests must pass CI checks before merging:
+
+| CI Job | Description |
+|--------|-------------|
+| `lint` | Code formatting check (clang-format-18) |
+| `build-gcc-debug` | GCC 13 Debug build with sanitizers |
+| `build-gcc-release` | GCC 13 Release build |
+| `build-clang-debug` | Clang 17 Debug build with sanitizers |
+| `build-clang-release` | Clang 17 Release build |
+| `build-with-bindings` | Build with C and Python bindings |
+| `static-analysis` | clang-tidy static analysis |
+
+### Pre-Commit Checklist
+
+Before submitting a PR:
+
+1. **Format code**: `find include src tests -name '*.cpp' -o -name '*.hpp' | xargs clang-format -i`
+2. **Build with both compilers**: Test with GCC and Clang
+3. **Run tests**: `ctest --test-dir build --output-on-failure`
+4. **Check for warnings**: Build with `-Werror` (enabled by default)
