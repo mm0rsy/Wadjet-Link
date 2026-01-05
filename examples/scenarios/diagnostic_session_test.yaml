@@ -1,0 +1,369 @@
+# Example: Diagnostic Session Management Test
+#
+# This scenario tests diagnostic session establishment, timing validation,
+# and request/response correlation using the DiagnosticSessionManager.
+#
+# 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
+
+name: Diagnostic Session Test
+description: Validate diagnostic session management and timing
+version: "1.0"
+tags:
+  - uds
+  - doip
+  - diagnostic
+  - session
+  - timing
+
+# Test configuration
+config:
+  ecu_address: 0x1234
+  tester_address: 0x0E80
+  doip_port: 13400
+  
+  # Timing parameters (ISO 14229-1)
+  p2_server_max: 50ms      # Max response time
+  p2_star_server_max: 5000ms  # Max response time after ResponsePending
+  s3_client_timeout: 5000ms   # Session timeout
+
+timeout: 60s
+
+# Test assertions for diagnostic analysis
+assertions:
+  # Request/Response correlation requirements
+  correlation:
+    min_match_rate: 0.95    # At least 95% of requests matched
+    max_unmatched: 5        # Max 5 unmatched responses
+  
+  # Timing requirements
+  timing:
+    max_p2_violations: 0     # No P2 timeout violations
+    max_p2_star_violations: 0  # No P2* timeout violations
+  
+  # Session requirements
+  session:
+    verify_active: true      # Session must be active at end
+    verify_extended: true    # Must be in extended session
+
+steps:
+  # =========================================================================
+  # Phase 1: DoIP Connection Setup
+  # =========================================================================
+  - name: "DoIP Routing Activation"
+    description: "Establish DoIP communication channel"
+    send:
+      doip:
+        payload_type: routing_activation_request
+        source: ${tester_address}
+        activation_type: default
+    expect:
+      doip:
+        payload_type: routing_activation_response
+        result_code: 0x10  # Routing activated
+      within: 2s
+    on_failure: abort
+
+  # =========================================================================
+  # Phase 2: Session Establishment
+  # =========================================================================
+  - name: "Enter Default Session"
+    description: "Verify default session is active"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: DiagnosticSessionControl
+          session_type: 0x01  # Default
+    expect:
+      uds:
+        service: DiagnosticSessionControl
+        positive_response: true
+        session_type: 0x01
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+    diagnostic:
+      expect_event: SessionStarted
+
+  - name: "Enter Extended Session"
+    description: "Transition to extended diagnostic session"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: DiagnosticSessionControl
+          session_type: 0x03  # Extended
+    expect:
+      uds:
+        service: DiagnosticSessionControl
+        positive_response: true
+        session_type: 0x03
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+    diagnostic:
+      expect_event: SessionChanged
+      verify_session_type: ExtendedDiagnosticSession
+
+  # =========================================================================
+  # Phase 3: Session Keep-Alive Testing
+  # =========================================================================
+  - name: "TesterPresent - Keep Session Alive"
+    description: "Send TesterPresent to prevent session timeout"
+    repeat: 3
+    delay: 1s
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: TesterPresent
+          suppress_response: false
+    expect:
+      uds:
+        service: TesterPresent
+        positive_response: true
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 500ms
+
+  # =========================================================================
+  # Phase 4: Data Reading Tests (timing validation)
+  # =========================================================================
+  - name: "Read ECU Serial Number"
+    description: "Read DID F18C (ECU Serial Number)"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ReadDataByIdentifier
+          data_identifier: 0xF18C
+    expect:
+      uds:
+        service: ReadDataByIdentifier
+        positive_response: true
+        data_identifier: 0xF18C
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+    diagnostic:
+      expect_event: DataIdentifierRead
+
+  - name: "Read VIN"
+    description: "Read DID F190 (VIN)"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ReadDataByIdentifier
+          data_identifier: 0xF190
+    expect:
+      uds:
+        service: ReadDataByIdentifier
+        positive_response: true
+        data_identifier: 0xF190
+        # VIN should be 17 characters
+        data_length_min: 17
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+
+  - name: "Read Multiple DIDs"
+    description: "Read multiple data identifiers in one request"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ReadDataByIdentifier
+          data_identifiers:
+            - 0xF186  # Active diagnostic session
+            - 0xF187  # Spare part number
+            - 0xF188  # ECU manufacturing date
+    expect:
+      uds:
+        service: ReadDataByIdentifier
+        positive_response: true
+      timing:
+        # May take longer for multiple DIDs
+        max_response_time: 150ms
+      within: 1s
+
+  # =========================================================================
+  # Phase 5: DTC Testing
+  # =========================================================================
+  - name: "Read All DTCs"
+    description: "Read DTC information by status mask"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ReadDTCInformation
+          subfunction: 0x02  # reportDTCByStatusMask
+          status_mask: 0xFF  # All DTCs
+    expect:
+      uds:
+        service: ReadDTCInformation
+        positive_response: true
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 2s
+    diagnostic:
+      expect_event: DTCRead
+
+  - name: "Clear All DTCs"
+    description: "Clear diagnostic information"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ClearDiagnosticInformation
+          group_of_dtc: 0xFFFFFF  # All DTCs
+    expect:
+      uds:
+        service: ClearDiagnosticInformation
+        positive_response: true
+      # Clearing DTCs may take longer
+      timing:
+        max_response_time: ${p2_star_server_max}
+      within: 10s
+    diagnostic:
+      expect_event: DTCCleared
+
+  # =========================================================================
+  # Phase 6: Security Access Test (Optional)
+  # =========================================================================
+  - name: "Request Security Seed"
+    description: "Request seed for security level 1"
+    optional: true  # Skip if security not required
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: SecurityAccess
+          access_type: 0x01  # Request seed, level 1
+    expect:
+      uds:
+        service: SecurityAccess
+        positive_response: true
+        # Seed should be non-zero
+        data_length_min: 2
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+    save:
+      seed: response.data
+
+  - name: "Send Security Key"
+    description: "Send key for security level 1"
+    optional: true
+    depends_on: "Request Security Seed"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: SecurityAccess
+          access_type: 0x02  # Send key, level 1
+          key: ${compute_key(seed)}  # Computed from seed
+    expect:
+      uds:
+        service: SecurityAccess
+        positive_response: true
+      timing:
+        max_response_time: ${p2_server_max}
+      within: 1s
+    diagnostic:
+      expect_event: SecurityUnlocked
+      verify_security_level: 1
+
+  # =========================================================================
+  # Phase 7: Final Validation
+  # =========================================================================
+  - name: "Verify Session Active"
+    description: "Verify diagnostic session is still active"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: ReadDataByIdentifier
+          data_identifier: 0xF186  # Active session
+    expect:
+      uds:
+        service: ReadDataByIdentifier
+        positive_response: true
+        # Should return 0x03 for extended session
+        data: [0x03]
+      within: 1s
+
+  - name: "Return to Default Session"
+    description: "Return to default diagnostic session"
+    send:
+      doip:
+        payload_type: diagnostic_message
+        source: ${tester_address}
+        target: ${ecu_address}
+        uds:
+          service: DiagnosticSessionControl
+          session_type: 0x01  # Default
+    expect:
+      uds:
+        service: DiagnosticSessionControl
+        positive_response: true
+      within: 1s
+    diagnostic:
+      expect_event: SessionChanged
+
+# =========================================================================
+# Final Validation
+# =========================================================================
+validation:
+  correlation:
+    description: "Verify request/response correlation"
+    assert:
+      - match_rate >= 0.95
+      - unmatched_responses <= 5
+      
+  timing:
+    description: "Verify timing compliance"
+    assert:
+      - p2_violations == 0
+      - p2_star_violations == 0
+      
+  session:
+    description: "Verify session management"
+    assert:
+      - session_changes >= 2  # Default -> Extended -> Default
+
+# Reports to generate
+reports:
+  - type: summary
+    include:
+      - correlation_statistics
+      - timing_analysis
+      - session_timeline
+      
+  - type: detailed
+    include:
+      - all_events
+      - request_response_pairs
+      - timing_violations
