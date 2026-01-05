@@ -1,7 +1,8 @@
 #include "wadjet/io/pcap_capture_session.hpp"
 
-#include <cstring>
 #include <pcap/pcap.h>
+
+#include <cstring>
 
 namespace wadjet::io {
 
@@ -11,7 +12,7 @@ struct PcapCaptureSession::Impl {
     bool filter_set = false;
     std::size_t packets_received = 0;
     std::size_t bytes_received = 0;
-    
+
     // For capture_loop callback
     PacketCallback current_callback;
     std::size_t max_packets = 0;
@@ -37,7 +38,7 @@ PcapCaptureSession::~PcapCaptureSession() {
 }
 
 auto PcapCaptureSession::create(const std::string& interface,
-                                 Options options) -> Result<PcapCaptureSession> {
+                                Options options) -> Result<PcapCaptureSession> {
     PcapCaptureSession session;
     session.interface_ = interface;
     session.options_ = options;
@@ -54,26 +55,22 @@ auto PcapCaptureSession::create(const std::string& interface,
     // Set options before activation
     if (pcap_set_snaplen(session.impl_->handle, static_cast<int>(options.snaplen)) != 0) {
         pcap_close(session.impl_->handle);
-        return Result<PcapCaptureSession>::err(
-            Error{-1, "Failed to set snaplen"});
+        return Result<PcapCaptureSession>::err(Error{-1, "Failed to set snaplen"});
     }
 
     if (pcap_set_promisc(session.impl_->handle, options.promiscuous ? 1 : 0) != 0) {
         pcap_close(session.impl_->handle);
-        return Result<PcapCaptureSession>::err(
-            Error{-1, "Failed to set promiscuous mode"});
+        return Result<PcapCaptureSession>::err(Error{-1, "Failed to set promiscuous mode"});
     }
 
     if (pcap_set_timeout(session.impl_->handle, options.timeout_ms) != 0) {
         pcap_close(session.impl_->handle);
-        return Result<PcapCaptureSession>::err(
-            Error{-1, "Failed to set timeout"});
+        return Result<PcapCaptureSession>::err(Error{-1, "Failed to set timeout"});
     }
 
     if (pcap_set_buffer_size(session.impl_->handle, static_cast<int>(options.buffer_size)) != 0) {
         pcap_close(session.impl_->handle);
-        return Result<PcapCaptureSession>::err(
-            Error{-1, "Failed to set buffer size"});
+        return Result<PcapCaptureSession>::err(Error{-1, "Failed to set buffer size"});
     }
 
 #ifdef PCAP_TSTAMP_PRECISION_NANO
@@ -92,7 +89,7 @@ auto PcapCaptureSession::create(const std::string& interface,
     return Result<PcapCaptureSession>::ok(std::move(session));
 }
 
-auto PcapCaptureSession::open_offline(const std::filesystem::path& path) 
+auto PcapCaptureSession::open_offline(const std::filesystem::path& path)
     -> Result<PcapCaptureSession> {
     PcapCaptureSession session;
     session.interface_ = path.string();
@@ -102,8 +99,8 @@ auto PcapCaptureSession::open_offline(const std::filesystem::path& path)
 
 #ifdef PCAP_TSTAMP_PRECISION_NANO
     // Try to open with nanosecond precision
-    session.impl_->handle = pcap_open_offline_with_tstamp_precision(
-        path.c_str(), PCAP_TSTAMP_PRECISION_NANO, errbuf);
+    session.impl_->handle =
+        pcap_open_offline_with_tstamp_precision(path.c_str(), PCAP_TSTAMP_PRECISION_NANO, errbuf);
     if (!session.impl_->handle) {
         // Fall back to regular open
         session.impl_->handle = pcap_open_offline(path.c_str(), errbuf);
@@ -134,8 +131,8 @@ auto PcapCaptureSession::set_filter(std::string_view expression) -> Result<void>
     }
 
     // Compile the filter
-    if (pcap_compile(impl_->handle, &impl_->filter, expression.data(),
-                     1, PCAP_NETMASK_UNKNOWN) != 0) {
+    if (pcap_compile(impl_->handle, &impl_->filter, expression.data(), 1, PCAP_NETMASK_UNKNOWN) !=
+        0) {
         return Result<void>::err(
             Error{-1, std::string("Failed to compile filter: ") + pcap_geterr(impl_->handle)});
     }
@@ -255,7 +252,7 @@ auto PcapCaptureSession::next_packet_impl() -> std::optional<Packet> {
 }
 
 auto PcapCaptureSession::capture_loop(const PacketCallback& callback,
-                                       std::size_t max_packets) -> std::size_t {
+                                      std::size_t max_packets) -> std::size_t {
     if (!impl_->handle) {
         return 0;
     }
@@ -276,7 +273,7 @@ auto PcapCaptureSession::capture_loop(const PacketCallback& callback,
     // Use pcap_loop with a callback
     auto loop_callback = [](u_char* user, const pcap_pkthdr* header, const u_char* data) {
         auto* impl = reinterpret_cast<Impl*>(user);
-        
+
         if (impl->stop_requested) {
             return;
         }
@@ -286,13 +283,13 @@ auto PcapCaptureSession::capture_loop(const PacketCallback& callback,
 
         // Create timestamp
         Timestamp ts = Timestamp::from_unix(header->ts.tv_sec, header->ts.tv_usec * 1000);
-        
+
         // Create packet view and call callback
         PacketView view(ByteSpan(reinterpret_cast<const std::byte*>(data), header->caplen), ts);
         impl->current_callback(view);
-        
+
         impl->captured_count++;
-        
+
         if (impl->max_packets > 0 && impl->captured_count >= impl->max_packets) {
             impl->stop_requested = true;
         }
@@ -345,7 +342,7 @@ auto PcapCaptureSession::inject(const PacketView& data) -> Result<void> {
 
     auto pkt_data = data.data();
     int result = pcap_inject(impl_->handle, pkt_data.data(), pkt_data.size());
-    
+
     if (result < 0) {
         return Result<void>::err(
             Error{-1, std::string("Failed to inject packet: ") + pcap_geterr(impl_->handle)});

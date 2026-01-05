@@ -34,11 +34,16 @@ enum class DurabilityKind : std::uint32_t {
 /// @brief Convert durability kind to string
 [[nodiscard]] constexpr std::string_view durability_kind_string(DurabilityKind kind) {
     switch (kind) {
-        case DurabilityKind::Volatile: return "VOLATILE";
-        case DurabilityKind::TransientLocal: return "TRANSIENT_LOCAL";
-        case DurabilityKind::Transient: return "TRANSIENT";
-        case DurabilityKind::Persistent: return "PERSISTENT";
-        default: return "UNKNOWN";
+        case DurabilityKind::Volatile:
+            return "VOLATILE";
+        case DurabilityKind::TransientLocal:
+            return "TRANSIENT_LOCAL";
+        case DurabilityKind::Transient:
+            return "TRANSIENT";
+        case DurabilityKind::Persistent:
+            return "PERSISTENT";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -51,9 +56,12 @@ enum class ReliabilityKind : std::uint32_t {
 /// @brief Convert reliability kind to string
 [[nodiscard]] constexpr std::string_view reliability_kind_string(ReliabilityKind kind) {
     switch (kind) {
-        case ReliabilityKind::BestEffort: return "BEST_EFFORT";
-        case ReliabilityKind::Reliable: return "RELIABLE";
-        default: return "UNKNOWN";
+        case ReliabilityKind::BestEffort:
+            return "BEST_EFFORT";
+        case ReliabilityKind::Reliable:
+            return "RELIABLE";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -67,10 +75,14 @@ enum class LivelinessKind : std::uint32_t {
 /// @brief Convert liveliness kind to string
 [[nodiscard]] constexpr std::string_view liveliness_kind_string(LivelinessKind kind) {
     switch (kind) {
-        case LivelinessKind::Automatic: return "AUTOMATIC";
-        case LivelinessKind::ManualByParticipant: return "MANUAL_BY_PARTICIPANT";
-        case LivelinessKind::ManualByTopic: return "MANUAL_BY_TOPIC";
-        default: return "UNKNOWN";
+        case LivelinessKind::Automatic:
+            return "AUTOMATIC";
+        case LivelinessKind::ManualByParticipant:
+            return "MANUAL_BY_PARTICIPANT";
+        case LivelinessKind::ManualByTopic:
+            return "MANUAL_BY_TOPIC";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -148,8 +160,8 @@ struct HistoryQos {
 
 /// @brief Resource limits QoS policy
 struct ResourceLimitsQos {
-    std::int32_t max_samples = -1;          // Unlimited
-    std::int32_t max_instances = -1;        // Unlimited
+    std::int32_t max_samples = -1;               // Unlimited
+    std::int32_t max_instances = -1;             // Unlimited
     std::int32_t max_samples_per_instance = -1;  // Unlimited
 };
 
@@ -261,7 +273,8 @@ struct DiscoveryParameter {
 
     /// @brief Get value as string (for string parameters)
     [[nodiscard]] std::string as_string() const {
-        if (value.empty()) return "";
+        if (value.empty())
+            return "";
         // Remove null terminator if present
         std::size_t len = value.size();
         if (static_cast<char>(value.back()) == '\0') {
@@ -278,7 +291,8 @@ struct ParameterList {
     /// @brief Find parameter by ID
     [[nodiscard]] const DiscoveryParameter* find(ParameterId id) const {
         for (const auto& p : parameters) {
-            if (p.id == id) return &p;
+            if (p.id == id)
+                return &p;
         }
         return nullptr;
     }
@@ -375,8 +389,7 @@ struct PublicationBuiltinTopicData {
 
     /// @brief Get a descriptive string
     [[nodiscard]] std::string to_string() const {
-        return "Publication{guid=" + writer_guid.to_string() +
-               ",topic=" + topic_name +
+        return "Publication{guid=" + writer_guid.to_string() + ",topic=" + topic_name +
                ",type=" + type_name + "}";
     }
 };
@@ -418,8 +431,7 @@ struct SubscriptionBuiltinTopicData {
 
     /// @brief Get a descriptive string
     [[nodiscard]] std::string to_string() const {
-        return "Subscription{guid=" + reader_guid.to_string() +
-               ",topic=" + topic_name +
+        return "Subscription{guid=" + reader_guid.to_string() + ",topic=" + topic_name +
                ",type=" + type_name + "}";
     }
 };
@@ -448,13 +460,9 @@ struct TopicBuiltinTopicData {
 // =============================================================================
 
 /// @brief Parsed discovery data
-using DiscoveryData = std::variant<
-    std::monostate,
-    ParticipantBuiltinTopicData,
-    PublicationBuiltinTopicData,
-    SubscriptionBuiltinTopicData,
-    TopicBuiltinTopicData
->;
+using DiscoveryData =
+    std::variant<std::monostate, ParticipantBuiltinTopicData, PublicationBuiltinTopicData,
+                 SubscriptionBuiltinTopicData, TopicBuiltinTopicData>;
 
 // =============================================================================
 // Discovery Parser
@@ -464,20 +472,20 @@ using DiscoveryData = std::variant<
 class DiscoveryParser {
 public:
     /// @brief Parse SPDP participant data from serialized payload
-    [[nodiscard]] static std::optional<ParticipantBuiltinTopicData>
-    parse_participant_data(std::span<const std::byte> data, bool little_endian);
+    [[nodiscard]] static std::optional<ParticipantBuiltinTopicData> parse_participant_data(
+        std::span<const std::byte> data, bool little_endian);
 
     /// @brief Parse SEDP publication data from serialized payload
-    [[nodiscard]] static std::optional<PublicationBuiltinTopicData>
-    parse_publication_data(std::span<const std::byte> data, bool little_endian);
+    [[nodiscard]] static std::optional<PublicationBuiltinTopicData> parse_publication_data(
+        std::span<const std::byte> data, bool little_endian);
 
     /// @brief Parse SEDP subscription data from serialized payload
-    [[nodiscard]] static std::optional<SubscriptionBuiltinTopicData>
-    parse_subscription_data(std::span<const std::byte> data, bool little_endian);
+    [[nodiscard]] static std::optional<SubscriptionBuiltinTopicData> parse_subscription_data(
+        std::span<const std::byte> data, bool little_endian);
 
     /// @brief Parse parameter list from CDR-encoded data
-    [[nodiscard]] static std::optional<ParameterList>
-    parse_parameter_list(std::span<const std::byte> data, bool little_endian);
+    [[nodiscard]] static std::optional<ParameterList> parse_parameter_list(
+        std::span<const std::byte> data, bool little_endian);
 };
 
 }  // namespace wadjet::protocols::dds

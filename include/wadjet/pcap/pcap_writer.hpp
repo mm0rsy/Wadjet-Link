@@ -57,9 +57,7 @@ public:
     /// @brief Write a packet to the file
     /// @param packet Packet to write
     /// @return Success or error
-    auto write_packet(const Packet& packet) -> Result<void> {
-        return write_packet(packet.view());
-    }
+    auto write_packet(const Packet& packet) -> Result<void> { return write_packet(packet.view()); }
 
     /// @brief Get a description of this packet sink (IPacketSink interface)
     [[nodiscard]] std::string description() const override { return description_; }

@@ -9,9 +9,7 @@ namespace wadjet::protocols::udp {
 
 std::string UdpHeader::to_string() const {
     std::ostringstream oss;
-    oss << "UDP { src_port=" << src_port
-        << ", dst_port=" << dst_port
-        << ", len=" << length;
+    oss << "UDP { src_port=" << src_port << ", dst_port=" << dst_port << ", len=" << length;
     if (!checksum_valid) {
         oss << ", CHECKSUM_INVALID";
     }
@@ -22,8 +20,7 @@ std::string UdpHeader::to_string() const {
 UdpDecoder::Result UdpDecoder::decode_impl(const DecodeContext& ctx) const {
     // Check minimum size
     if (!ctx.has_bytes(HEADER_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                          "UDP header too small");
+        return make_error(DecodeErrorCode::BufferTooSmall, "UDP header too small");
     }
 
     UdpHeader header;

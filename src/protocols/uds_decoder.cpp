@@ -12,18 +12,15 @@ namespace {
 
 /// @brief Read big-endian uint16 from buffer
 [[nodiscard]] inline std::uint16_t read_be16(const std::byte* data) {
-    return static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[0]) << 8) |
-         static_cast<std::uint16_t>(data[1]));
+    return static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[0]) << 8) |
+                                      static_cast<std::uint16_t>(data[1]));
 }
 
 /// @brief Read big-endian uint32 from buffer
 [[nodiscard]] inline std::uint32_t read_be32(const std::byte* data) {
     return static_cast<std::uint32_t>(
-        (static_cast<std::uint32_t>(data[0]) << 24) |
-        (static_cast<std::uint32_t>(data[1]) << 16) |
-        (static_cast<std::uint32_t>(data[2]) << 8) |
-         static_cast<std::uint32_t>(data[3]));
+        (static_cast<std::uint32_t>(data[0]) << 24) | (static_cast<std::uint32_t>(data[1]) << 16) |
+        (static_cast<std::uint32_t>(data[2]) << 8) | static_cast<std::uint32_t>(data[3]));
 }
 
 /// @brief Read variable-length big-endian integer
@@ -53,9 +50,8 @@ namespace {
 
 UdsDecoder::Result UdsDecoder::decode(std::span<const std::byte> data) const {
     if (data.size() < MIN_MESSAGE_SIZE) {
-        return Result::err(UdsDecodeError::make(
-            UdsDecodeError::Code::MessageTooShort,
-            "Message too short for UDS"));
+        return Result::err(UdsDecodeError::make(UdsDecodeError::Code::MessageTooShort,
+                                                "Message too short for UDS"));
     }
 
     auto sid = static_cast<std::uint8_t>(data[0]);
@@ -186,9 +182,8 @@ UdsDecoder::Result UdsDecoder::parse_positive_response(std::span<const std::byte
 
 UdsDecoder::Result UdsDecoder::parse_negative_response(std::span<const std::byte> data) const {
     if (data.size() < 3) {
-        return Result::err(UdsDecodeError::make(
-            UdsDecodeError::Code::MessageTooShort,
-            "Negative response requires 3 bytes"));
+        return Result::err(UdsDecodeError::make(UdsDecodeError::Code::MessageTooShort,
+                                                "Negative response requires 3 bytes"));
     }
 
     auto rejected_sid = static_cast<ServiceID>(data[1]);
@@ -227,8 +222,7 @@ UdsServiceMessage UdsDecoder::parse_diagnostic_session_control_request(
     return req;
 }
 
-UdsServiceMessage UdsDecoder::parse_ecu_reset_request(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_ecu_reset_request(std::span<const std::byte> data) const {
     if (data.size() < ECUResetRequest::min_size()) {
         return std::monostate{};
     }
@@ -240,8 +234,7 @@ UdsServiceMessage UdsDecoder::parse_ecu_reset_request(
     return req;
 }
 
-UdsServiceMessage UdsDecoder::parse_security_access_request(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_security_access_request(std::span<const std::byte> data) const {
     if (data.size() < SecurityAccessRequest::min_size()) {
         return std::monostate{};
     }
@@ -259,8 +252,7 @@ UdsServiceMessage UdsDecoder::parse_security_access_request(
     return req;
 }
 
-UdsServiceMessage UdsDecoder::parse_tester_present_request(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_tester_present_request(std::span<const std::byte> data) const {
     if (data.size() < TesterPresentRequest::min_size()) {
         return std::monostate{};
     }
@@ -305,8 +297,7 @@ UdsServiceMessage UdsDecoder::parse_write_data_by_identifier_request(
     return req;
 }
 
-UdsServiceMessage UdsDecoder::parse_routine_control_request(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_routine_control_request(std::span<const std::byte> data) const {
     if (data.size() < RoutineControlRequest::min_size()) {
         return std::monostate{};
     }
@@ -332,8 +323,8 @@ UdsServiceMessage UdsDecoder::parse_request_download_request(
 
     RequestDownloadRequest req;
     req.data_format = DataFormatIdentifier::from_byte(static_cast<std::uint8_t>(data[1]));
-    req.address_and_length_format = AddressAndLengthFormatIdentifier::from_byte(
-        static_cast<std::uint8_t>(data[2]));
+    req.address_and_length_format =
+        AddressAndLengthFormatIdentifier::from_byte(static_cast<std::uint8_t>(data[2]));
 
     auto addr_len = static_cast<std::size_t>(req.address_and_length_format.memory_address_length);
     auto size_len = static_cast<std::size_t>(req.address_and_length_format.memory_size_length);
@@ -346,8 +337,7 @@ UdsServiceMessage UdsDecoder::parse_request_download_request(
     return req;
 }
 
-UdsServiceMessage UdsDecoder::parse_transfer_data_request(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_transfer_data_request(std::span<const std::byte> data) const {
     if (data.size() < TransferDataRequest::min_size()) {
         return std::monostate{};
     }
@@ -394,8 +384,7 @@ UdsServiceMessage UdsDecoder::parse_diagnostic_session_control_response(
     return resp;
 }
 
-UdsServiceMessage UdsDecoder::parse_ecu_reset_response(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_ecu_reset_response(std::span<const std::byte> data) const {
     if (data.size() < 2) {
         return std::monostate{};
     }
@@ -403,9 +392,8 @@ UdsServiceMessage UdsDecoder::parse_ecu_reset_response(
     ECUResetResponse resp;
     resp.reset_type = static_cast<ResetType>(data[1]);
 
-    if (data.size() >= 3 && 
-        (resp.reset_type == ResetType::EnableRapidPowerShutDown ||
-         resp.reset_type == ResetType::DisableRapidPowerShutDown)) {
+    if (data.size() >= 3 && (resp.reset_type == ResetType::EnableRapidPowerShutDown ||
+                             resp.reset_type == ResetType::DisableRapidPowerShutDown)) {
         resp.power_down_time = static_cast<std::uint8_t>(data[2]);
     }
 
@@ -429,8 +417,7 @@ UdsServiceMessage UdsDecoder::parse_security_access_response(
     return resp;
 }
 
-UdsServiceMessage UdsDecoder::parse_tester_present_response(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_tester_present_response(std::span<const std::byte> data) const {
     if (data.size() < 2) {
         return std::monostate{};
     }
@@ -502,15 +489,14 @@ UdsServiceMessage UdsDecoder::parse_request_download_response(
 
     auto num_bytes = static_cast<std::size_t>((resp.length_format_identifier >> 4) & 0x0F);
     if (data.size() >= 2 + num_bytes && num_bytes <= 4) {
-        resp.max_number_of_block_length = static_cast<std::uint32_t>(
-            read_be_var(data.data() + 2, num_bytes));
+        resp.max_number_of_block_length =
+            static_cast<std::uint32_t>(read_be_var(data.data() + 2, num_bytes));
     }
 
     return resp;
 }
 
-UdsServiceMessage UdsDecoder::parse_transfer_data_response(
-    std::span<const std::byte> data) const {
+UdsServiceMessage UdsDecoder::parse_transfer_data_response(std::span<const std::byte> data) const {
     if (data.size() < 2) {
         return std::monostate{};
     }

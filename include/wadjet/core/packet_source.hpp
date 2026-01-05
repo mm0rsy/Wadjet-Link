@@ -59,8 +59,7 @@ public:
     /// @brief Set a BPF filter expression
     /// @param expression BPF filter (e.g., "udp port 30490")
     /// @return Success or error
-    [[nodiscard]] virtual auto set_filter(std::string_view expression)
-        -> Result<void> = 0;
+    [[nodiscard]] virtual auto set_filter(std::string_view expression) -> Result<void> = 0;
 };
 
 /// @brief Abstract interface for packet sinks (writers)
@@ -71,8 +70,7 @@ public:
     /// @brief Write a packet
     /// @param view Packet data to write
     /// @return Success or error
-    [[nodiscard]] virtual auto write_packet(const PacketView& view)
-        -> Result<void> = 0;
+    [[nodiscard]] virtual auto write_packet(const PacketView& view) -> Result<void> = 0;
 
     /// @brief Flush any buffered data (default: no-op)
     virtual void flush() {}
@@ -100,8 +98,7 @@ using PacketSinkPtr = std::unique_ptr<IPacketSink>;
 /// @param sink Packet destination
 /// @param max_packets Maximum packets to copy (0 = unlimited)
 /// @return Number of packets copied
-inline std::size_t copy_packets(IPacketSource& source,
-                                IPacketSink& sink,
+inline std::size_t copy_packets(IPacketSource& source, IPacketSink& sink,
                                 std::size_t max_packets = 0) {
     std::size_t count = 0;
     while (auto pkt = source.next_packet()) {
@@ -125,9 +122,7 @@ inline std::size_t copy_packets(IPacketSource& source,
 /// @param callback Function called for matching packets
 /// @return Number of matching packets
 template <typename Predicate, typename Callback>
-std::size_t filter_packets(IPacketSource& source,
-                           Predicate&& pred,
-                           Callback&& callback) {
+std::size_t filter_packets(IPacketSource& source, Predicate&& pred, Callback&& callback) {
     std::size_t count = 0;
     while (auto pkt = source.next_packet()) {
         if (pred(pkt->view())) {

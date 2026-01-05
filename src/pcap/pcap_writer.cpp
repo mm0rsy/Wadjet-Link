@@ -4,22 +4,19 @@
 
 namespace wadjet::pcap {
 
-auto PcapWriter::create(const std::filesystem::path& path,
-                        Options options) -> Result<PcapWriter> {
+auto PcapWriter::create(const std::filesystem::path& path, Options options) -> Result<PcapWriter> {
     PcapWriter writer;
     writer.options_ = options;
     writer.description_ = "PcapWriter: " + path.string();
 
     writer.file_.open(path, std::ios::binary | std::ios::trunc);
     if (!writer.file_.is_open()) {
-        return Result<PcapWriter>::err(
-            Error{-1, "Failed to create file: " + path.string()});
+        return Result<PcapWriter>::err(Error{-1, "Failed to create file: " + path.string()});
     }
 
     // Write file header
     PcapFileHeader header{};
-    header.magic_number =
-        options.nanosecond_precision ? PCAP_MAGIC_NSEC_NATIVE : PCAP_MAGIC_NATIVE;
+    header.magic_number = options.nanosecond_precision ? PCAP_MAGIC_NSEC_NATIVE : PCAP_MAGIC_NATIVE;
     header.version_major = 2;
     header.version_minor = 4;
     header.thiszone = 0;
@@ -50,8 +47,8 @@ auto PcapWriter::write_packet(const PacketView& view) -> Result<void> {
     auto data = view.data();
 
     // Truncate to snaplen if needed
-    std::uint32_t incl_len =
-        static_cast<std::uint32_t>(std::min(data.size(), static_cast<std::size_t>(options_.snaplen)));
+    std::uint32_t incl_len = static_cast<std::uint32_t>(
+        std::min(data.size(), static_cast<std::size_t>(options_.snaplen)));
     std::uint32_t orig_len = static_cast<std::uint32_t>(data.size());
 
     PcapPacketHeader pkt_header{};
@@ -65,8 +62,7 @@ auto PcapWriter::write_packet(const PacketView& view) -> Result<void> {
     pkt_header.orig_len = orig_len;
 
     file_.write(reinterpret_cast<const char*>(&pkt_header), sizeof(pkt_header));
-    file_.write(reinterpret_cast<const char*>(data.data()),
-                static_cast<std::streamsize>(incl_len));
+    file_.write(reinterpret_cast<const char*>(data.data()), static_cast<std::streamsize>(incl_len));
 
     if (!file_.good()) {
         return Result<void>::err(Error{-1, "Failed to write packet"});

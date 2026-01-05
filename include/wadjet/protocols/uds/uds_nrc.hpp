@@ -26,99 +26,99 @@ enum class NRC : std::uint8_t {
     // 0x15-0x20: Reserved by ISO
 
     // Busy Response Codes (0x21-0x22)
-    BusyRepeatRequest = 0x21,                      ///< Server busy, repeat request later
-    ConditionsNotCorrect = 0x22,                   ///< Preconditions not met
+    BusyRepeatRequest = 0x21,     ///< Server busy, repeat request later
+    ConditionsNotCorrect = 0x22,  ///< Preconditions not met
 
     // 0x23: Reserved by ISO
 
     // Sequence Error (0x24)
-    RequestSequenceError = 0x24,                   ///< Request received in wrong sequence
+    RequestSequenceError = 0x24,  ///< Request received in wrong sequence
 
     // No Response Required (0x25)
-    NoResponseFromSubnetComponent = 0x25,          ///< Gateway: no response from subnet
+    NoResponseFromSubnetComponent = 0x25,  ///< Gateway: no response from subnet
 
     // Failure Response Codes (0x26)
-    FailurePreventsExecutionOfRequestedAction = 0x26, ///< Failure prevents execution
+    FailurePreventsExecutionOfRequestedAction = 0x26,  ///< Failure prevents execution
 
     // 0x27-0x30: Reserved by ISO
 
     // Request Out of Range (0x31)
-    RequestOutOfRange = 0x31,                      ///< Parameter value out of range
+    RequestOutOfRange = 0x31,  ///< Parameter value out of range
 
     // 0x32: Reserved by ISO
 
     // Security Response Codes (0x33-0x36)
-    SecurityAccessDenied = 0x33,                   ///< Security access not granted
+    SecurityAccessDenied = 0x33,  ///< Security access not granted
     // 0x34: Reserved by ISO (was AuthenticationRequired in earlier versions)
-    InvalidKey = 0x35,                             ///< Security key does not match
-    ExceededNumberOfAttempts = 0x36,               ///< Too many failed security attempts
+    InvalidKey = 0x35,                ///< Security key does not match
+    ExceededNumberOfAttempts = 0x36,  ///< Too many failed security attempts
 
     // Time Delay Response Codes (0x37)
-    RequiredTimeDelayNotExpired = 0x37,            ///< Security delay timer active
+    RequiredTimeDelayNotExpired = 0x37,  ///< Security delay timer active
 
     // 0x38-0x4F: Reserved by ISO for security
 
     // Secure Data Transmission (0x50-0x6F - Reserved)
 
     // Upload/Download Response Codes (0x70-0x77)
-    UploadDownloadNotAccepted = 0x70,              ///< Upload/download request rejected
-    TransferDataSuspended = 0x71,                  ///< Data transfer suspended
-    GeneralProgrammingFailure = 0x72,              ///< Programming operation failed
-    WrongBlockSequenceCounter = 0x73,              ///< Block sequence error
+    UploadDownloadNotAccepted = 0x70,  ///< Upload/download request rejected
+    TransferDataSuspended = 0x71,      ///< Data transfer suspended
+    GeneralProgrammingFailure = 0x72,  ///< Programming operation failed
+    WrongBlockSequenceCounter = 0x73,  ///< Block sequence error
     // 0x74-0x77: Reserved by ISO
 
     // Service Execution Response Codes (0x78)
-    RequestCorrectlyReceivedResponsePending = 0x78, ///< Response pending, keep waiting
+    RequestCorrectlyReceivedResponsePending = 0x78,  ///< Response pending, keep waiting
 
     // 0x79-0x7D: Reserved by ISO
 
     // Service Not Supported In Active Session (0x7E)
-    SubFunctionNotSupportedInActiveSession = 0x7E, ///< Sub-function not in current session
+    SubFunctionNotSupportedInActiveSession = 0x7E,  ///< Sub-function not in current session
 
     // Service Not Supported In Active Session (0x7F)
-    ServiceNotSupportedInActiveSession = 0x7F,     ///< Service not in current session
+    ServiceNotSupportedInActiveSession = 0x7F,  ///< Service not in current session
 
     // 0x80: Reserved by ISO
 
     // RPM Response Codes (0x81-0x82)
-    RpmTooHigh = 0x81,                             ///< Engine RPM too high
-    RpmTooLow = 0x82,                              ///< Engine RPM too low
+    RpmTooHigh = 0x81,  ///< Engine RPM too high
+    RpmTooLow = 0x82,   ///< Engine RPM too low
 
     // Engine State Response Codes (0x83-0x84)
-    EngineIsRunning = 0x83,                        ///< Engine must be stopped
-    EngineIsNotRunning = 0x84,                     ///< Engine must be running
+    EngineIsRunning = 0x83,     ///< Engine must be stopped
+    EngineIsNotRunning = 0x84,  ///< Engine must be running
 
     // Operating Time Response Codes (0x85-0x86)
-    EngineRunTimeTooLow = 0x85,                    ///< Engine run time too short
+    EngineRunTimeTooLow = 0x85,  ///< Engine run time too short
     // 0x86: Reserved by ISO
 
     // Temperature Response Codes (0x87-0x88)
-    TemperatureTooHigh = 0x87,                     ///< Temperature too high
-    TemperatureTooLow = 0x88,                      ///< Temperature too low
+    TemperatureTooHigh = 0x87,  ///< Temperature too high
+    TemperatureTooLow = 0x88,   ///< Temperature too low
 
     // Speed Response Codes (0x89-0x8A)
-    VehicleSpeedTooHigh = 0x89,                    ///< Vehicle speed too high
-    VehicleSpeedTooLow = 0x8A,                     ///< Vehicle speed too low
+    VehicleSpeedTooHigh = 0x89,  ///< Vehicle speed too high
+    VehicleSpeedTooLow = 0x8A,   ///< Vehicle speed too low
 
     // Throttle/Pedal Response Codes (0x8B-0x8C)
-    ThrottlePedalTooHigh = 0x8B,                   ///< Throttle position too high
-    ThrottlePedalTooLow = 0x8C,                    ///< Throttle position too low
+    ThrottlePedalTooHigh = 0x8B,  ///< Throttle position too high
+    ThrottlePedalTooLow = 0x8C,   ///< Throttle position too low
 
     // Transmission Response Codes (0x8D-0x8F)
-    TransmissionRangeNotInNeutral = 0x8D,          ///< Transmission not in neutral
-    TransmissionRangeNotInGear = 0x8E,             ///< Transmission not in gear
+    TransmissionRangeNotInNeutral = 0x8D,  ///< Transmission not in neutral
+    TransmissionRangeNotInGear = 0x8E,     ///< Transmission not in gear
     // 0x8F: Reserved by ISO
 
     // Brake Response Codes (0x90-0x91)
-    BrakeSwitchNotClosed = 0x90,                   ///< Brake pedal not applied
-    ShifterLeverNotInPark = 0x91,                  ///< Shifter not in park
+    BrakeSwitchNotClosed = 0x90,   ///< Brake pedal not applied
+    ShifterLeverNotInPark = 0x91,  ///< Shifter not in park
 
     // Torque Converter Response Codes (0x92)
-    TorqueConverterClutchLocked = 0x92,            ///< Torque converter clutch locked
+    TorqueConverterClutchLocked = 0x92,  ///< Torque converter clutch locked
 
     // Voltage Response Codes (0x93-0x94)
-    VoltageTooHigh = 0x93,                         ///< System voltage too high
-    VoltageTooLow = 0x94,                          ///< System voltage too low
+    VoltageTooHigh = 0x93,  ///< System voltage too high
+    VoltageTooLow = 0x94,   ///< System voltage too low
 
     // 0x95-0xFF: Reserved for future or OEM-specific use
 };
@@ -126,48 +126,90 @@ enum class NRC : std::uint8_t {
 /// @brief Convert NRC to human-readable string
 [[nodiscard]] constexpr std::string_view nrc_string(NRC nrc) {
     switch (nrc) {
-        case NRC::PositiveResponse: return "PositiveResponse";
-        case NRC::GeneralReject: return "GeneralReject";
-        case NRC::ServiceNotSupported: return "ServiceNotSupported";
-        case NRC::SubFunctionNotSupported: return "SubFunctionNotSupported";
-        case NRC::IncorrectMessageLengthOrInvalidFormat: return "IncorrectMessageLengthOrInvalidFormat";
-        case NRC::ResponseTooLong: return "ResponseTooLong";
-        case NRC::BusyRepeatRequest: return "BusyRepeatRequest";
-        case NRC::ConditionsNotCorrect: return "ConditionsNotCorrect";
-        case NRC::RequestSequenceError: return "RequestSequenceError";
-        case NRC::NoResponseFromSubnetComponent: return "NoResponseFromSubnetComponent";
-        case NRC::FailurePreventsExecutionOfRequestedAction: return "FailurePreventsExecutionOfRequestedAction";
-        case NRC::RequestOutOfRange: return "RequestOutOfRange";
-        case NRC::SecurityAccessDenied: return "SecurityAccessDenied";
-        case NRC::InvalidKey: return "InvalidKey";
-        case NRC::ExceededNumberOfAttempts: return "ExceededNumberOfAttempts";
-        case NRC::RequiredTimeDelayNotExpired: return "RequiredTimeDelayNotExpired";
-        case NRC::UploadDownloadNotAccepted: return "UploadDownloadNotAccepted";
-        case NRC::TransferDataSuspended: return "TransferDataSuspended";
-        case NRC::GeneralProgrammingFailure: return "GeneralProgrammingFailure";
-        case NRC::WrongBlockSequenceCounter: return "WrongBlockSequenceCounter";
-        case NRC::RequestCorrectlyReceivedResponsePending: return "RequestCorrectlyReceivedResponsePending";
-        case NRC::SubFunctionNotSupportedInActiveSession: return "SubFunctionNotSupportedInActiveSession";
-        case NRC::ServiceNotSupportedInActiveSession: return "ServiceNotSupportedInActiveSession";
-        case NRC::RpmTooHigh: return "RpmTooHigh";
-        case NRC::RpmTooLow: return "RpmTooLow";
-        case NRC::EngineIsRunning: return "EngineIsRunning";
-        case NRC::EngineIsNotRunning: return "EngineIsNotRunning";
-        case NRC::EngineRunTimeTooLow: return "EngineRunTimeTooLow";
-        case NRC::TemperatureTooHigh: return "TemperatureTooHigh";
-        case NRC::TemperatureTooLow: return "TemperatureTooLow";
-        case NRC::VehicleSpeedTooHigh: return "VehicleSpeedTooHigh";
-        case NRC::VehicleSpeedTooLow: return "VehicleSpeedTooLow";
-        case NRC::ThrottlePedalTooHigh: return "ThrottlePedalTooHigh";
-        case NRC::ThrottlePedalTooLow: return "ThrottlePedalTooLow";
-        case NRC::TransmissionRangeNotInNeutral: return "TransmissionRangeNotInNeutral";
-        case NRC::TransmissionRangeNotInGear: return "TransmissionRangeNotInGear";
-        case NRC::BrakeSwitchNotClosed: return "BrakeSwitchNotClosed";
-        case NRC::ShifterLeverNotInPark: return "ShifterLeverNotInPark";
-        case NRC::TorqueConverterClutchLocked: return "TorqueConverterClutchLocked";
-        case NRC::VoltageTooHigh: return "VoltageTooHigh";
-        case NRC::VoltageTooLow: return "VoltageTooLow";
-        default: return "Unknown";
+        case NRC::PositiveResponse:
+            return "PositiveResponse";
+        case NRC::GeneralReject:
+            return "GeneralReject";
+        case NRC::ServiceNotSupported:
+            return "ServiceNotSupported";
+        case NRC::SubFunctionNotSupported:
+            return "SubFunctionNotSupported";
+        case NRC::IncorrectMessageLengthOrInvalidFormat:
+            return "IncorrectMessageLengthOrInvalidFormat";
+        case NRC::ResponseTooLong:
+            return "ResponseTooLong";
+        case NRC::BusyRepeatRequest:
+            return "BusyRepeatRequest";
+        case NRC::ConditionsNotCorrect:
+            return "ConditionsNotCorrect";
+        case NRC::RequestSequenceError:
+            return "RequestSequenceError";
+        case NRC::NoResponseFromSubnetComponent:
+            return "NoResponseFromSubnetComponent";
+        case NRC::FailurePreventsExecutionOfRequestedAction:
+            return "FailurePreventsExecutionOfRequestedAction";
+        case NRC::RequestOutOfRange:
+            return "RequestOutOfRange";
+        case NRC::SecurityAccessDenied:
+            return "SecurityAccessDenied";
+        case NRC::InvalidKey:
+            return "InvalidKey";
+        case NRC::ExceededNumberOfAttempts:
+            return "ExceededNumberOfAttempts";
+        case NRC::RequiredTimeDelayNotExpired:
+            return "RequiredTimeDelayNotExpired";
+        case NRC::UploadDownloadNotAccepted:
+            return "UploadDownloadNotAccepted";
+        case NRC::TransferDataSuspended:
+            return "TransferDataSuspended";
+        case NRC::GeneralProgrammingFailure:
+            return "GeneralProgrammingFailure";
+        case NRC::WrongBlockSequenceCounter:
+            return "WrongBlockSequenceCounter";
+        case NRC::RequestCorrectlyReceivedResponsePending:
+            return "RequestCorrectlyReceivedResponsePending";
+        case NRC::SubFunctionNotSupportedInActiveSession:
+            return "SubFunctionNotSupportedInActiveSession";
+        case NRC::ServiceNotSupportedInActiveSession:
+            return "ServiceNotSupportedInActiveSession";
+        case NRC::RpmTooHigh:
+            return "RpmTooHigh";
+        case NRC::RpmTooLow:
+            return "RpmTooLow";
+        case NRC::EngineIsRunning:
+            return "EngineIsRunning";
+        case NRC::EngineIsNotRunning:
+            return "EngineIsNotRunning";
+        case NRC::EngineRunTimeTooLow:
+            return "EngineRunTimeTooLow";
+        case NRC::TemperatureTooHigh:
+            return "TemperatureTooHigh";
+        case NRC::TemperatureTooLow:
+            return "TemperatureTooLow";
+        case NRC::VehicleSpeedTooHigh:
+            return "VehicleSpeedTooHigh";
+        case NRC::VehicleSpeedTooLow:
+            return "VehicleSpeedTooLow";
+        case NRC::ThrottlePedalTooHigh:
+            return "ThrottlePedalTooHigh";
+        case NRC::ThrottlePedalTooLow:
+            return "ThrottlePedalTooLow";
+        case NRC::TransmissionRangeNotInNeutral:
+            return "TransmissionRangeNotInNeutral";
+        case NRC::TransmissionRangeNotInGear:
+            return "TransmissionRangeNotInGear";
+        case NRC::BrakeSwitchNotClosed:
+            return "BrakeSwitchNotClosed";
+        case NRC::ShifterLeverNotInPark:
+            return "ShifterLeverNotInPark";
+        case NRC::TorqueConverterClutchLocked:
+            return "TorqueConverterClutchLocked";
+        case NRC::VoltageTooHigh:
+            return "VoltageTooHigh";
+        case NRC::VoltageTooLow:
+            return "VoltageTooLow";
+        default:
+            return "Unknown";
     }
 }
 
@@ -268,33 +310,43 @@ enum class NRC : std::uint8_t {
 
 /// @brief NRC Classification
 enum class NRCCategory {
-    Success,                 ///< Not an error (0x00)
-    ServiceError,            ///< Service-related errors (0x10-0x14)
-    Busy,                    ///< Server busy (0x21)
-    ConditionError,          ///< Condition/sequence errors (0x22-0x26)
-    ParameterError,          ///< Parameter out of range (0x31)
-    SecurityError,           ///< Security-related errors (0x33-0x37)
-    TransferError,           ///< Upload/download errors (0x70-0x73)
-    ResponsePending,         ///< Response pending (0x78)
-    SessionError,            ///< Session-related errors (0x7E-0x7F)
-    VehicleCondition,        ///< Vehicle condition errors (0x81-0x94)
-    Reserved,                ///< Reserved NRC values
+    Success,           ///< Not an error (0x00)
+    ServiceError,      ///< Service-related errors (0x10-0x14)
+    Busy,              ///< Server busy (0x21)
+    ConditionError,    ///< Condition/sequence errors (0x22-0x26)
+    ParameterError,    ///< Parameter out of range (0x31)
+    SecurityError,     ///< Security-related errors (0x33-0x37)
+    TransferError,     ///< Upload/download errors (0x70-0x73)
+    ResponsePending,   ///< Response pending (0x78)
+    SessionError,      ///< Session-related errors (0x7E-0x7F)
+    VehicleCondition,  ///< Vehicle condition errors (0x81-0x94)
+    Reserved,          ///< Reserved NRC values
 };
 
 /// @brief Classify an NRC into a category
 [[nodiscard]] constexpr NRCCategory classify_nrc(NRC nrc) {
     auto value = static_cast<std::uint8_t>(nrc);
 
-    if (value == 0x00) return NRCCategory::Success;
-    if (value >= 0x10 && value <= 0x14) return NRCCategory::ServiceError;
-    if (value == 0x21) return NRCCategory::Busy;
-    if (value >= 0x22 && value <= 0x26) return NRCCategory::ConditionError;
-    if (value == 0x31) return NRCCategory::ParameterError;
-    if (value >= 0x33 && value <= 0x37) return NRCCategory::SecurityError;
-    if (value >= 0x70 && value <= 0x73) return NRCCategory::TransferError;
-    if (value == 0x78) return NRCCategory::ResponsePending;
-    if (value >= 0x7E && value <= 0x7F) return NRCCategory::SessionError;
-    if (value >= 0x81 && value <= 0x94) return NRCCategory::VehicleCondition;
+    if (value == 0x00)
+        return NRCCategory::Success;
+    if (value >= 0x10 && value <= 0x14)
+        return NRCCategory::ServiceError;
+    if (value == 0x21)
+        return NRCCategory::Busy;
+    if (value >= 0x22 && value <= 0x26)
+        return NRCCategory::ConditionError;
+    if (value == 0x31)
+        return NRCCategory::ParameterError;
+    if (value >= 0x33 && value <= 0x37)
+        return NRCCategory::SecurityError;
+    if (value >= 0x70 && value <= 0x73)
+        return NRCCategory::TransferError;
+    if (value == 0x78)
+        return NRCCategory::ResponsePending;
+    if (value >= 0x7E && value <= 0x7F)
+        return NRCCategory::SessionError;
+    if (value >= 0x81 && value <= 0x94)
+        return NRCCategory::VehicleCondition;
     return NRCCategory::Reserved;
 }
 

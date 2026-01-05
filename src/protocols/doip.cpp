@@ -2,6 +2,7 @@
 /// @brief DoIP (Diagnostics over IP) decoder implementation
 
 #include "wadjet/protocols/doip.hpp"
+
 #include "wadjet/core/byte_order.hpp"
 
 #include <format>
@@ -48,19 +49,14 @@ std::string_view payload_type_string(PayloadType type) {
 }
 
 std::string DoIPHeader::to_string() const {
-    return std::format(
-        "DoIP [version={:#04x}, type={} ({:#06x}), payload_length={}]",
-        protocol_version,
-        payload_type_string(payload_type),
-        static_cast<std::uint16_t>(payload_type),
-        payload_length
-    );
+    return std::format("DoIP [version={:#04x}, type={} ({:#06x}), payload_length={}]",
+                       protocol_version, payload_type_string(payload_type),
+                       static_cast<std::uint16_t>(payload_type), payload_length);
 }
 
 DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
     if (!ctx.has_bytes(HEADER_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                         "DoIP header requires 8 bytes");
+        return make_error(DecodeErrorCode::BufferTooSmall, "DoIP header requires 8 bytes");
     }
 
     const auto* data = ctx.data.data();
@@ -73,34 +69,29 @@ DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
     if (options_.validate_version && !header.is_version_valid()) {
         if (!options_.allow_invalid_version) {
             return make_error(DecodeErrorCode::InvalidVersion,
-                             "DoIP version validation failed (version XOR inverse != 0xFF)");
+                              "DoIP version validation failed (version XOR inverse != 0xFF)");
         }
     }
 
     // Payload type (big-endian)
-    header.payload_type = static_cast<PayloadType>(
-        (static_cast<std::uint16_t>(data[2]) << 8) |
-         static_cast<std::uint16_t>(data[3])
-    );
+    header.payload_type = static_cast<PayloadType>((static_cast<std::uint16_t>(data[2]) << 8) |
+                                                   static_cast<std::uint16_t>(data[3]));
 
     // Payload length (big-endian)
     header.payload_length =
-        (static_cast<std::uint32_t>(data[4]) << 24) |
-        (static_cast<std::uint32_t>(data[5]) << 16) |
-        (static_cast<std::uint32_t>(data[6]) << 8) |
-         static_cast<std::uint32_t>(data[7]);
+        (static_cast<std::uint32_t>(data[4]) << 24) | (static_cast<std::uint32_t>(data[5]) << 16) |
+        (static_cast<std::uint32_t>(data[6]) << 8) | static_cast<std::uint32_t>(data[7]);
 
     // Check if we have the complete payload
     if (!ctx.has_bytes(HEADER_SIZE + header.payload_length)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                         "Incomplete DoIP payload");
+        return make_error(DecodeErrorCode::BufferTooSmall, "Incomplete DoIP payload");
     }
 
     return make_success(std::move(header), ctx.sub_context(HEADER_SIZE));
 }
 
-std::optional<RoutingActivationRequest>
-DoIPDecoder::parse_routing_activation_request(std::span<const std::byte> payload) {
+std::optional<RoutingActivationRequest> DoIPDecoder::parse_routing_activation_request(
+    std::span<const std::byte> payload) {
     // Minimum size: source_address(2) + activation_type(1) + reserved(4) = 7
     if (payload.size() < 7) {
         return std::nullopt;
@@ -110,31 +101,27 @@ DoIPDecoder::parse_routing_activation_request(std::span<const std::byte> payload
     const auto* data = payload.data();
 
     req.source_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) |
-         static_cast<std::uint16_t>(data[1]);
+        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
 
     req.activation_type = static_cast<std::uint8_t>(data[2]);
 
-    req.reserved =
-        (static_cast<std::uint32_t>(data[3]) << 24) |
-        (static_cast<std::uint32_t>(data[4]) << 16) |
-        (static_cast<std::uint32_t>(data[5]) << 8) |
-         static_cast<std::uint32_t>(data[6]);
+    req.reserved = (static_cast<std::uint32_t>(data[3]) << 24) |
+                   (static_cast<std::uint32_t>(data[4]) << 16) |
+                   (static_cast<std::uint32_t>(data[5]) << 8) | static_cast<std::uint32_t>(data[6]);
 
     // OEM-specific field (optional, 4 bytes)
     if (payload.size() >= 11) {
-        req.oem_specific =
-            (static_cast<std::uint32_t>(data[7]) << 24) |
-            (static_cast<std::uint32_t>(data[8]) << 16) |
-            (static_cast<std::uint32_t>(data[9]) << 8) |
-             static_cast<std::uint32_t>(data[10]);
+        req.oem_specific = (static_cast<std::uint32_t>(data[7]) << 24) |
+                           (static_cast<std::uint32_t>(data[8]) << 16) |
+                           (static_cast<std::uint32_t>(data[9]) << 8) |
+                           static_cast<std::uint32_t>(data[10]);
     }
 
     return req;
 }
 
-std::optional<RoutingActivationResponse>
-DoIPDecoder::parse_routing_activation_response(std::span<const std::byte> payload) {
+std::optional<RoutingActivationResponse> DoIPDecoder::parse_routing_activation_response(
+    std::span<const std::byte> payload) {
     // Minimum size: logical_address(2) + entity_address(2) + response_code(1) + reserved(4) = 9
     if (payload.size() < 9) {
         return std::nullopt;
@@ -144,35 +131,30 @@ DoIPDecoder::parse_routing_activation_response(std::span<const std::byte> payloa
     const auto* data = payload.data();
 
     resp.logical_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) |
-         static_cast<std::uint16_t>(data[1]);
+        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
 
     resp.entity_address =
-        (static_cast<std::uint16_t>(data[2]) << 8) |
-         static_cast<std::uint16_t>(data[3]);
+        (static_cast<std::uint16_t>(data[2]) << 8) | static_cast<std::uint16_t>(data[3]);
 
     resp.response_code = static_cast<RoutingActivationResponseCode>(data[4]);
 
     resp.reserved =
-        (static_cast<std::uint32_t>(data[5]) << 24) |
-        (static_cast<std::uint32_t>(data[6]) << 16) |
-        (static_cast<std::uint32_t>(data[7]) << 8) |
-         static_cast<std::uint32_t>(data[8]);
+        (static_cast<std::uint32_t>(data[5]) << 24) | (static_cast<std::uint32_t>(data[6]) << 16) |
+        (static_cast<std::uint32_t>(data[7]) << 8) | static_cast<std::uint32_t>(data[8]);
 
     // OEM-specific field (optional, 4 bytes)
     if (payload.size() >= 13) {
-        resp.oem_specific =
-            (static_cast<std::uint32_t>(data[9]) << 24) |
-            (static_cast<std::uint32_t>(data[10]) << 16) |
-            (static_cast<std::uint32_t>(data[11]) << 8) |
-             static_cast<std::uint32_t>(data[12]);
+        resp.oem_specific = (static_cast<std::uint32_t>(data[9]) << 24) |
+                            (static_cast<std::uint32_t>(data[10]) << 16) |
+                            (static_cast<std::uint32_t>(data[11]) << 8) |
+                            static_cast<std::uint32_t>(data[12]);
     }
 
     return resp;
 }
 
-std::optional<DiagnosticMessagePayload>
-DoIPDecoder::parse_diagnostic_message(std::span<const std::byte> payload) {
+std::optional<DiagnosticMessagePayload> DoIPDecoder::parse_diagnostic_message(
+    std::span<const std::byte> payload) {
     // Minimum size: source_address(2) + target_address(2) = 4
     if (payload.size() < 4) {
         return std::nullopt;
@@ -182,12 +164,10 @@ DoIPDecoder::parse_diagnostic_message(std::span<const std::byte> payload) {
     const auto* data = payload.data();
 
     msg.source_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) |
-         static_cast<std::uint16_t>(data[1]);
+        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
 
     msg.target_address =
-        (static_cast<std::uint16_t>(data[2]) << 8) |
-         static_cast<std::uint16_t>(data[3]);
+        (static_cast<std::uint16_t>(data[2]) << 8) | static_cast<std::uint16_t>(data[3]);
 
     // User data (UDS payload)
     if (payload.size() > 4) {
@@ -197,8 +177,8 @@ DoIPDecoder::parse_diagnostic_message(std::span<const std::byte> payload) {
     return msg;
 }
 
-std::optional<VehicleIdentificationResponse>
-DoIPDecoder::parse_vehicle_identification_response(std::span<const std::byte> payload) {
+std::optional<VehicleIdentificationResponse> DoIPDecoder::parse_vehicle_identification_response(
+    std::span<const std::byte> payload) {
     // VIN(17) + logical_address(2) + EID(6) + GID(6) + further_action(1) = 32
     // Optional: sync_status(1) = 33
     if (payload.size() < 32) {
@@ -215,8 +195,7 @@ DoIPDecoder::parse_vehicle_identification_response(std::span<const std::byte> pa
 
     // Logical address
     resp.logical_address =
-        (static_cast<std::uint16_t>(data[17]) << 8) |
-         static_cast<std::uint16_t>(data[18]);
+        (static_cast<std::uint16_t>(data[17]) << 8) | static_cast<std::uint16_t>(data[18]);
 
     // EID (6 bytes)
     for (std::size_t i = 0; i < 6; ++i) {

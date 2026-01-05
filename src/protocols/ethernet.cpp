@@ -10,13 +10,12 @@ namespace wadjet::protocols::ethernet {
 
 std::string EthernetHeader::to_string() const {
     std::ostringstream oss;
-    oss << "Ethernet { dst=" << dst_mac.to_string()
-        << ", src=" << src_mac.to_string()
+    oss << "Ethernet { dst=" << dst_mac.to_string() << ", src=" << src_mac.to_string()
         << ", ethertype=0x" << std::hex << ethertype;
 
     if (vlan) {
-        oss << ", vlan=" << std::dec << vlan->vid()
-            << " (pcp=" << static_cast<int>(vlan->pcp()) << ")";
+        oss << ", vlan=" << std::dec << vlan->vid() << " (pcp=" << static_cast<int>(vlan->pcp())
+            << ")";
     }
     if (vlan_inner) {
         oss << ", inner_vlan=" << std::dec << vlan_inner->vid();
@@ -25,8 +24,7 @@ std::string EthernetHeader::to_string() const {
     return oss.str();
 }
 
-std::optional<VlanTag> EthernetDecoder::parse_vlan(const DecodeContext& ctx,
-                                                    std::size_t offset) {
+std::optional<VlanTag> EthernetDecoder::parse_vlan(const DecodeContext& ctx, std::size_t offset) {
     if (!ctx.has_bytes(offset + VLAN_TAG_SIZE)) {
         return std::nullopt;
     }
@@ -34,8 +32,7 @@ std::optional<VlanTag> EthernetDecoder::parse_vlan(const DecodeContext& ctx,
     VlanTag tag;
     tag.tpid = ctx.read_be16(offset);
 
-    if (tag.tpid != static_cast<std::uint16_t>(EtherType::VLAN) &&
-        tag.tpid != ETHERTYPE_QINQ) {
+    if (tag.tpid != static_cast<std::uint16_t>(EtherType::VLAN) && tag.tpid != ETHERTYPE_QINQ) {
         return std::nullopt;
     }
 
@@ -46,8 +43,7 @@ std::optional<VlanTag> EthernetDecoder::parse_vlan(const DecodeContext& ctx,
 EthernetDecoder::Result EthernetDecoder::decode_impl(const DecodeContext& ctx) const {
     // Check minimum size
     if (!ctx.has_bytes(MIN_FRAME_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                          "Ethernet frame too small");
+        return make_error(DecodeErrorCode::BufferTooSmall, "Ethernet frame too small");
     }
 
     EthernetHeader header;
@@ -70,11 +66,9 @@ EthernetDecoder::Result EthernetDecoder::decode_impl(const DecodeContext& ctx) c
     // Check for VLAN tag (802.1Q)
     if (ethertype_or_len == static_cast<std::uint16_t>(EtherType::VLAN) ||
         ethertype_or_len == ETHERTYPE_QINQ) {
-
         // This is a VLAN-tagged frame
         if (!ctx.has_bytes(offset + 2)) {
-            return make_error(DecodeErrorCode::BufferTooSmall,
-                              "VLAN tag truncated");
+            return make_error(DecodeErrorCode::BufferTooSmall, "VLAN tag truncated");
         }
 
         VlanTag outer_tag;
@@ -85,8 +79,7 @@ EthernetDecoder::Result EthernetDecoder::decode_impl(const DecodeContext& ctx) c
 
         // Read next ethertype
         if (!ctx.has_bytes(offset + 2)) {
-            return make_error(DecodeErrorCode::BufferTooSmall,
-                              "Ethertype after VLAN truncated");
+            return make_error(DecodeErrorCode::BufferTooSmall, "Ethertype after VLAN truncated");
         }
         ethertype_or_len = ctx.read_be16(offset);
         offset += 2;
@@ -94,10 +87,8 @@ EthernetDecoder::Result EthernetDecoder::decode_impl(const DecodeContext& ctx) c
         // Check for QinQ (double VLAN)
         if (ethertype_or_len == static_cast<std::uint16_t>(EtherType::VLAN) ||
             ethertype_or_len == ETHERTYPE_QINQ) {
-
             if (!ctx.has_bytes(offset + 2)) {
-                return make_error(DecodeErrorCode::BufferTooSmall,
-                                  "Inner VLAN tag truncated");
+                return make_error(DecodeErrorCode::BufferTooSmall, "Inner VLAN tag truncated");
             }
 
             VlanTag inner_tag;

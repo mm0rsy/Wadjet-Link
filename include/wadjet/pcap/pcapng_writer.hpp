@@ -19,21 +19,21 @@ namespace wadjet::pcap {
 
 /// @brief Interface metadata for PCAPNG
 struct InterfaceInfo {
-    std::string name;             ///< Interface name (e.g., "eth0")
-    std::string description;      ///< Interface description
+    std::string name;                         ///< Interface name (e.g., "eth0")
+    std::string description;                  ///< Interface description
     LinkType link_type = LinkType::Ethernet;  ///< Link layer type
     std::uint32_t snap_len = 65535;           ///< Snapshot length
-    std::uint64_t speed = 0;      ///< Interface speed in bits/sec (0 = unknown)
-    bool use_nanoseconds = true;  ///< Use nanosecond timestamp resolution
+    std::uint64_t speed = 0;                  ///< Interface speed in bits/sec (0 = unknown)
+    bool use_nanoseconds = true;              ///< Use nanosecond timestamp resolution
 };
 
 /// @brief PCAPNG writer options
 struct PcapngWriterOptions {
-    std::string hardware;           ///< Hardware description (optional)
-    std::string os;                 ///< Operating system (optional)
-    std::string user_application;   ///< User application name
-    std::string comment;            ///< Section comment
-    bool use_nanoseconds = true;    ///< Default timestamp resolution
+    std::string hardware;          ///< Hardware description (optional)
+    std::string os;                ///< Operating system (optional)
+    std::string user_application;  ///< User application name
+    std::string comment;           ///< Section comment
+    bool use_nanoseconds = true;   ///< Default timestamp resolution
 };
 
 /// @brief PCAPNG file writer
@@ -48,14 +48,14 @@ struct PcapngWriterOptions {
 /// @code
 /// PcapngWriterOptions opts;
 /// opts.user_application = "Wadjet-Link";
-/// 
+///
 /// auto writer = PcapngWriter::create("output.pcapng", opts);
 /// if (writer) {
 ///     // Add interface
 ///     InterfaceInfo iface;
 ///     iface.name = "eth0";
 ///     writer->add_interface(iface);
-///     
+///
 ///     // Write packets
 ///     writer->write_packet(packet.view());
 /// }
@@ -115,8 +115,7 @@ public:
     /// @param packets_received Total packets received
     /// @param packets_dropped Total packets dropped
     /// @return Success or error
-    auto write_statistics(std::uint32_t interface_id,
-                          std::uint64_t packets_received,
+    auto write_statistics(std::uint32_t interface_id, std::uint64_t packets_received,
                           std::uint64_t packets_dropped) -> Result<void>;
 
     /// @brief Get a description of this packet sink (IPacketSink interface)
@@ -148,7 +147,8 @@ private:
                                      const std::string* comment = nullptr) -> Result<void>;
 
     /// @brief Write options to file
-    void write_options(const std::vector<std::pair<std::uint16_t, std::vector<std::byte>>>& options);
+    void write_options(
+        const std::vector<std::pair<std::uint16_t, std::vector<std::byte>>>& options);
 
     /// @brief Write bytes with padding
     void write_padded(const void* data, std::size_t len);

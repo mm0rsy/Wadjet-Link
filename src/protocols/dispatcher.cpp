@@ -177,8 +177,7 @@ void ProtocolDispatcher::decode_transport(DecodeStackResult& result,
 
 void ProtocolDispatcher::decode_application(DecodeStackResult& result,
                                             std::span<const std::byte>& data,
-                                            std::uint16_t src_port,
-                                            std::uint16_t dst_port) const {
+                                            std::uint16_t src_port, std::uint16_t dst_port) const {
     if (data.empty() || result.layers.size() >= options_.max_layers) {
         return;
     }
@@ -227,8 +226,7 @@ void ProtocolDispatcher::decode_application(DecodeStackResult& result,
             data = data.subspan(someip_hdr.header_size());
 
             // Check if this is actually SD (service ID 0xFFFF, method ID 0x8100)
-            if (someip_hdr.is_service_discovery() &&
-                result.layers.size() < options_.max_layers) {
+            if (someip_hdr.is_service_discovery() && result.layers.size() < options_.max_layers) {
                 DecodeContext sd_ctx;
                 sd_ctx.data = data;
                 auto sd_result = someip_sd_decoder_.decode(sd_ctx);

@@ -16,30 +16,26 @@ inline constexpr std::size_t HEADER_SIZE = 8;
 
 /// @brief Well-known UDP ports
 namespace ports {
-    inline constexpr std::uint16_t DNS = 53;
-    inline constexpr std::uint16_t DHCP_SERVER = 67;
-    inline constexpr std::uint16_t DHCP_CLIENT = 68;
-    inline constexpr std::uint16_t NTP = 123;
-    inline constexpr std::uint16_t SOMEIP_SD = 30490;  ///< SOME/IP Service Discovery
-    inline constexpr std::uint16_t DOIP = 13400;       ///< DoIP
+inline constexpr std::uint16_t DNS = 53;
+inline constexpr std::uint16_t DHCP_SERVER = 67;
+inline constexpr std::uint16_t DHCP_CLIENT = 68;
+inline constexpr std::uint16_t NTP = 123;
+inline constexpr std::uint16_t SOMEIP_SD = 30490;  ///< SOME/IP Service Discovery
+inline constexpr std::uint16_t DOIP = 13400;       ///< DoIP
 }  // namespace ports
 
 /// @brief Decoded UDP header
 struct UdpHeader : public IDecodedHeader {
-    std::uint16_t src_port = 0;      ///< Source port
-    std::uint16_t dst_port = 0;      ///< Destination port
-    std::uint16_t length = 0;        ///< Total datagram length (header + payload)
-    std::uint16_t checksum = 0;      ///< UDP checksum
-    bool checksum_valid = true;      ///< Whether checksum was validated
+    std::uint16_t src_port = 0;  ///< Source port
+    std::uint16_t dst_port = 0;  ///< Destination port
+    std::uint16_t length = 0;    ///< Total datagram length (header + payload)
+    std::uint16_t checksum = 0;  ///< UDP checksum
+    bool checksum_valid = true;  ///< Whether checksum was validated
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "UDP";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "UDP"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return HEADER_SIZE;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return HEADER_SIZE; }
 
     [[nodiscard]] std::size_t payload_size() const override {
         if (length >= HEADER_SIZE) {
@@ -76,8 +72,7 @@ public:
 
     [[nodiscard]] bool can_decode(const DecodeContext& ctx) const override {
         // Check IP protocol field
-        return ctx.layer_info.ip_protocol ==
-               static_cast<std::uint8_t>(IpProtocol::UDP);
+        return ctx.layer_info.ip_protocol == static_cast<std::uint8_t>(IpProtocol::UDP);
     }
 
     /// @brief Decode UDP header

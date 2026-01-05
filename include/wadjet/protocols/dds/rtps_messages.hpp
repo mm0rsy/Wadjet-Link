@@ -22,10 +22,10 @@ namespace wadjet::protocols::dds {
 
 /// @brief DATA submessage flags
 struct DataFlags {
-    bool endianness = false;      ///< E: false=big-endian, true=little-endian
-    bool inline_qos = false;      ///< Q: inline QoS present
-    bool data_present = false;    ///< D: serialized data present
-    bool key_present = false;     ///< K: serialized key present
+    bool endianness = false;    ///< E: false=big-endian, true=little-endian
+    bool inline_qos = false;    ///< Q: inline QoS present
+    bool data_present = false;  ///< D: serialized data present
+    bool key_present = false;   ///< K: serialized key present
 
     /// @brief Parse from raw flags byte
     static DataFlags from_byte(std::uint8_t byte) {
@@ -70,19 +70,13 @@ struct DataSubmessage {
     std::vector<std::byte> serialized_payload;
 
     /// @brief Check if this is discovery data
-    [[nodiscard]] bool is_discovery_data() const {
-        return writer_id.is_builtin();
-    }
+    [[nodiscard]] bool is_discovery_data() const { return writer_id.is_builtin(); }
 
     /// @brief Check if this is user data
-    [[nodiscard]] bool is_user_data() const {
-        return !writer_id.is_builtin();
-    }
+    [[nodiscard]] bool is_user_data() const { return !writer_id.is_builtin(); }
 
     /// @brief Check if payload contains key only
-    [[nodiscard]] bool is_key_only() const {
-        return flags.key_present && !flags.data_present;
-    }
+    [[nodiscard]] bool is_key_only() const { return flags.key_present && !flags.data_present; }
 };
 
 // =============================================================================
@@ -116,9 +110,9 @@ struct DataFragSubmessage {
 
 /// @brief HEARTBEAT submessage flags
 struct HeartbeatFlags {
-    bool endianness = false;      ///< E: false=big-endian, true=little-endian
-    bool final_flag = false;      ///< F: final heartbeat
-    bool liveliness_flag = false; ///< L: liveliness heartbeat
+    bool endianness = false;       ///< E: false=big-endian, true=little-endian
+    bool final_flag = false;       ///< F: final heartbeat
+    bool liveliness_flag = false;  ///< L: liveliness heartbeat
 
     static HeartbeatFlags from_byte(std::uint8_t byte) {
         HeartbeatFlags f;
@@ -234,9 +228,7 @@ struct AckNackSubmessage {
     AckNackFlags flags;
 
     /// @brief Get number of missing sequence numbers (NACKs)
-    [[nodiscard]] std::size_t missing_count() const {
-        return reader_sn_state.count();
-    }
+    [[nodiscard]] std::size_t missing_count() const { return reader_sn_state.count(); }
 };
 
 // =============================================================================
@@ -278,9 +270,7 @@ struct GapSubmessage {
     SequenceNumberSet gap_list;
 
     /// @brief Get the start of the irrelevant range
-    [[nodiscard]] SequenceNumber irrelevant_start() const {
-        return gap_start;
-    }
+    [[nodiscard]] SequenceNumber irrelevant_start() const { return gap_start; }
 };
 
 // =============================================================================
@@ -289,8 +279,8 @@ struct GapSubmessage {
 
 /// @brief INFO_TS submessage flags
 struct InfoTimestampFlags {
-    bool endianness = false;    ///< E: false=big-endian, true=little-endian
-    bool invalidate_flag = false; ///< T: invalidate timestamp
+    bool endianness = false;       ///< E: false=big-endian, true=little-endian
+    bool invalidate_flag = false;  ///< T: invalidate timestamp
 
     static InfoTimestampFlags from_byte(std::uint8_t byte) {
         InfoTimestampFlags f;

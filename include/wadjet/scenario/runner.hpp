@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "wadjet/scenario/scenario_types.hpp"
 #include "wadjet/core/result.hpp"
 #include "wadjet/net/packet.hpp"
 #include "wadjet/protocols/dispatcher.hpp"
+#include "wadjet/scenario/scenario_types.hpp"
 
 #include <atomic>
 #include <chrono>
@@ -26,12 +26,12 @@ namespace wadjet::scenario {
 
 /// @brief Options for scenario execution
 struct RunnerOptions {
-    bool verbose{false};                    ///< Print detailed progress
-    bool save_pcap_on_failure{true};        ///< Save pcap when scenario fails
-    std::string pcap_output_dir{"."};       ///< Directory for pcap files
-    bool dry_run{false};                    ///< Parse and validate only
-    bool stop_on_first_failure{false};      ///< Stop at first failed expectation
-    Duration global_timeout{60000};         ///< Overall execution timeout
+    bool verbose{false};                ///< Print detailed progress
+    bool save_pcap_on_failure{true};    ///< Save pcap when scenario fails
+    std::string pcap_output_dir{"."};   ///< Directory for pcap files
+    bool dry_run{false};                ///< Parse and validate only
+    bool stop_on_first_failure{false};  ///< Stop at first failed expectation
+    Duration global_timeout{60000};     ///< Overall execution timeout
 };
 
 // =============================================================================
@@ -56,10 +56,10 @@ struct RunnerCallbacks {
 class IPacketMatcher {
 public:
     virtual ~IPacketMatcher() = default;
-    
+
     /// @brief Check if packet matches the expectation
     [[nodiscard]] virtual bool matches(const Packet& packet) const = 0;
-    
+
     /// @brief Get description of what we're matching
     [[nodiscard]] virtual std::string describe() const = 0;
 };
@@ -76,28 +76,28 @@ class ScenarioRunner {
 public:
     explicit ScenarioRunner(RunnerOptions opts = RunnerOptions{});
     ~ScenarioRunner();
-    
+
     // Non-copyable, movable
     ScenarioRunner(const ScenarioRunner&) = delete;
     ScenarioRunner& operator=(const ScenarioRunner&) = delete;
     ScenarioRunner(ScenarioRunner&&) noexcept;
     ScenarioRunner& operator=(ScenarioRunner&&) noexcept;
-    
+
     /// @brief Set event callbacks
     void set_callbacks(RunnerCallbacks callbacks);
-    
+
     /// @brief Run a single scenario
     [[nodiscard]] ScenarioResult run(const Scenario& scenario);
-    
+
     /// @brief Run multiple scenarios
     [[nodiscard]] std::vector<ScenarioResult> run_all(const std::vector<Scenario>& scenarios);
-    
+
     /// @brief Request graceful stop
     void stop();
-    
+
     /// @brief Check if runner was stopped
     [[nodiscard]] bool stopped() const;
-    
+
     /// @brief Get runner options
     [[nodiscard]] const RunnerOptions& options() const;
 
@@ -117,20 +117,18 @@ struct BatchResult {
     std::size_t passed{0};
     std::size_t failed{0};
     std::size_t skipped{0};
-    
+
     [[nodiscard]] bool all_passed() const { return failed == 0; }
     [[nodiscard]] std::size_t total() const { return passed + failed + skipped; }
 };
 
 /// @brief Run all scenarios in a directory
-[[nodiscard]] BatchResult run_scenarios_in_directory(
-    const std::filesystem::path& dir,
-    const RunnerOptions& opts = RunnerOptions{},
-    const std::vector<std::string>& tags = {});
+[[nodiscard]] BatchResult run_scenarios_in_directory(const std::filesystem::path& dir,
+                                                     const RunnerOptions& opts = RunnerOptions{},
+                                                     const std::vector<std::string>& tags = {});
 
 /// @brief Run scenarios from multiple files
-[[nodiscard]] BatchResult run_scenario_files(
-    const std::vector<std::filesystem::path>& files,
-    const RunnerOptions& opts = RunnerOptions{});
+[[nodiscard]] BatchResult run_scenario_files(const std::vector<std::filesystem::path>& files,
+                                             const RunnerOptions& opts = RunnerOptions{});
 
 }  // namespace wadjet::scenario

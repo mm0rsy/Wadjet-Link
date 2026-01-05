@@ -2,7 +2,7 @@
 
 /// @file gptp_messages.hpp
 /// @brief gPTP message structures and TLV parsing
-/// 
+///
 /// This file contains the message-specific structures for gPTP (IEEE 802.1AS)
 /// including Sync, Follow_Up, Pdelay, and Announce messages.
 
@@ -24,8 +24,8 @@ struct Tlv {
     /// @param ptr Pointer to TLV data
     /// @param remaining Bytes remaining in buffer
     /// @return Parsed TLV and bytes consumed, or nullopt on error
-    static std::optional<std::pair<Tlv, std::size_t>> 
-    parse(const std::byte* ptr, std::size_t remaining);
+    static std::optional<std::pair<Tlv, std::size_t>> parse(const std::byte* ptr,
+                                                            std::size_t remaining);
 };
 
 /// @brief Follow_Up TLV for IEEE 802.1AS (organization extension)
@@ -33,13 +33,13 @@ struct FollowUpTlv {
     static constexpr std::array<std::uint8_t, 3> IEEE_802_1_OUI = {0x00, 0x80, 0xC2};
     static constexpr std::uint32_t SUBTYPE_FOLLOW_UP = 1;
 
-    std::array<std::uint8_t, 3> organization_id = {};     ///< OUI
-    std::array<std::uint8_t, 3> organization_sub_type = {}; ///< Sub-type
-    std::int32_t cumulative_scaled_rate_offset = 0;  ///< Cumulative scaled rate offset
-    std::uint16_t gm_time_base_indicator = 0;        ///< GM time base indicator
-    std::uint32_t last_gm_phase_change_ns_msb = 0;   ///< Last GM phase change (MSB)
-    std::uint64_t last_gm_phase_change_ns_lsb = 0;   ///< Last GM phase change (LSB)
-    std::int32_t scaled_last_gm_freq_change = 0;     ///< Scaled last GM freq change
+    std::array<std::uint8_t, 3> organization_id = {};        ///< OUI
+    std::array<std::uint8_t, 3> organization_sub_type = {};  ///< Sub-type
+    std::int32_t cumulative_scaled_rate_offset = 0;          ///< Cumulative scaled rate offset
+    std::uint16_t gm_time_base_indicator = 0;                ///< GM time base indicator
+    std::uint32_t last_gm_phase_change_ns_msb = 0;           ///< Last GM phase change (MSB)
+    std::uint64_t last_gm_phase_change_ns_lsb = 0;           ///< Last GM phase change (LSB)
+    std::int32_t scaled_last_gm_freq_change = 0;             ///< Scaled last GM freq change
 
     /// @brief Parse from organization extension TLV value
     static std::optional<FollowUpTlv> parse(const std::vector<std::byte>& value);
@@ -54,7 +54,7 @@ struct PathTraceTlv {
 };
 
 /// @brief Sync message (event message, needs timestamp)
-/// 
+///
 /// Sync messages are sent by the grandmaster to synchronize time-aware systems.
 /// In gPTP (802.1AS), Sync is always used with two-step mode (Follow_Up).
 struct SyncMessage {
@@ -74,7 +74,7 @@ struct SyncMessage {
 };
 
 /// @brief Follow_Up message
-/// 
+///
 /// Sent after Sync to provide the precise origin timestamp.
 /// Contains TLVs with additional synchronization information.
 struct FollowUpMessage {
@@ -96,7 +96,7 @@ struct FollowUpMessage {
 };
 
 /// @brief Pdelay_Req message (peer delay request)
-/// 
+///
 /// Sent by a time-aware system to measure the peer delay to its neighbor.
 /// Part of the peer-to-peer delay measurement mechanism in gPTP.
 struct PdelayReqMessage {
@@ -115,7 +115,7 @@ struct PdelayReqMessage {
 };
 
 /// @brief Pdelay_Resp message (peer delay response)
-/// 
+///
 /// Response to Pdelay_Req, contains requestReceiptTimestamp.
 struct PdelayRespMessage {
     /// @brief Timestamp when Pdelay_Req was received
@@ -133,7 +133,7 @@ struct PdelayRespMessage {
 };
 
 /// @brief Pdelay_Resp_Follow_Up message
-/// 
+///
 /// Provides precise responseOriginTimestamp for peer delay measurement.
 struct PdelayRespFollowUpMessage {
     /// @brief Precise timestamp when Pdelay_Resp was sent
@@ -151,7 +151,7 @@ struct PdelayRespFollowUpMessage {
 };
 
 /// @brief Announce message
-/// 
+///
 /// Sent by grandmaster-capable clocks to announce their properties.
 /// Used in BMCA (Best Master Clock Algorithm) to elect the grandmaster.
 struct AnnounceMessage {
@@ -200,7 +200,7 @@ struct AnnounceMessage {
 };
 
 /// @brief Signaling message
-/// 
+///
 /// Used for signaling between time-aware systems (e.g., message interval requests).
 struct SignalingMessage {
     /// @brief Target port identity
@@ -218,15 +218,8 @@ struct SignalingMessage {
 };
 
 /// @brief Variant type for all gPTP message bodies
-using MessageBody = std::variant<
-    SyncMessage,
-    FollowUpMessage,
-    PdelayReqMessage,
-    PdelayRespMessage,
-    PdelayRespFollowUpMessage,
-    AnnounceMessage,
-    SignalingMessage
->;
+using MessageBody = std::variant<SyncMessage, FollowUpMessage, PdelayReqMessage, PdelayRespMessage,
+                                 PdelayRespFollowUpMessage, AnnounceMessage, SignalingMessage>;
 
 /// @brief Get the expected body size for a message type
 [[nodiscard]] constexpr std::size_t expected_body_size(MessageType type) {

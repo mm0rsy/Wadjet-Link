@@ -3,7 +3,7 @@
 #include <cstring>
 
 #ifdef __linux__
-#include <sys/utsname.h>
+    #include <sys/utsname.h>
 #endif
 
 namespace wadjet::pcap {
@@ -49,8 +49,7 @@ auto PcapngWriter::create(const std::filesystem::path& path,
 
     writer.file_.open(path, std::ios::binary | std::ios::trunc);
     if (!writer.file_.is_open()) {
-        return Result<PcapngWriter>::err(
-            Error{-1, "Failed to create file: " + path.string()});
+        return Result<PcapngWriter>::err(Error{-1, "Failed to create file: " + path.string()});
     }
 
     // Write Section Header Block
@@ -71,13 +70,13 @@ PcapngWriter::~PcapngWriter() {
 auto PcapngWriter::add_interface(const InterfaceInfo& info) -> std::uint32_t {
     auto id = static_cast<std::uint32_t>(interfaces_.size());
     interfaces_.push_back(info);
-    
+
     // Write Interface Description Block
     auto result = write_interface_block(info);
     if (!result) {
         // Log error but continue - interface ID is still valid
     }
-    
+
     return id;
 }
 
@@ -95,8 +94,7 @@ auto PcapngWriter::write_packet(const PacketView& view, std::uint32_t interface_
     return write_enhanced_packet_block(view, interface_id, &comment);
 }
 
-auto PcapngWriter::write_statistics(std::uint32_t interface_id,
-                                    std::uint64_t packets_received,
+auto PcapngWriter::write_statistics(std::uint32_t interface_id, std::uint64_t packets_received,
                                     std::uint64_t packets_dropped) -> Result<void> {
     if (!file_.is_open()) {
         return Result<void>::err(Error{-1, "File not open"});
@@ -104,27 +102,28 @@ auto PcapngWriter::write_statistics(std::uint32_t interface_id,
 
     // Build options
     std::vector<std::pair<std::uint16_t, std::vector<std::byte>>> options;
-    
+
     // ISB_IFRecv (packets received)
     {
         std::vector<std::byte> value(8);
         std::memcpy(value.data(), &packets_received, 8);
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::ISB_IFRecv),
-                            std::move(value));
+                             std::move(value));
     }
-    
+
     // ISB_IFDrop (packets dropped)
     {
         std::vector<std::byte> value(8);
         std::memcpy(value.data(), &packets_dropped, 8);
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::ISB_IFDrop),
-                            std::move(value));
+                             std::move(value));
     }
 
     // Calculate options size
     std::size_t options_size = 4;  // End-of-options
     for (const auto& opt : options) {
-        options_size += 4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
+        options_size +=
+            4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
     }
 
     // Block size: header (20) + options + trailer (4)
@@ -173,25 +172,26 @@ auto PcapngWriter::write_section_header() -> Result<void> {
 
     if (!options_.comment.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::Comment),
-                            string_to_bytes(options_.comment));
+                             string_to_bytes(options_.comment));
     }
     if (!options_.hardware.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::SHB_Hardware),
-                            string_to_bytes(options_.hardware));
+                             string_to_bytes(options_.hardware));
     }
     if (!options_.os.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::SHB_OS),
-                            string_to_bytes(options_.os));
+                             string_to_bytes(options_.os));
     }
     if (!options_.user_application.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::SHB_UserAppl),
-                            string_to_bytes(options_.user_application));
+                             string_to_bytes(options_.user_application));
     }
 
     // Calculate options size
     std::size_t options_size = 4;  // End-of-options
     for (const auto& opt : options) {
-        options_size += 4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
+        options_size +=
+            4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
     }
 
     // Block size: fixed header (24) + options + trailing block length (4)
@@ -201,8 +201,8 @@ auto PcapngWriter::write_section_header() -> Result<void> {
     write_u32(static_cast<std::uint32_t>(PcapngBlockType::SectionHeader));
     write_u32(block_len);
     write_u32(PCAPNG_BYTE_ORDER_MAGIC);
-    write_u16(1);   // Major version
-    write_u16(0);   // Minor version
+    write_u16(1);                               // Major version
+    write_u16(0);                               // Minor version
     write_u64(static_cast<std::uint64_t>(-1));  // Section length (unspecified)
 
     // Write options
@@ -226,31 +226,33 @@ auto PcapngWriter::write_interface_block(const InterfaceInfo& info) -> Result<vo
 
     if (!info.name.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::IDB_Name),
-                            string_to_bytes(info.name));
+                             string_to_bytes(info.name));
     }
     if (!info.description.empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::IDB_Description),
-                            string_to_bytes(info.description));
+                             string_to_bytes(info.description));
     }
     if (info.speed > 0) {
         std::vector<std::byte> value(8);
         std::memcpy(value.data(), &info.speed, 8);
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::IDB_Speed),
-                            std::move(value));
+                             std::move(value));
     }
 
     // Timestamp resolution (if using nanoseconds)
     {
         std::vector<std::byte> value(1);
-        value[0] = static_cast<std::byte>(info.use_nanoseconds ? PCAPNG_TSRESOL_NANO : PCAPNG_TSRESOL_MICRO);
+        value[0] = static_cast<std::byte>(info.use_nanoseconds ? PCAPNG_TSRESOL_NANO
+                                                               : PCAPNG_TSRESOL_MICRO);
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::IDB_TSResol),
-                            std::move(value));
+                             std::move(value));
     }
 
     // Calculate options size
     std::size_t options_size = 4;  // End-of-options
     for (const auto& opt : options) {
-        options_size += 4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
+        options_size +=
+            4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
     }
 
     // Block size: fixed header (16) + options + trailing block length (4)
@@ -278,8 +280,7 @@ auto PcapngWriter::write_interface_block(const InterfaceInfo& info) -> Result<vo
     return Result<void>::ok();
 }
 
-auto PcapngWriter::write_enhanced_packet_block(const PacketView& view,
-                                               std::uint32_t interface_id,
+auto PcapngWriter::write_enhanced_packet_block(const PacketView& view, std::uint32_t interface_id,
                                                const std::string* comment) -> Result<void> {
     if (!file_.is_open()) {
         return Result<void>::err(Error{-1, "File not open"});
@@ -311,8 +312,8 @@ auto PcapngWriter::write_enhanced_packet_block(const PacketView& view,
     }
 
     // Truncate to snaplen if needed
-    std::uint32_t captured_len = static_cast<std::uint32_t>(
-        std::min(data.size(), static_cast<std::size_t>(iface.snap_len)));
+    std::uint32_t captured_len =
+        static_cast<std::uint32_t>(std::min(data.size(), static_cast<std::size_t>(iface.snap_len)));
     std::uint32_t original_len = static_cast<std::uint32_t>(data.size());
     std::uint32_t data_padding = pcapng_padding(captured_len);
 
@@ -320,18 +321,19 @@ auto PcapngWriter::write_enhanced_packet_block(const PacketView& view,
     std::vector<std::pair<std::uint16_t, std::vector<std::byte>>> options;
     if (comment != nullptr && !comment->empty()) {
         options.emplace_back(static_cast<std::uint16_t>(PcapngOptionType::Comment),
-                            string_to_bytes(*comment));
+                             string_to_bytes(*comment));
     }
 
     // Calculate options size
     std::size_t options_size = 4;  // End-of-options
     for (const auto& opt : options) {
-        options_size += 4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
+        options_size +=
+            4 + opt.second.size() + pcapng_padding(static_cast<std::uint32_t>(opt.second.size()));
     }
 
     // Block size: fixed header (28) + data + padding + options + trailing block length (4)
-    std::uint32_t block_len = static_cast<std::uint32_t>(
-        28 + captured_len + data_padding + options_size + 4);
+    std::uint32_t block_len =
+        static_cast<std::uint32_t>(28 + captured_len + data_padding + options_size + 4);
 
     // Write EPB fixed fields
     write_u32(static_cast<std::uint32_t>(PcapngBlockType::EnhancedPacket));
@@ -347,8 +349,7 @@ auto PcapngWriter::write_enhanced_packet_block(const PacketView& view,
                 static_cast<std::streamsize>(captured_len));
     if (data_padding > 0) {
         std::byte pad[4] = {};
-        file_.write(reinterpret_cast<const char*>(pad),
-                   static_cast<std::streamsize>(data_padding));
+        file_.write(reinterpret_cast<const char*>(pad), static_cast<std::streamsize>(data_padding));
     }
 
     // Write options

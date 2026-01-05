@@ -52,8 +52,7 @@ public:
 
     /// @brief Check if address is all zeros
     [[nodiscard]] constexpr bool is_zero() const {
-        return std::all_of(bytes.begin(), bytes.end(),
-                          [](std::uint8_t b) { return b == 0; });
+        return std::all_of(bytes.begin(), bytes.end(), [](std::uint8_t b) { return b == 0; });
     }
 
     /// @brief Three-way comparison
@@ -68,9 +67,7 @@ public:
 protected:
     /// @brief Helper to parse hex string with delimiter
     /// @return true on success
-    static bool parse_hex_with_delimiter(std::string_view str,
-                                         StorageType& out,
-                                         char delimiter,
+    static bool parse_hex_with_delimiter(std::string_view str, StorageType& out, char delimiter,
                                          std::size_t chars_per_byte) {
         std::size_t expected_len = N * chars_per_byte + (N - 1);  // bytes + delimiters
         if (str.size() != expected_len) {
@@ -110,23 +107,25 @@ protected:
     }
 
     /// @brief Helper to parse decimal string with delimiter
-    static bool parse_decimal_with_delimiter(std::string_view str,
-                                             StorageType& out,
+    static bool parse_decimal_with_delimiter(std::string_view str, StorageType& out,
                                              char delimiter) {
         std::size_t byte_idx = 0;
         std::size_t start = 0;
 
         for (std::size_t i = 0; i <= str.size() && byte_idx < N; ++i) {
             if (i == str.size() || str[i] == delimiter) {
-                if (i == start) return false;  // Empty segment
+                if (i == start)
+                    return false;  // Empty segment
 
                 // Parse decimal number
                 std::uint32_t value = 0;
                 for (std::size_t j = start; j < i; ++j) {
                     char c = str[j];
-                    if (c < '0' || c > '9') return false;
+                    if (c < '0' || c > '9')
+                        return false;
                     value = value * 10 + static_cast<std::uint32_t>(c - '0');
-                    if (value > 255) return false;
+                    if (value > 255)
+                        return false;
                 }
                 out[byte_idx++] = static_cast<std::uint8_t>(value);
                 start = i + 1;
@@ -136,8 +135,7 @@ protected:
     }
 
     /// @brief Helper to format bytes as hex with delimiter
-    [[nodiscard]] static std::string format_hex(const StorageType& data,
-                                                char delimiter,
+    [[nodiscard]] static std::string format_hex(const StorageType& data, char delimiter,
                                                 bool lowercase = true) {
         static constexpr char hex_lower[] = "0123456789abcdef";
         static constexpr char hex_upper[] = "0123456789ABCDEF";
@@ -147,7 +145,8 @@ protected:
         result.reserve(N * 3 - 1);
 
         for (std::size_t i = 0; i < N; ++i) {
-            if (i > 0) result += delimiter;
+            if (i > 0)
+                result += delimiter;
             result += hex[(data[i] >> 4) & 0x0F];
             result += hex[data[i] & 0x0F];
         }
@@ -155,13 +154,13 @@ protected:
     }
 
     /// @brief Helper to format bytes as decimal with delimiter
-    [[nodiscard]] static std::string format_decimal(const StorageType& data,
-                                                    char delimiter) {
+    [[nodiscard]] static std::string format_decimal(const StorageType& data, char delimiter) {
         std::string result;
         result.reserve(N * 4);  // Max "255." per byte
 
         for (std::size_t i = 0; i < N; ++i) {
-            if (i > 0) result += delimiter;
+            if (i > 0)
+                result += delimiter;
             result += std::to_string(data[i]);
         }
         return result;

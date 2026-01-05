@@ -9,15 +9,24 @@ namespace wadjet::protocols::tcp {
 
 std::string TcpFlags::to_string() const {
     std::string result;
-    if (syn) result += "SYN ";
-    if (ack) result += "ACK ";
-    if (fin) result += "FIN ";
-    if (rst) result += "RST ";
-    if (psh) result += "PSH ";
-    if (urg) result += "URG ";
-    if (ece) result += "ECE ";
-    if (cwr) result += "CWR ";
-    if (ns) result += "NS ";
+    if (syn)
+        result += "SYN ";
+    if (ack)
+        result += "ACK ";
+    if (fin)
+        result += "FIN ";
+    if (rst)
+        result += "RST ";
+    if (psh)
+        result += "PSH ";
+    if (urg)
+        result += "URG ";
+    if (ece)
+        result += "ECE ";
+    if (cwr)
+        result += "CWR ";
+    if (ns)
+        result += "NS ";
     if (!result.empty()) {
         result.pop_back();  // Remove trailing space
     }
@@ -26,9 +35,8 @@ std::string TcpFlags::to_string() const {
 
 std::optional<std::uint16_t> TcpOption::mss() const {
     if (kind == TcpOptionKind::MaxSegmentSize && data.size() == 2) {
-        return static_cast<std::uint16_t>(
-            (static_cast<std::uint8_t>(data[0]) << 8) |
-             static_cast<std::uint8_t>(data[1]));
+        return static_cast<std::uint16_t>((static_cast<std::uint8_t>(data[0]) << 8) |
+                                          static_cast<std::uint8_t>(data[1]));
     }
     return std::nullopt;
 }
@@ -46,12 +54,12 @@ std::optional<std::pair<std::uint32_t, std::uint32_t>> TcpOption::timestamps() c
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[0])) << 24) |
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[1])) << 16) |
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[2])) << 8) |
-             static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[3]));
+            static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[3]));
         std::uint32_t ts_ecr =
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[4])) << 24) |
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[5])) << 16) |
             (static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[6])) << 8) |
-             static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[7]));
+            static_cast<std::uint32_t>(static_cast<std::uint8_t>(data[7]));
         return std::make_pair(ts_val, ts_ecr);
     }
     return std::nullopt;
@@ -59,12 +67,8 @@ std::optional<std::pair<std::uint32_t, std::uint32_t>> TcpOption::timestamps() c
 
 std::string TcpHeader::to_string() const {
     std::ostringstream oss;
-    oss << "TCP { src_port=" << src_port
-        << ", dst_port=" << dst_port
-        << ", seq=" << seq_num
-        << ", ack=" << ack_num
-        << ", flags=[" << flags.to_string() << "]"
-        << ", win=" << window;
+    oss << "TCP { src_port=" << src_port << ", dst_port=" << dst_port << ", seq=" << seq_num
+        << ", ack=" << ack_num << ", flags=[" << flags.to_string() << "]" << ", win=" << window;
 
     if (auto mss = get_mss(); mss) {
         oss << ", mss=" << *mss;
@@ -102,8 +106,7 @@ std::vector<TcpOption> TcpDecoder::parse_options(std::span<const std::byte> opts
     std::size_t offset = 0;
 
     while (offset < opts_data.size()) {
-        auto kind = static_cast<TcpOptionKind>(
-            static_cast<std::uint8_t>(opts_data[offset]));
+        auto kind = static_cast<TcpOptionKind>(static_cast<std::uint8_t>(opts_data[offset]));
 
         if (kind == TcpOptionKind::EndOfOptions) {
             break;
@@ -128,7 +131,7 @@ std::vector<TcpOption> TcpDecoder::parse_options(std::span<const std::byte> opts
         opt.kind = kind;
         if (opt_len > 2) {
             opt.data.assign(opts_data.begin() + static_cast<std::ptrdiff_t>(offset) + 2,
-                           opts_data.begin() + static_cast<std::ptrdiff_t>(offset + opt_len));
+                            opts_data.begin() + static_cast<std::ptrdiff_t>(offset + opt_len));
         }
         options.push_back(std::move(opt));
 
@@ -141,8 +144,7 @@ std::vector<TcpOption> TcpDecoder::parse_options(std::span<const std::byte> opts
 TcpDecoder::Result TcpDecoder::decode_impl(const DecodeContext& ctx) const {
     // Check minimum size
     if (!ctx.has_bytes(MIN_HEADER_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                          "TCP header too small");
+        return make_error(DecodeErrorCode::BufferTooSmall, "TCP header too small");
     }
 
     TcpHeader header;
@@ -167,15 +169,13 @@ TcpDecoder::Result TcpDecoder::decode_impl(const DecodeContext& ctx) const {
     // Validate data offset
     if (header.data_offset < 5) {
         return make_error(DecodeErrorCode::InvalidHeader,
-                          "Data offset too small: " +
-                          std::to_string(header.data_offset));
+                          "Data offset too small: " + std::to_string(header.data_offset));
     }
 
     std::size_t header_len = static_cast<std::size_t>(header.data_offset) * 4;
     if (!ctx.has_bytes(header_len)) {
         return make_error(DecodeErrorCode::BufferTooSmall,
-                          "TCP header truncated (need " +
-                          std::to_string(header_len) + " bytes)");
+                          "TCP header truncated (need " + std::to_string(header_len) + " bytes)");
     }
 
     // Window size (bytes 14-15)

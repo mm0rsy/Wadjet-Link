@@ -5,8 +5,8 @@
 
 #pragma once
 
-#include "wadjet/scenario/scenario_types.hpp"
 #include "wadjet/core/result.hpp"
+#include "wadjet/scenario/scenario_types.hpp"
 
 #include <filesystem>
 #include <string>
@@ -19,11 +19,11 @@ struct ParseError {
     std::string message;
     std::size_t line{0};
     std::size_t column{0};
-    
+
     [[nodiscard]] std::string to_string() const {
         if (line > 0) {
-            return message + " at line " + std::to_string(line) + 
-                   ", column " + std::to_string(column);
+            return message + " at line " + std::to_string(line) + ", column " +
+                   std::to_string(column);
         }
         return message;
     }
@@ -36,13 +36,13 @@ using ParseResult = Result<Scenario, ParseError>;
 class IScenarioParser {
 public:
     virtual ~IScenarioParser() = default;
-    
+
     /// @brief Parse scenario from string content
     [[nodiscard]] virtual ParseResult parse(std::string_view content) const = 0;
-    
+
     /// @brief Parse scenario from file
     [[nodiscard]] virtual ParseResult parse_file(const std::filesystem::path& path) const = 0;
-    
+
     /// @brief Get supported file extensions
     [[nodiscard]] virtual std::vector<std::string> supported_extensions() const = 0;
 };

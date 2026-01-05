@@ -19,20 +19,20 @@ namespace wadjet::io {
 
 /// @brief Capture statistics for libpcap backend
 struct PcapCaptureStats {
-    std::uint64_t packets_received = 0;   ///< Packets received
-    std::uint64_t packets_dropped = 0;    ///< Packets dropped (kernel)
-    std::uint64_t packets_if_dropped = 0; ///< Packets dropped by interface
-    std::uint64_t bytes_received = 0;     ///< Total bytes received
+    std::uint64_t packets_received = 0;    ///< Packets received
+    std::uint64_t packets_dropped = 0;     ///< Packets dropped (kernel)
+    std::uint64_t packets_if_dropped = 0;  ///< Packets dropped by interface
+    std::uint64_t bytes_received = 0;      ///< Total bytes received
 };
 
 /// @brief Capture options for libpcap backend
 struct PcapCaptureOptions {
-    std::uint32_t snaplen = 65535;         ///< Max bytes to capture per packet
-    bool promiscuous = true;               ///< Enable promiscuous mode
-    bool immediate_mode = true;            ///< Minimize latency (pcap_set_immediate_mode)
-    int timeout_ms = 100;                  ///< Read timeout in milliseconds
+    std::uint32_t snaplen = 65535;              ///< Max bytes to capture per packet
+    bool promiscuous = true;                    ///< Enable promiscuous mode
+    bool immediate_mode = true;                 ///< Minimize latency (pcap_set_immediate_mode)
+    int timeout_ms = 100;                       ///< Read timeout in milliseconds
     std::size_t buffer_size = 2 * 1024 * 1024;  ///< Buffer size
-    bool timestamp_nano = true;            ///< Use nanosecond timestamps if available
+    bool timestamp_nano = true;                 ///< Use nanosecond timestamps if available
 };
 
 /// @brief Packet capture session using libpcap
@@ -115,8 +115,7 @@ public:
     /// @param callback Function called for each packet
     /// @param max_packets Maximum packets to capture (0 = unlimited)
     /// @return Number of packets captured
-    auto capture_loop(const PacketCallback& callback,
-                      std::size_t max_packets = 0) -> std::size_t;
+    auto capture_loop(const PacketCallback& callback, std::size_t max_packets = 0) -> std::size_t;
 
     /// @brief Get capture statistics
     [[nodiscard]] auto stats() const -> PcapCaptureStats;

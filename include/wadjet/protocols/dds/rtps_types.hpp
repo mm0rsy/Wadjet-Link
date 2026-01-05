@@ -101,41 +101,57 @@ struct ProtocolVersion {
 /// @brief Known DDS vendor IDs
 enum class VendorId : std::uint16_t {
     Unknown = 0x0000,
-    RTI = 0x0101,           ///< Real-Time Innovations (RTI Connext)
-    ADLink = 0x0102,        ///< ADLink (OpenSplice, Vortex, CycloneDDS)
-    OCI = 0x0103,           ///< Object Computing Inc (OpenDDS)
-    MilSOFT = 0x0104,       ///< MilSOFT
-    Gallium = 0x0105,       ///< Gallium Visual Systems
-    TwinOaks = 0x0106,      ///< Twin Oaks Computing (CoreDX)
-    Lakota = 0x0107,        ///< Lakota Technical Solutions
-    ICOUP = 0x0108,         ///< ICOUP Consulting
-    ETRI = 0x0109,          ///< ETRI
-    RTI_Micro = 0x010A,     ///< RTI Connext DDS Micro
-    ADLink_Lite = 0x010B,   ///< ADLink Vortex Lite
-    Technicolor = 0x010C,   ///< Technicolor
-    Eprosima = 0x010F,      ///< eProsima (Fast DDS / Fast RTPS)
-    Eclipse = 0x0120,       ///< Eclipse Foundation (Cyclone DDS)
+    RTI = 0x0101,          ///< Real-Time Innovations (RTI Connext)
+    ADLink = 0x0102,       ///< ADLink (OpenSplice, Vortex, CycloneDDS)
+    OCI = 0x0103,          ///< Object Computing Inc (OpenDDS)
+    MilSOFT = 0x0104,      ///< MilSOFT
+    Gallium = 0x0105,      ///< Gallium Visual Systems
+    TwinOaks = 0x0106,     ///< Twin Oaks Computing (CoreDX)
+    Lakota = 0x0107,       ///< Lakota Technical Solutions
+    ICOUP = 0x0108,        ///< ICOUP Consulting
+    ETRI = 0x0109,         ///< ETRI
+    RTI_Micro = 0x010A,    ///< RTI Connext DDS Micro
+    ADLink_Lite = 0x010B,  ///< ADLink Vortex Lite
+    Technicolor = 0x010C,  ///< Technicolor
+    Eprosima = 0x010F,     ///< eProsima (Fast DDS / Fast RTPS)
+    Eclipse = 0x0120,      ///< Eclipse Foundation (Cyclone DDS)
 };
 
 /// @brief Convert vendor ID to string
 [[nodiscard]] constexpr std::string_view vendor_id_string(VendorId id) {
     switch (id) {
-        case VendorId::Unknown: return "Unknown";
-        case VendorId::RTI: return "RTI";
-        case VendorId::ADLink: return "ADLink";
-        case VendorId::OCI: return "OCI";
-        case VendorId::MilSOFT: return "MilSOFT";
-        case VendorId::Gallium: return "Gallium";
-        case VendorId::TwinOaks: return "TwinOaks";
-        case VendorId::Lakota: return "Lakota";
-        case VendorId::ICOUP: return "ICOUP";
-        case VendorId::ETRI: return "ETRI";
-        case VendorId::RTI_Micro: return "RTI_Micro";
-        case VendorId::ADLink_Lite: return "ADLink_Lite";
-        case VendorId::Technicolor: return "Technicolor";
-        case VendorId::Eprosima: return "eProsima";
-        case VendorId::Eclipse: return "Eclipse";
-        default: return "Unknown";
+        case VendorId::Unknown:
+            return "Unknown";
+        case VendorId::RTI:
+            return "RTI";
+        case VendorId::ADLink:
+            return "ADLink";
+        case VendorId::OCI:
+            return "OCI";
+        case VendorId::MilSOFT:
+            return "MilSOFT";
+        case VendorId::Gallium:
+            return "Gallium";
+        case VendorId::TwinOaks:
+            return "TwinOaks";
+        case VendorId::Lakota:
+            return "Lakota";
+        case VendorId::ICOUP:
+            return "ICOUP";
+        case VendorId::ETRI:
+            return "ETRI";
+        case VendorId::RTI_Micro:
+            return "RTI_Micro";
+        case VendorId::ADLink_Lite:
+            return "ADLink_Lite";
+        case VendorId::Technicolor:
+            return "Technicolor";
+        case VendorId::Eprosima:
+            return "eProsima";
+        case VendorId::Eclipse:
+            return "Eclipse";
+        default:
+            return "Unknown";
     }
 }
 
@@ -148,9 +164,7 @@ struct VendorIdValue {
         return static_cast<VendorId>(val);
     }
 
-    [[nodiscard]] std::string to_string() const {
-        return std::string(vendor_id_string(to_enum()));
-    }
+    [[nodiscard]] std::string to_string() const { return std::string(vendor_id_string(to_enum())); }
 
     [[nodiscard]] bool operator==(const VendorIdValue& other) const {
         return bytes[0] == other.bytes[0] && bytes[1] == other.bytes[1];
@@ -165,17 +179,14 @@ struct VendorIdValue {
 struct GuidPrefix {
     std::array<std::uint8_t, GUID_PREFIX_SIZE> value = {};
 
-    [[nodiscard]] bool operator==(const GuidPrefix& other) const {
-        return value == other.value;
-    }
+    [[nodiscard]] bool operator==(const GuidPrefix& other) const { return value == other.value; }
 
-    [[nodiscard]] bool operator<(const GuidPrefix& other) const {
-        return value < other.value;
-    }
+    [[nodiscard]] bool operator<(const GuidPrefix& other) const { return value < other.value; }
 
     [[nodiscard]] bool is_unknown() const {
         for (auto b : value) {
-            if (b != 0) return false;
+            if (b != 0)
+                return false;
         }
         return true;
     }
@@ -184,7 +195,8 @@ struct GuidPrefix {
         std::string result;
         result.reserve(35);
         for (std::size_t i = 0; i < value.size(); ++i) {
-            if (i > 0 && i % 4 == 0) result += ':';
+            if (i > 0 && i % 4 == 0)
+                result += ':';
             char hex[3];
             std::snprintf(hex, sizeof(hex), "%02x", value[i]);
             result += hex;
@@ -224,15 +236,15 @@ struct EntityId {
     }
 
     [[nodiscard]] bool operator<(const EntityId& other) const {
-        if (entity_key != other.entity_key) return entity_key < other.entity_key;
+        if (entity_key != other.entity_key)
+            return entity_key < other.entity_key;
         return static_cast<std::uint8_t>(kind) < static_cast<std::uint8_t>(other.kind);
     }
 
     [[nodiscard]] std::string to_string() const {
         char buf[16];
-        std::snprintf(buf, sizeof(buf), "%02x%02x%02x.%02x",
-                      entity_key[0], entity_key[1], entity_key[2],
-                      static_cast<std::uint8_t>(kind));
+        std::snprintf(buf, sizeof(buf), "%02x%02x%02x.%02x", entity_key[0], entity_key[1],
+                      entity_key[2], static_cast<std::uint8_t>(kind));
         return buf;
     }
 
@@ -301,7 +313,8 @@ struct GUID {
     }
 
     [[nodiscard]] bool operator<(const GUID& other) const {
-        if (prefix != other.prefix) return prefix < other.prefix;
+        if (prefix != other.prefix)
+            return prefix < other.prefix;
         return entity_id < other.entity_id;
     }
 
@@ -313,9 +326,7 @@ struct GUID {
         return prefix.is_unknown() && entity_id == EntityId::unknown();
     }
 
-    [[nodiscard]] bool is_builtin() const {
-        return entity_id.is_builtin();
-    }
+    [[nodiscard]] bool is_builtin() const { return entity_id.is_builtin(); }
 
     /// @brief Unknown GUID
     static GUID unknown() { return {GuidPrefix::unknown(), EntityId::unknown()}; }
@@ -346,9 +357,7 @@ struct SequenceNumber {
         return value() <= other.value();
     }
 
-    [[nodiscard]] std::string to_string() const {
-        return std::to_string(value());
-    }
+    [[nodiscard]] std::string to_string() const { return std::to_string(value()); }
 
     /// @brief Minimum sequence number
     static constexpr SequenceNumber min() { return {0, 1}; }
@@ -373,7 +382,7 @@ enum class LocatorKind : std::int32_t {
     TCPv4_LAN = 4,
     TCPv4_WAN = 8,
     TCPv6 = 16,
-    SHM = 32,   ///< Shared memory
+    SHM = 32,  ///< Shared memory
 };
 
 /// @brief Locator (24 bytes) - network address for RTPS communication
@@ -386,17 +395,11 @@ struct Locator {
         return kind == other.kind && port == other.port && address == other.address;
     }
 
-    [[nodiscard]] bool is_valid() const {
-        return kind != LocatorKind::Invalid;
-    }
+    [[nodiscard]] bool is_valid() const { return kind != LocatorKind::Invalid; }
 
-    [[nodiscard]] bool is_udp_v4() const {
-        return kind == LocatorKind::UDPv4;
-    }
+    [[nodiscard]] bool is_udp_v4() const { return kind == LocatorKind::UDPv4; }
 
-    [[nodiscard]] bool is_udp_v6() const {
-        return kind == LocatorKind::UDPv6;
-    }
+    [[nodiscard]] bool is_udp_v6() const { return kind == LocatorKind::UDPv6; }
 
     /// @brief Get IPv4 address (for UDPv4 locators)
     [[nodiscard]] std::array<std::uint8_t, 4> ipv4_address() const {
@@ -408,8 +411,8 @@ struct Locator {
         if (kind == LocatorKind::UDPv4) {
             auto ipv4 = ipv4_address();
             char buf[32];
-            std::snprintf(buf, sizeof(buf), "%d.%d.%d.%d:%u",
-                          ipv4[0], ipv4[1], ipv4[2], ipv4[3], port);
+            std::snprintf(buf, sizeof(buf), "%d.%d.%d.%d:%u", ipv4[0], ipv4[1], ipv4[2], ipv4[3],
+                          port);
             return buf;
         }
         return "Locator{kind=" + std::to_string(static_cast<int>(kind)) +
@@ -433,9 +436,7 @@ struct Time {
         return seconds == other.seconds && fraction == other.fraction;
     }
 
-    [[nodiscard]] double to_seconds_double() const {
-        return seconds + fraction / 4294967296.0;
-    }
+    [[nodiscard]] double to_seconds_double() const { return seconds + fraction / 4294967296.0; }
 
     [[nodiscard]] std::int64_t to_nanoseconds() const {
         return static_cast<std::int64_t>(seconds) * 1'000'000'000LL +
@@ -492,9 +493,7 @@ using Duration = Time;
 struct Count {
     std::int32_t value = 0;
 
-    [[nodiscard]] bool operator==(const Count& other) const {
-        return value == other.value;
-    }
+    [[nodiscard]] bool operator==(const Count& other) const { return value == other.value; }
 };
 
 // =============================================================================
@@ -580,8 +579,10 @@ struct BuiltinEndpointSet {
 
     // RTPS ports are typically in the 7400-7900+ range
     // Check for discovery multicast/unicast and user multicast/unicast patterns
-    if (port < RTPS_PORT_BASE) return false;
-    if (port > RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * 230 + 20) return false;
+    if (port < RTPS_PORT_BASE)
+        return false;
+    if (port > RTPS_PORT_BASE + RTPS_PORT_DOMAIN_GAIN * 230 + 20)
+        return false;
 
     // Check if it matches the pattern for any reasonable domain
     auto offset = static_cast<std::uint16_t>((port - RTPS_PORT_BASE) % RTPS_PORT_DOMAIN_GAIN);

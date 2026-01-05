@@ -1,10 +1,10 @@
 /// @file test_scenario_parser.cpp
 /// @brief Unit tests for scenario YAML and JSON parsers
 
-#include <gtest/gtest.h>
-
 #include "wadjet/scenario/parser.hpp"
 #include "wadjet/scenario/scenario_types.hpp"
+
+#include <gtest/gtest.h>
 
 using namespace wadjet::scenario;
 
@@ -81,7 +81,7 @@ TEST_F(YamlParserTest, ParseMinimalScenario) {
 name: Test Scenario
 steps: []
 )";
-    
+
     auto result = parse_yaml(yaml);
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->name, "Test Scenario");
@@ -99,7 +99,7 @@ tags:
   - integration
 steps: []
 )";
-    
+
     auto result = parse_yaml(yaml);
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->name, "Full Test");
@@ -121,11 +121,11 @@ steps:
       timeout: 5s
       promiscuous: true
 )";
-    
+
     auto result = parse_yaml(yaml);
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(result->steps.size(), 1);
-    
+
     auto* capture = std::get_if<CaptureStep>(&result->steps[0]);
     ASSERT_NE(capture, nullptr);
     EXPECT_EQ(capture->config.interface, "eth0");
@@ -140,11 +140,11 @@ name: Wait Test
 steps:
   - wait: 500ms
 )";
-    
+
     auto result = parse_yaml(yaml);
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(result->steps.size(), 1);
-    
+
     auto* wait = std::get_if<WaitStep>(&result->steps[0]);
     ASSERT_NE(wait, nullptr);
     EXPECT_EQ(wait->duration, Duration{500});
@@ -163,21 +163,21 @@ steps:
       within: 2s
       count: ">= 1"
 )";
-    
+
     auto result = parse_yaml(yaml);
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(result->steps.size(), 1);
-    
+
     auto* expect = std::get_if<ExpectStep>(&result->steps[0]);
     ASSERT_NE(expect, nullptr);
     EXPECT_EQ(expect->description, "Check service offer");
     EXPECT_EQ(expect->within, Duration{2000});
-    
+
     ASSERT_TRUE(expect->someip.has_value());
     EXPECT_EQ(expect->someip->service_id, 0x1234);
     EXPECT_EQ(expect->someip->method_id, 0x0001);
     EXPECT_EQ(expect->someip->message_type, SomeIpMessageTypeExpect::Request);
-    
+
     EXPECT_EQ(expect->count.op, CompareOp::GreaterEqual);
     EXPECT_EQ(expect->count.value, 1);
 }
@@ -187,7 +187,7 @@ TEST_F(YamlParserTest, ParseInvalidYaml) {
 name: [invalid
   not: valid: yaml
 )";
-    
+
     auto result = parse_yaml(yaml);
     EXPECT_TRUE(result.is_err());
 }
@@ -203,7 +203,7 @@ TEST_F(JsonParserTest, ParseMinimalScenario) {
         "name": "Test Scenario",
         "steps": []
     })";
-    
+
     auto result = parse_json(json);
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->name, "Test Scenario");
@@ -219,7 +219,7 @@ TEST_F(JsonParserTest, ParseScenarioWithMetadata) {
         "tags": ["smoke", "integration"],
         "steps": []
     })";
-    
+
     auto result = parse_json(json);
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->name, "Full Test");
@@ -241,11 +241,11 @@ TEST_F(JsonParserTest, ParseCaptureStep) {
             }
         ]
     })";
-    
+
     auto result = parse_json(json);
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(result->steps.size(), 1);
-    
+
     auto* capture = std::get_if<CaptureStep>(&result->steps[0]);
     ASSERT_NE(capture, nullptr);
     EXPECT_EQ(capture->config.interface, "eth0");
@@ -267,11 +267,11 @@ TEST_F(JsonParserTest, ParseExpectStepWithUDP) {
             }
         ]
     })";
-    
+
     auto result = parse_json(json);
     ASSERT_TRUE(result.is_ok());
     ASSERT_EQ(result->steps.size(), 1);
-    
+
     auto* expect = std::get_if<ExpectStep>(&result->steps[0]);
     ASSERT_NE(expect, nullptr);
     ASSERT_TRUE(expect->udp.has_value());
@@ -283,7 +283,7 @@ TEST_F(JsonParserTest, ParseExpectStepWithUDP) {
 
 TEST_F(JsonParserTest, ParseInvalidJson) {
     const char* json = R"({ invalid json })";
-    
+
     auto result = parse_json(json);
     EXPECT_TRUE(result.is_err());
 }
@@ -297,12 +297,12 @@ class ScenarioHelpersTest : public ::testing::Test {};
 TEST_F(ScenarioHelpersTest, HasExpectations) {
     Scenario scenario;
     scenario.name = "Test";
-    
+
     EXPECT_FALSE(scenario.has_expectations());
-    
+
     scenario.steps.push_back(CaptureStep{});
     EXPECT_FALSE(scenario.has_expectations());
-    
+
     scenario.steps.push_back(ExpectStep{});
     EXPECT_TRUE(scenario.has_expectations());
 }
@@ -314,7 +314,7 @@ TEST_F(ScenarioHelpersTest, GetExpectations) {
     scenario.steps.push_back(ExpectStep{});
     scenario.steps.push_back(WaitStep{Duration{100}});
     scenario.steps.push_back(ExpectStep{});
-    
+
     auto expectations = scenario.get_expectations();
     EXPECT_EQ(expectations.size(), 2);
 }

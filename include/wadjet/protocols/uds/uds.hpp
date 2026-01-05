@@ -58,12 +58,12 @@
 /// | RequestDownload | 0x34 | Begin flash programming |
 /// | TransferData | 0x36 | Transfer data blocks |
 
-#include "wadjet/protocols/uds/uds_types.hpp"
+#include "wadjet/core/result.hpp"
+#include "wadjet/protocols/decoder.hpp"
 #include "wadjet/protocols/uds/uds_nrc.hpp"
 #include "wadjet/protocols/uds/uds_services.hpp"
 #include "wadjet/protocols/uds/uds_session.hpp"
-#include "wadjet/protocols/decoder.hpp"
-#include "wadjet/core/result.hpp"
+#include "wadjet/protocols/uds/uds_types.hpp"
 
 #include <optional>
 #include <span>
@@ -92,20 +92,18 @@ struct UdsDecodeResult {
 /// @brief UDS decoder error type
 struct UdsDecodeError {
     enum class Code {
-        MessageTooShort,          ///< Message shorter than minimum size
-        InvalidServiceId,          ///< Unknown service ID
-        InvalidSubFunction,        ///< Invalid sub-function for service
-        InvalidMessageLength,      ///< Message length doesn't match service
-        MalformedData,            ///< Data cannot be parsed
+        MessageTooShort,       ///< Message shorter than minimum size
+        InvalidServiceId,      ///< Unknown service ID
+        InvalidSubFunction,    ///< Invalid sub-function for service
+        InvalidMessageLength,  ///< Message length doesn't match service
+        MalformedData,         ///< Data cannot be parsed
     };
 
     Code code;
     std::string message;
 
     /// @brief Create an error
-    static UdsDecodeError make(Code c, std::string msg = {}) {
-        return {c, std::move(msg)};
-    }
+    static UdsDecodeError make(Code c, std::string msg = {}) { return {c, std::move(msg)}; }
 };
 
 /// @brief UDS message decoder
@@ -128,8 +126,8 @@ public:
 
     /// @brief Decode UDS message from uint8_t span
     [[nodiscard]] Result decode(std::span<const std::uint8_t> data) const {
-        return decode(std::span<const std::byte>(
-            reinterpret_cast<const std::byte*>(data.data()), data.size()));
+        return decode(std::span<const std::byte>(reinterpret_cast<const std::byte*>(data.data()),
+                                                 data.size()));
     }
 
     /// @brief Quick check if data looks like a valid UDS message
@@ -159,10 +157,8 @@ private:
         std::span<const std::byte> data) const;
     [[nodiscard]] UdsServiceMessage parse_diagnostic_session_control_response(
         std::span<const std::byte> data) const;
-    [[nodiscard]] UdsServiceMessage parse_ecu_reset_request(
-        std::span<const std::byte> data) const;
-    [[nodiscard]] UdsServiceMessage parse_ecu_reset_response(
-        std::span<const std::byte> data) const;
+    [[nodiscard]] UdsServiceMessage parse_ecu_reset_request(std::span<const std::byte> data) const;
+    [[nodiscard]] UdsServiceMessage parse_ecu_reset_response(std::span<const std::byte> data) const;
     [[nodiscard]] UdsServiceMessage parse_security_access_request(
         std::span<const std::byte> data) const;
     [[nodiscard]] UdsServiceMessage parse_security_access_response(
@@ -202,7 +198,8 @@ private:
 // =============================================================================
 
 inline bool UdsDecoder::looks_like_uds(std::span<const std::byte> data) {
-    if (data.empty()) return false;
+    if (data.empty())
+        return false;
 
     auto sid = static_cast<std::uint8_t>(data[0]);
 
@@ -249,19 +246,22 @@ inline bool UdsDecoder::looks_like_uds(std::span<const std::byte> data) {
 }
 
 inline bool UdsDecoder::is_request(std::span<const std::byte> data) {
-    if (data.empty()) return false;
+    if (data.empty())
+        return false;
     auto sid = static_cast<std::uint8_t>(data[0]);
     return sid != NEGATIVE_RESPONSE_SID && (sid & 0x40) == 0;
 }
 
 inline bool UdsDecoder::is_positive_response(std::span<const std::byte> data) {
-    if (data.empty()) return false;
+    if (data.empty())
+        return false;
     auto sid = static_cast<std::uint8_t>(data[0]);
     return sid != NEGATIVE_RESPONSE_SID && (sid & 0x40) != 0;
 }
 
 inline bool UdsDecoder::is_negative_response(std::span<const std::byte> data) {
-    if (data.empty()) return false;
+    if (data.empty())
+        return false;
     return static_cast<std::uint8_t>(data[0]) == NEGATIVE_RESPONSE_SID;
 }
 

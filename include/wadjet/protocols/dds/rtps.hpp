@@ -49,38 +49,52 @@ namespace wadjet::protocols::dds {
 
 /// @brief Submessage kind (SubmessageId)
 enum class SubmessageKind : std::uint8_t {
-    PAD = 0x01,                 ///< Pad submessage
-    ACKNACK = 0x06,             ///< Acknowledgement/negative acknowledgement
-    HEARTBEAT = 0x07,           ///< Heartbeat
-    GAP = 0x08,                 ///< Gap in sequence numbers
-    INFO_TS = 0x09,             ///< Timestamp information
-    INFO_SRC = 0x0C,            ///< Source information
-    INFO_REPLY_IP4 = 0x0D,      ///< IPv4 reply information
-    INFO_DST = 0x0E,            ///< Destination information
-    INFO_REPLY = 0x0F,          ///< Reply information
-    NACK_FRAG = 0x12,           ///< Negative acknowledgement for fragments
-    HEARTBEAT_FRAG = 0x13,      ///< Heartbeat for fragments
-    DATA = 0x15,                ///< Data submessage
-    DATA_FRAG = 0x16,           ///< Fragmented data submessage
+    PAD = 0x01,             ///< Pad submessage
+    ACKNACK = 0x06,         ///< Acknowledgement/negative acknowledgement
+    HEARTBEAT = 0x07,       ///< Heartbeat
+    GAP = 0x08,             ///< Gap in sequence numbers
+    INFO_TS = 0x09,         ///< Timestamp information
+    INFO_SRC = 0x0C,        ///< Source information
+    INFO_REPLY_IP4 = 0x0D,  ///< IPv4 reply information
+    INFO_DST = 0x0E,        ///< Destination information
+    INFO_REPLY = 0x0F,      ///< Reply information
+    NACK_FRAG = 0x12,       ///< Negative acknowledgement for fragments
+    HEARTBEAT_FRAG = 0x13,  ///< Heartbeat for fragments
+    DATA = 0x15,            ///< Data submessage
+    DATA_FRAG = 0x16,       ///< Fragmented data submessage
 };
 
 /// @brief Convert submessage kind to string
 [[nodiscard]] constexpr std::string_view submessage_kind_string(SubmessageKind kind) {
     switch (kind) {
-        case SubmessageKind::PAD: return "PAD";
-        case SubmessageKind::ACKNACK: return "ACKNACK";
-        case SubmessageKind::HEARTBEAT: return "HEARTBEAT";
-        case SubmessageKind::GAP: return "GAP";
-        case SubmessageKind::INFO_TS: return "INFO_TS";
-        case SubmessageKind::INFO_SRC: return "INFO_SRC";
-        case SubmessageKind::INFO_REPLY_IP4: return "INFO_REPLY_IP4";
-        case SubmessageKind::INFO_DST: return "INFO_DST";
-        case SubmessageKind::INFO_REPLY: return "INFO_REPLY";
-        case SubmessageKind::NACK_FRAG: return "NACK_FRAG";
-        case SubmessageKind::HEARTBEAT_FRAG: return "HEARTBEAT_FRAG";
-        case SubmessageKind::DATA: return "DATA";
-        case SubmessageKind::DATA_FRAG: return "DATA_FRAG";
-        default: return "UNKNOWN";
+        case SubmessageKind::PAD:
+            return "PAD";
+        case SubmessageKind::ACKNACK:
+            return "ACKNACK";
+        case SubmessageKind::HEARTBEAT:
+            return "HEARTBEAT";
+        case SubmessageKind::GAP:
+            return "GAP";
+        case SubmessageKind::INFO_TS:
+            return "INFO_TS";
+        case SubmessageKind::INFO_SRC:
+            return "INFO_SRC";
+        case SubmessageKind::INFO_REPLY_IP4:
+            return "INFO_REPLY_IP4";
+        case SubmessageKind::INFO_DST:
+            return "INFO_DST";
+        case SubmessageKind::INFO_REPLY:
+            return "INFO_REPLY";
+        case SubmessageKind::NACK_FRAG:
+            return "NACK_FRAG";
+        case SubmessageKind::HEARTBEAT_FRAG:
+            return "HEARTBEAT_FRAG";
+        case SubmessageKind::DATA:
+            return "DATA";
+        case SubmessageKind::DATA_FRAG:
+            return "DATA_FRAG";
+        default:
+            return "UNKNOWN";
     }
 }
 
@@ -141,9 +155,7 @@ struct SubmessageHeader {
     std::uint16_t length = 0;  ///< Octets after this header (not including header)
 
     /// @brief Total size including header
-    [[nodiscard]] std::size_t total_size() const {
-        return SUBMESSAGE_HEADER_SIZE + length;
-    }
+    [[nodiscard]] std::size_t total_size() const { return SUBMESSAGE_HEADER_SIZE + length; }
 };
 
 // =============================================================================
@@ -151,18 +163,10 @@ struct SubmessageHeader {
 // =============================================================================
 
 /// @brief Submessage body variant
-using SubmessageBody = std::variant<
-    std::monostate,         // Unknown/unparsed
-    DataSubmessage,
-    HeartbeatSubmessage,
-    AckNackSubmessage,
-    GapSubmessage,
-    InfoTimestampSubmessage,
-    InfoSourceSubmessage,
-    InfoDestinationSubmessage,
-    InfoReplySubmessage,
-    PadSubmessage
->;
+using SubmessageBody = std::variant<std::monostate,  // Unknown/unparsed
+                                    DataSubmessage, HeartbeatSubmessage, AckNackSubmessage,
+                                    GapSubmessage, InfoTimestampSubmessage, InfoSourceSubmessage,
+                                    InfoDestinationSubmessage, InfoReplySubmessage, PadSubmessage>;
 
 // =============================================================================
 // Submessage Wrapper
@@ -177,9 +181,7 @@ struct Submessage {
     [[nodiscard]] SubmessageKind kind() const { return header.kind; }
 
     /// @brief Check if body is parsed
-    [[nodiscard]] bool has_body() const {
-        return !std::holds_alternative<std::monostate>(body);
-    }
+    [[nodiscard]] bool has_body() const { return !std::holds_alternative<std::monostate>(body); }
 
     /// @brief Get body as specific type
     template <typename T>
@@ -208,13 +210,9 @@ struct RtpsHeader : public IDecodedHeader {
     std::vector<Submessage> submessages;
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "RTPS";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "RTPS"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return RTPS_HEADER_SIZE;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return RTPS_HEADER_SIZE; }
 
     [[nodiscard]] std::size_t payload_size() const override {
         std::size_t total = 0;
@@ -228,20 +226,17 @@ struct RtpsHeader : public IDecodedHeader {
 
     /// @brief Get summary string
     [[nodiscard]] std::string summary() const {
-        return "RTPS v" + version.to_string() + " from " + vendor_id.to_string() +
-               " (" + std::to_string(submessages.size()) + " submessages)";
+        return "RTPS v" + version.to_string() + " from " + vendor_id.to_string() + " (" +
+               std::to_string(submessages.size()) + " submessages)";
     }
 
     /// @brief Get participant GUID
-    [[nodiscard]] GUID participant_guid() const {
-        return {guid_prefix, EntityId::participant()};
-    }
+    [[nodiscard]] GUID participant_guid() const { return {guid_prefix, EntityId::participant()}; }
 
     /// @brief Check if message contains DATA submessages
     [[nodiscard]] bool has_data() const {
         for (const auto& sub : submessages) {
-            if (sub.kind() == SubmessageKind::DATA ||
-                sub.kind() == SubmessageKind::DATA_FRAG) {
+            if (sub.kind() == SubmessageKind::DATA || sub.kind() == SubmessageKind::DATA_FRAG) {
                 return true;
             }
         }
@@ -264,7 +259,8 @@ struct RtpsHeader : public IDecodedHeader {
     [[nodiscard]] std::size_t count_submessages(SubmessageKind kind) const {
         std::size_t count = 0;
         for (const auto& sub : submessages) {
-            if (sub.kind() == kind) ++count;
+            if (sub.kind() == kind)
+                ++count;
         }
         return count;
     }
@@ -292,9 +288,7 @@ public:
     [[nodiscard]] ResultType decode(std::span<const std::byte> data) const;
 
     /// @brief Decode from context (for dispatcher integration)
-    [[nodiscard]] ResultType decode(DecodeContext& ctx) const {
-        return decode(ctx.data);
-    }
+    [[nodiscard]] ResultType decode(DecodeContext& ctx) const { return decode(ctx.data); }
 
     /// @brief Check if data looks like RTPS
     [[nodiscard]] static bool looks_like_rtps(std::span<const std::byte> data);
@@ -304,14 +298,11 @@ public:
 
 private:
     /// @brief Parse submessages from data after RTPS header
-    [[nodiscard]] std::vector<Submessage> parse_submessages(
-        std::span<const std::byte> data) const;
+    [[nodiscard]] std::vector<Submessage> parse_submessages(std::span<const std::byte> data) const;
 
     /// @brief Parse a single submessage body
-    [[nodiscard]] SubmessageBody parse_submessage_body(
-        SubmessageKind kind,
-        SubmessageFlags flags,
-        std::span<const std::byte> data) const;
+    [[nodiscard]] SubmessageBody parse_submessage_body(SubmessageKind kind, SubmessageFlags flags,
+                                                       std::span<const std::byte> data) const;
 };
 
 }  // namespace wadjet::protocols::dds

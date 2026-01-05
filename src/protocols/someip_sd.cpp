@@ -11,25 +11,32 @@ namespace wadjet::protocols::someip_sd {
 
 std::string_view entry_type_string(EntryType type) {
     switch (type) {
-        case EntryType::FindService: return "FindService";
-        case EntryType::OfferService: return "OfferService";
-        case EntryType::StopOfferService: return "StopOfferService";
-        case EntryType::SubscribeEventgroup: return "SubscribeEventgroup";
-        case EntryType::StopSubscribeEventgroup: return "StopSubscribeEventgroup";
-        case EntryType::SubscribeEventgroupAck: return "SubscribeEventgroupAck";
-        case EntryType::SubscribeEventgroupNack: return "SubscribeEventgroupNack";
+        case EntryType::FindService:
+            return "FindService";
+        case EntryType::OfferService:
+            return "OfferService";
+        case EntryType::StopOfferService:
+            return "StopOfferService";
+        case EntryType::SubscribeEventgroup:
+            return "SubscribeEventgroup";
+        case EntryType::StopSubscribeEventgroup:
+            return "StopSubscribeEventgroup";
+        case EntryType::SubscribeEventgroupAck:
+            return "SubscribeEventgroupAck";
+        case EntryType::SubscribeEventgroupNack:
+            return "SubscribeEventgroupNack";
     }
     return "Unknown";
 }
 
 std::optional<IPv4EndpointOption> SdOption::as_ipv4_endpoint() const {
-    if (type != OptionType::IPv4Endpoint &&
-        type != OptionType::IPv4Multicast &&
+    if (type != OptionType::IPv4Endpoint && type != OptionType::IPv4Multicast &&
         type != OptionType::IPv4SDEndpoint) {
         return std::nullopt;
     }
 
-    if (data.size() < 9) {  // 4 (IP) + 1 (reserved) + 1 (protocol) + 2 (port) + 1 (reserved at start)
+    if (data.size() <
+        9) {  // 4 (IP) + 1 (reserved) + 1 (protocol) + 2 (port) + 1 (reserved at start)
         return std::nullopt;
     }
 
@@ -39,17 +46,15 @@ std::optional<IPv4EndpointOption> SdOption::as_ipv4_endpoint() const {
     opt.protocol = static_cast<L4Protocol>(static_cast<std::uint8_t>(data[5]));
     opt.port = static_cast<std::uint16_t>(
         (static_cast<unsigned int>(static_cast<std::uint8_t>(data[6])) << 8) |
-         static_cast<unsigned int>(static_cast<std::uint8_t>(data[7]))
-    );
+        static_cast<unsigned int>(static_cast<std::uint8_t>(data[7])));
 
     return opt;
 }
 
 std::string SomeIpSdHeader::to_string() const {
     std::ostringstream oss;
-    oss << "SOME/IP-SD { flags=0x" << std::hex << std::setfill('0')
-        << std::setw(2) << static_cast<int>(flags)
-        << std::dec << ", entries=" << entries.size()
+    oss << "SOME/IP-SD { flags=0x" << std::hex << std::setfill('0') << std::setw(2)
+        << static_cast<int>(flags) << std::dec << ", entries=" << entries.size()
         << ", options=" << options.size();
 
     if (is_reboot()) {
@@ -87,7 +92,7 @@ std::vector<const EventgroupEntry*> SomeIpSdHeader::get_subscriptions() const {
 }
 
 const ServiceEntry* SomeIpSdHeader::find_service(std::uint16_t service_id,
-                                                  std::uint16_t instance_id) const {
+                                                 std::uint16_t instance_id) const {
     for (const auto& entry : entries) {
         if (auto* svc = std::get_if<ServiceEntry>(&entry)) {
             if (svc->service_id == service_id) {
@@ -100,8 +105,7 @@ const ServiceEntry* SomeIpSdHeader::find_service(std::uint16_t service_id,
     return nullptr;
 }
 
-std::optional<SdEntry> SomeIpSdDecoder::parse_entry(const DecodeContext& ctx,
-                                                     std::size_t offset) {
+std::optional<SdEntry> SomeIpSdDecoder::parse_entry(const DecodeContext& ctx, std::size_t offset) {
     if (!ctx.has_bytes(offset + ENTRY_SIZE)) {
         return std::nullopt;
     }
@@ -126,9 +130,10 @@ std::optional<SdEntry> SomeIpSdDecoder::parse_entry(const DecodeContext& ctx,
         entry.major_version = static_cast<std::uint8_t>(ctx.data[offset + 8]);
 
         // TTL is 24-bit (bytes 9-11)
-        entry.ttl = (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 9])) << 16) |
-                    (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 10])) << 8) |
-                     static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 11]));
+        entry.ttl =
+            (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 9])) << 16) |
+            (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 10])) << 8) |
+            static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 11]));
 
         // Counter (4 bits) and eventgroup ID (12 bits) in bytes 12-15
         std::uint32_t counter_eg = ctx.read_be32(offset + 12);
@@ -151,9 +156,10 @@ std::optional<SdEntry> SomeIpSdDecoder::parse_entry(const DecodeContext& ctx,
         entry.major_version = static_cast<std::uint8_t>(ctx.data[offset + 8]);
 
         // TTL is 24-bit (bytes 9-11)
-        entry.ttl = (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 9])) << 16) |
-                    (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 10])) << 8) |
-                     static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 11]));
+        entry.ttl =
+            (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 9])) << 16) |
+            (static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 10])) << 8) |
+            static_cast<std::uint32_t>(static_cast<std::uint8_t>(ctx.data[offset + 11]));
 
         entry.minor_version = ctx.read_be32(offset + 12);
 
@@ -161,9 +167,8 @@ std::optional<SdEntry> SomeIpSdDecoder::parse_entry(const DecodeContext& ctx,
     }
 }
 
-std::optional<SdOption> SomeIpSdDecoder::parse_option(const DecodeContext& ctx,
-                                                       std::size_t offset,
-                                                       std::size_t& consumed) {
+std::optional<SdOption> SomeIpSdDecoder::parse_option(const DecodeContext& ctx, std::size_t offset,
+                                                      std::size_t& consumed) {
     if (!ctx.has_bytes(offset + 3)) {
         return std::nullopt;
     }
@@ -200,8 +205,7 @@ std::optional<SdOption> SomeIpSdDecoder::parse_option(const DecodeContext& ctx,
 
 SomeIpSdDecoder::Result SomeIpSdDecoder::decode_impl(const DecodeContext& ctx) const {
     if (!ctx.has_bytes(SD_HEADER_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                          "SOME/IP-SD header too small");
+        return make_error(DecodeErrorCode::BufferTooSmall, "SOME/IP-SD header too small");
     }
 
     SomeIpSdHeader header;
@@ -218,8 +222,7 @@ SomeIpSdDecoder::Result SomeIpSdDecoder::decode_impl(const DecodeContext& ctx) c
     // Validate we have enough data for entries
     std::size_t entries_end = 8 + header.entries_length;
     if (!ctx.has_bytes(entries_end)) {
-        return make_error(DecodeErrorCode::TruncatedPayload,
-                          "SOME/IP-SD entries array truncated");
+        return make_error(DecodeErrorCode::TruncatedPayload, "SOME/IP-SD entries array truncated");
     }
 
     // Parse entries
@@ -227,8 +230,7 @@ SomeIpSdDecoder::Result SomeIpSdDecoder::decode_impl(const DecodeContext& ctx) c
         std::size_t offset = 8;
         std::size_t entry_count = 0;
 
-        while (offset + ENTRY_SIZE <= entries_end &&
-               entry_count < options_.max_entries) {
+        while (offset + ENTRY_SIZE <= entries_end && entry_count < options_.max_entries) {
             auto entry = parse_entry(ctx, offset);
             if (entry) {
                 header.entries.push_back(std::move(*entry));
@@ -240,16 +242,14 @@ SomeIpSdDecoder::Result SomeIpSdDecoder::decode_impl(const DecodeContext& ctx) c
 
     // Options array length (4 bytes after entries)
     if (!ctx.has_bytes(entries_end + 4)) {
-        return make_error(DecodeErrorCode::TruncatedPayload,
-                          "SOME/IP-SD options length truncated");
+        return make_error(DecodeErrorCode::TruncatedPayload, "SOME/IP-SD options length truncated");
     }
     header.options_length = ctx.read_be32(entries_end);
 
     // Validate we have enough data for options
     std::size_t options_end = entries_end + 4 + header.options_length;
     if (!ctx.has_bytes(options_end)) {
-        return make_error(DecodeErrorCode::TruncatedPayload,
-                          "SOME/IP-SD options array truncated");
+        return make_error(DecodeErrorCode::TruncatedPayload, "SOME/IP-SD options array truncated");
     }
 
     // Parse options

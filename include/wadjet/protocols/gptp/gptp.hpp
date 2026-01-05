@@ -2,32 +2,32 @@
 
 /// @file gptp.hpp
 /// @brief gPTP (IEEE 802.1AS) protocol decoder
-/// 
+///
 /// This file provides the main gPTP header structure and decoder implementation
 /// for Generalized Precision Time Protocol used in automotive time synchronization.
-/// 
+///
 /// @gptp gPTP is the profile of IEEE 1588 (PTP) specified by IEEE 802.1AS for
 /// use in time-sensitive networks. It provides sub-microsecond synchronization
 /// across Ethernet networks.
-/// 
+///
 /// ## Protocol Overview
-/// 
+///
 /// gPTP uses the following message types:
 /// - **Sync / Follow_Up**: Time synchronization from grandmaster
 /// - **Pdelay_Req / Pdelay_Resp / Pdelay_Resp_Follow_Up**: Peer delay measurement
 /// - **Announce**: Grandmaster election (BMCA)
-/// 
+///
 /// ## Example Usage
-/// 
+///
 /// ```cpp
 /// #include <wadjet/protocols/gptp/gptp.hpp>
-/// 
+///
 /// using namespace wadjet::protocols::gptp;
-/// 
+///
 /// // Decode a gPTP packet
 /// GptpDecoder decoder;
 /// auto result = decoder.decode(packet_data);
-/// 
+///
 /// if (result) {
 ///     const auto& header = result.value().first;
 ///     std::cout << "Message type: " << message_type_string(header.message_type) << "\n";
@@ -35,9 +35,9 @@
 /// }
 /// ```
 
-#include "wadjet/protocols/gptp/gptp_types.hpp"
-#include "wadjet/protocols/gptp/gptp_messages.hpp"
 #include "wadjet/protocols/decoder.hpp"
+#include "wadjet/protocols/gptp/gptp_messages.hpp"
+#include "wadjet/protocols/gptp/gptp_types.hpp"
 
 #include <optional>
 #include <span>
@@ -45,7 +45,7 @@
 namespace wadjet::protocols::gptp {
 
 /// @brief Decoded gPTP header (common header for all message types)
-/// 
+///
 /// The gPTP common header is 34 bytes and contains fields common to all
 /// gPTP message types.
 struct GptpHeader : public IDecodedHeader {
@@ -91,30 +91,21 @@ struct GptpHeader : public IDecodedHeader {
     std::optional<MessageBody> body;
 
     // IDecodedHeader interface implementation
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "gPTP";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "gPTP"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return COMMON_HEADER_SIZE;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return COMMON_HEADER_SIZE; }
 
     [[nodiscard]] std::size_t payload_size() const override {
-        return message_length > COMMON_HEADER_SIZE ? 
-               message_length - COMMON_HEADER_SIZE : 0;
+        return message_length > COMMON_HEADER_SIZE ? message_length - COMMON_HEADER_SIZE : 0;
     }
 
     [[nodiscard]] std::string to_string() const override;
 
     /// @brief Check if this is a two-step message (Follow_Up expected)
-    [[nodiscard]] bool is_two_step() const {
-        return flags.two_step;
-    }
+    [[nodiscard]] bool is_two_step() const { return flags.two_step; }
 
     /// @brief Check if this is an event message (timestamped)
-    [[nodiscard]] bool is_event() const {
-        return is_event_message(message_type);
-    }
+    [[nodiscard]] bool is_event() const { return is_event_message(message_type); }
 
     /// @brief Check if this message is from 802.1AS profile
     [[nodiscard]] bool is_gptp_profile() const {
@@ -127,7 +118,7 @@ struct GptpHeader : public IDecodedHeader {
     }
 
     // Helper accessors for typed message bodies
-    
+
     /// @brief Get Sync message body (if applicable)
     [[nodiscard]] const SyncMessage* as_sync() const {
         if (body && std::holds_alternative<SyncMessage>(*body)) {
@@ -187,16 +178,16 @@ struct GptpHeader : public IDecodedHeader {
 
 /// @brief gPTP decoder options
 struct GptpDecoderOptions {
-    bool parse_body = true;           ///< Parse message body (not just header)
-    bool parse_tlvs = true;           ///< Parse TLVs in messages
-    bool strict_version = false;      ///< Reject non-802.1AS messages
-    bool validate_length = true;      ///< Validate message length field
+    bool parse_body = true;       ///< Parse message body (not just header)
+    bool parse_tlvs = true;       ///< Parse TLVs in messages
+    bool strict_version = false;  ///< Reject non-802.1AS messages
+    bool validate_length = true;  ///< Validate message length field
 };
 
 /// @brief gPTP protocol decoder
-/// 
+///
 /// Decodes gPTP (IEEE 802.1AS) messages from raw Ethernet frames.
-/// 
+///
 /// @example
 /// ```cpp
 /// GptpDecoder decoder;
@@ -211,8 +202,7 @@ public:
     /// @brief Decoder name
     static constexpr std::string_view NAME = "gPTP";
 
-    explicit GptpDecoder(GptpDecoderOptions opts = GptpDecoderOptions{})
-        : options_(opts) {}
+    explicit GptpDecoder(GptpDecoderOptions opts = GptpDecoderOptions{}) : options_(opts) {}
 
     /// @brief Get decoder name
     [[nodiscard]] std::string_view name() const override { return NAME; }
@@ -235,12 +225,12 @@ public:
 
 private:
     /// @brief Parse common header (34 bytes)
-    [[nodiscard]] std::optional<GptpHeader> 
-    parse_header(const std::byte* data, std::size_t len) const;
+    [[nodiscard]] std::optional<GptpHeader> parse_header(const std::byte* data,
+                                                         std::size_t len) const;
 
     /// @brief Parse message body based on type
-    [[nodiscard]] std::optional<MessageBody>
-    parse_body(MessageType type, const std::byte* data, std::size_t len) const;
+    [[nodiscard]] std::optional<MessageBody> parse_body(MessageType type, const std::byte* data,
+                                                        std::size_t len) const;
 
     GptpDecoderOptions options_;
 };
@@ -256,15 +246,16 @@ private:
 }
 
 /// @brief Calculate peer delay from Pdelay message exchange
-/// 
+///
 /// @param t1 Pdelay_Req transmit timestamp (requestOriginTimestamp)
 /// @param t2 Pdelay_Req receive timestamp (requestReceiptTimestamp)
 /// @param t3 Pdelay_Resp transmit timestamp (responseOriginTimestamp)
 /// @param t4 Pdelay_Resp receive timestamp (measured at requester)
 /// @return Calculated peer delay in nanoseconds
-[[nodiscard]] inline std::int64_t calculate_peer_delay(
-    const GptpTimestamp& t1, const GptpTimestamp& t2,
-    const GptpTimestamp& t3, const GptpTimestamp& t4) {
+[[nodiscard]] inline std::int64_t calculate_peer_delay(const GptpTimestamp& t1,
+                                                       const GptpTimestamp& t2,
+                                                       const GptpTimestamp& t3,
+                                                       const GptpTimestamp& t4) {
     // peerDelay = [(t4 - t1) - (t3 - t2)] / 2
     // = [(t4 - t1) - responseTime] / 2
     // = [roundTripDelay - turnaroundTime] / 2
@@ -274,14 +265,13 @@ private:
 }
 
 /// @brief Calculate rate ratio from Follow_Up TLV
-/// 
+///
 /// @param cumulative_scaled_rate_offset From Follow_Up TLV
 /// @return Rate ratio as a double (1.0 = no offset)
-[[nodiscard]] inline double calculate_rate_ratio(
-    std::int32_t cumulative_scaled_rate_offset) {
+[[nodiscard]] inline double calculate_rate_ratio(std::int32_t cumulative_scaled_rate_offset) {
     // rateRatio = 1 + (cumulativeScaledRateOffset / 2^41)
-    return 1.0 + static_cast<double>(cumulative_scaled_rate_offset) / 
-                 static_cast<double>(1ULL << 41);
+    return 1.0 +
+           static_cast<double>(cumulative_scaled_rate_offset) / static_cast<double>(1ULL << 41);
 }
 
 }  // namespace wadjet::protocols::gptp

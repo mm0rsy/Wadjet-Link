@@ -56,14 +56,14 @@ TEST_F(UdsDecoderTest, DetectNegativeResponse) {
 }
 
 TEST_F(UdsDecoderTest, LooksLikeUdsWithValidServices) {
-    EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x10, 0x01))));  // Request
-    EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x50, 0x01))));  // Response
+    EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x10, 0x01))));        // Request
+    EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x50, 0x01))));        // Response
     EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x22, 0xF1, 0x90))));  // ReadDID
     EXPECT_TRUE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x7F, 0x22, 0x31))));  // NRC
 }
 
 TEST_F(UdsDecoderTest, LooksLikeUdsRejectsInvalid) {
-    EXPECT_FALSE(UdsDecoder::looks_like_uds(to_span(make_bytes())));  // Empty
+    EXPECT_FALSE(UdsDecoder::looks_like_uds(to_span(make_bytes())));      // Empty
     EXPECT_FALSE(UdsDecoder::looks_like_uds(to_span(make_bytes(0x00))));  // Invalid SID
     EXPECT_FALSE(UdsDecoder::looks_like_uds(to_span(make_bytes(0xFF))));  // Invalid SID
 }
@@ -75,13 +75,13 @@ TEST_F(UdsDecoderTest, LooksLikeUdsRejectsInvalid) {
 TEST_F(UdsDecoderTest, DiagnosticSessionControlRequest) {
     auto data = make_bytes(0x10, 0x03);  // Extended session request
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::DiagnosticSessionControl);
     EXPECT_EQ(result->header.direction, MessageDirection::Request);
     EXPECT_EQ(result->header.sub_function, std::optional<std::uint8_t>(0x03));
     EXPECT_FALSE(result->header.suppress_positive_response);
-    
+
     auto* req = result->as<DiagnosticSessionControlRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->session_type, SessionType::ExtendedDiagnosticSession);
@@ -90,7 +90,7 @@ TEST_F(UdsDecoderTest, DiagnosticSessionControlRequest) {
 TEST_F(UdsDecoderTest, DiagnosticSessionControlRequestWithSuppressResponse) {
     auto data = make_bytes(0x10, 0x83);  // Extended session + suppress response
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.sub_function, std::optional<std::uint8_t>(0x03));
     EXPECT_TRUE(result->header.suppress_positive_response);
@@ -100,15 +100,15 @@ TEST_F(UdsDecoderTest, DiagnosticSessionControlPositiveResponse) {
     // Response: 0x50 + session type + P2 timing (2 bytes) + P2* timing (2 bytes)
     auto data = make_bytes(0x50, 0x03, 0x00, 0x19, 0x01, 0xF4);
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::DiagnosticSessionControl);
     EXPECT_EQ(result->header.direction, MessageDirection::PositiveResponse);
-    
+
     auto* resp = result->as<DiagnosticSessionControlResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->session_type, SessionType::ExtendedDiagnosticSession);
-    EXPECT_EQ(resp->p2_server_max_ms, 25);     // 0x0019 = 25ms
+    EXPECT_EQ(resp->p2_server_max_ms, 25);        // 0x0019 = 25ms
     EXPECT_EQ(resp->p2_star_server_max_ms, 500);  // 0x01F4 = 500 (5000ms)
     EXPECT_EQ(resp->p2_star_ms(), 5000);
 }
@@ -120,10 +120,10 @@ TEST_F(UdsDecoderTest, DiagnosticSessionControlPositiveResponse) {
 TEST_F(UdsDecoderTest, ECUResetRequestHardReset) {
     auto data = make_bytes(0x11, 0x01);  // Hard reset
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::ECUReset);
-    
+
     auto* req = result->as<ECUResetRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->reset_type, ResetType::HardReset);
@@ -132,7 +132,7 @@ TEST_F(UdsDecoderTest, ECUResetRequestHardReset) {
 TEST_F(UdsDecoderTest, ECUResetRequestSoftReset) {
     auto data = make_bytes(0x11, 0x03);  // Soft reset
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<ECUResetRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->reset_type, ResetType::SoftReset);
@@ -141,10 +141,10 @@ TEST_F(UdsDecoderTest, ECUResetRequestSoftReset) {
 TEST_F(UdsDecoderTest, ECUResetPositiveResponse) {
     auto data = make_bytes(0x51, 0x01);  // Hard reset response
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.direction, MessageDirection::PositiveResponse);
-    
+
     auto* resp = result->as<ECUResetResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->reset_type, ResetType::HardReset);
@@ -157,10 +157,10 @@ TEST_F(UdsDecoderTest, ECUResetPositiveResponse) {
 TEST_F(UdsDecoderTest, SecurityAccessRequestSeed) {
     auto data = make_bytes(0x27, 0x01);  // Request seed for level 1
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::SecurityAccess);
-    
+
     auto* req = result->as<SecurityAccessRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->access_type, 0x01);
@@ -173,7 +173,7 @@ TEST_F(UdsDecoderTest, SecurityAccessSendKey) {
     // Send key for level 1: 0x27 0x02 + key bytes
     auto data = make_bytes(0x27, 0x02, 0xDE, 0xAD, 0xBE, 0xEF);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<SecurityAccessRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->access_type, 0x02);
@@ -187,7 +187,7 @@ TEST_F(UdsDecoderTest, SecurityAccessSendKey) {
 TEST_F(UdsDecoderTest, SecurityAccessResponseWithSeed) {
     auto data = make_bytes(0x67, 0x01, 0x12, 0x34, 0x56, 0x78);  // Seed response
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<SecurityAccessResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->access_type, 0x01);
@@ -199,7 +199,7 @@ TEST_F(UdsDecoderTest, SecurityAccessResponseWithSeed) {
 TEST_F(UdsDecoderTest, SecurityAccessAlreadyUnlocked) {
     auto data = make_bytes(0x67, 0x01, 0x00, 0x00, 0x00, 0x00);  // Zero seed = unlocked
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<SecurityAccessResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_TRUE(resp->is_already_unlocked());
@@ -212,10 +212,10 @@ TEST_F(UdsDecoderTest, SecurityAccessAlreadyUnlocked) {
 TEST_F(UdsDecoderTest, TesterPresentRequest) {
     auto data = make_bytes(0x3E, 0x00);
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::TesterPresent);
-    
+
     auto* req = result->as<TesterPresentRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->sub_function, 0x00);
@@ -225,7 +225,7 @@ TEST_F(UdsDecoderTest, TesterPresentRequest) {
 TEST_F(UdsDecoderTest, TesterPresentRequestSuppressResponse) {
     auto data = make_bytes(0x3E, 0x80);  // Suppress positive response
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<TesterPresentRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_TRUE(req->suppress_positive_response);
@@ -234,9 +234,9 @@ TEST_F(UdsDecoderTest, TesterPresentRequestSuppressResponse) {
 TEST_F(UdsDecoderTest, TesterPresentResponse) {
     auto data = make_bytes(0x7E, 0x00);
     auto result = decoder_.decode(to_span(data));
-    
+
     EXPECT_EQ(result->header.direction, MessageDirection::PositiveResponse);
-    
+
     auto* resp = result->as<TesterPresentResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->sub_function, 0x00);
@@ -249,10 +249,10 @@ TEST_F(UdsDecoderTest, TesterPresentResponse) {
 TEST_F(UdsDecoderTest, ReadDataByIdentifierRequestSingleDID) {
     auto data = make_bytes(0x22, 0xF1, 0x90);  // Read VIN (DID 0xF190)
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::ReadDataByIdentifier);
-    
+
     auto* req = result->as<ReadDataByIdentifierRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->data_identifiers.size(), 1);
@@ -263,7 +263,7 @@ TEST_F(UdsDecoderTest, ReadDataByIdentifierRequestMultipleDIDs) {
     // Read VIN (0xF190) and ECU serial (0xF18C)
     auto data = make_bytes(0x22, 0xF1, 0x90, 0xF1, 0x8C);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<ReadDataByIdentifierRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->data_identifiers.size(), 2);
@@ -275,9 +275,9 @@ TEST_F(UdsDecoderTest, ReadDataByIdentifierResponse) {
     // Response: 0x62 + DID (2 bytes) + data
     auto data = make_bytes(0x62, 0xF1, 0x90, 'W', 'A', 'U', 'Z', 'Z', 'Z');
     auto result = decoder_.decode(to_span(data));
-    
+
     EXPECT_EQ(result->header.direction, MessageDirection::PositiveResponse);
-    
+
     auto* resp = result->as<ReadDataByIdentifierResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->records.size(), 1);
@@ -293,9 +293,9 @@ TEST_F(UdsDecoderTest, WriteDataByIdentifierRequest) {
     // Write to DID 0xF199 with some data
     auto data = make_bytes(0x2E, 0xF1, 0x99, 0x01, 0x02, 0x03);
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
-    
+
     auto* req = result->as<WriteDataByIdentifierRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->data_identifier.value, 0xF199);
@@ -305,7 +305,7 @@ TEST_F(UdsDecoderTest, WriteDataByIdentifierRequest) {
 TEST_F(UdsDecoderTest, WriteDataByIdentifierResponse) {
     auto data = make_bytes(0x6E, 0xF1, 0x99);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<WriteDataByIdentifierResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->data_identifier.value, 0xF199);
@@ -319,9 +319,9 @@ TEST_F(UdsDecoderTest, RoutineControlStartRoutine) {
     // Start routine 0xFF00 (erase memory)
     auto data = make_bytes(0x31, 0x01, 0xFF, 0x00);
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
-    
+
     auto* req = result->as<RoutineControlRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->routine_control_type, RoutineControlType::StartRoutine);
@@ -332,7 +332,7 @@ TEST_F(UdsDecoderTest, RoutineControlWithOptions) {
     // Start routine with option record
     auto data = make_bytes(0x31, 0x01, 0xFF, 0x01, 0x44, 0x00, 0x00, 0x00);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<RoutineControlRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->routine_option_record.size(), 4);
@@ -341,7 +341,7 @@ TEST_F(UdsDecoderTest, RoutineControlWithOptions) {
 TEST_F(UdsDecoderTest, RoutineControlRequestResults) {
     auto data = make_bytes(0x31, 0x03, 0xFF, 0x00);  // Request routine results
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<RoutineControlRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->routine_control_type, RoutineControlType::RequestRoutineResults);
@@ -354,13 +354,12 @@ TEST_F(UdsDecoderTest, RoutineControlRequestResults) {
 TEST_F(UdsDecoderTest, RequestDownloadBasic) {
     // Format: 0x34 + dataFormatId + addressAndLengthFormat + address + size
     // 4 bytes address, 4 bytes size
-    auto data = make_bytes(0x34, 0x00, 0x44, 
-                           0x00, 0x10, 0x00, 0x00,  // Address 0x00100000
-                           0x00, 0x00, 0x40, 0x00); // Size 0x00004000
+    auto data = make_bytes(0x34, 0x00, 0x44, 0x00, 0x10, 0x00, 0x00,  // Address 0x00100000
+                           0x00, 0x00, 0x40, 0x00);                   // Size 0x00004000
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
-    
+
     auto* req = result->as<RequestDownloadRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_TRUE(req->data_format.is_uncompressed());
@@ -375,7 +374,7 @@ TEST_F(UdsDecoderTest, RequestDownloadResponse) {
     // Response: 0x74 + lengthFormat + maxBlockLength
     auto data = make_bytes(0x74, 0x20, 0x10, 0x00);  // 2 bytes for maxBlockLength
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<RequestDownloadResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->max_number_of_block_length, 0x1000);
@@ -388,7 +387,7 @@ TEST_F(UdsDecoderTest, RequestDownloadResponse) {
 TEST_F(UdsDecoderTest, TransferDataRequest) {
     auto data = make_bytes(0x36, 0x01, 0xAA, 0xBB, 0xCC, 0xDD);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* req = result->as<TransferDataRequest>();
     ASSERT_NE(req, nullptr);
     EXPECT_EQ(req->block_sequence_counter, 0x01);
@@ -398,7 +397,7 @@ TEST_F(UdsDecoderTest, TransferDataRequest) {
 TEST_F(UdsDecoderTest, TransferDataResponse) {
     auto data = make_bytes(0x76, 0x01);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<TransferDataResponse>();
     ASSERT_NE(resp, nullptr);
     EXPECT_EQ(resp->block_sequence_counter, 0x01);
@@ -411,10 +410,10 @@ TEST_F(UdsDecoderTest, TransferDataResponse) {
 TEST_F(UdsDecoderTest, RequestTransferExitRequest) {
     auto data = make_bytes(0x37);
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.service_id, ServiceID::RequestTransferExit);
-    
+
     auto* req = result->as<RequestTransferExitRequest>();
     ASSERT_NE(req, nullptr);
 }
@@ -422,7 +421,7 @@ TEST_F(UdsDecoderTest, RequestTransferExitRequest) {
 TEST_F(UdsDecoderTest, RequestTransferExitResponse) {
     auto data = make_bytes(0x77);
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* resp = result->as<RequestTransferExitResponse>();
     ASSERT_NE(resp, nullptr);
 }
@@ -434,12 +433,12 @@ TEST_F(UdsDecoderTest, RequestTransferExitResponse) {
 TEST_F(UdsDecoderTest, NegativeResponseBasic) {
     auto data = make_bytes(0x7F, 0x22, 0x31);  // Request out of range for ReadDID
     auto result = decoder_.decode(to_span(data));
-    
+
     ASSERT_TRUE(result.is_ok());
     EXPECT_EQ(result->header.direction, MessageDirection::NegativeResponse);
     EXPECT_EQ(result->header.rejected_service_id, ServiceID::ReadDataByIdentifier);
     EXPECT_EQ(result->header.negative_response_code, std::optional<std::uint8_t>(0x31));
-    
+
     auto* nrc = result->as<NegativeResponseMessage>();
     ASSERT_NE(nrc, nullptr);
     EXPECT_EQ(nrc->rejected_service_id, ServiceID::ReadDataByIdentifier);
@@ -449,7 +448,7 @@ TEST_F(UdsDecoderTest, NegativeResponseBasic) {
 TEST_F(UdsDecoderTest, NegativeResponsePending) {
     auto data = make_bytes(0x7F, 0x10, 0x78);  // Response pending
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* nrc = result->as<NegativeResponseMessage>();
     ASSERT_NE(nrc, nullptr);
     EXPECT_TRUE(nrc->is_response_pending());
@@ -459,7 +458,7 @@ TEST_F(UdsDecoderTest, NegativeResponsePending) {
 TEST_F(UdsDecoderTest, NegativeResponseSecurityDenied) {
     auto data = make_bytes(0x7F, 0x22, 0x33);  // Security access denied
     auto result = decoder_.decode(to_span(data));
-    
+
     auto* nrc = result->as<NegativeResponseMessage>();
     ASSERT_NE(nrc, nullptr);
     EXPECT_EQ(nrc->negative_response_code, NRC::SecurityAccessDenied);
@@ -473,7 +472,7 @@ TEST_F(UdsDecoderTest, NegativeResponseSecurityDenied) {
 TEST_F(UdsDecoderTest, DecodeEmptyBuffer) {
     auto data = make_bytes();
     auto result = decoder_.decode(to_span(data));
-    
+
     EXPECT_FALSE(result.is_ok());
     EXPECT_EQ(result.error().code, UdsDecodeError::Code::MessageTooShort);
 }
@@ -481,7 +480,7 @@ TEST_F(UdsDecoderTest, DecodeEmptyBuffer) {
 TEST_F(UdsDecoderTest, NegativeResponseTooShort) {
     auto data = make_bytes(0x7F, 0x22);  // Missing NRC byte
     auto result = decoder_.decode(to_span(data));
-    
+
     EXPECT_FALSE(result.is_ok());
     EXPECT_EQ(result.error().code, UdsDecodeError::Code::MessageTooShort);
 }
@@ -501,7 +500,8 @@ TEST(UdsTypesTest, ServiceIdStrings) {
 TEST(UdsTypesTest, SessionTypeStrings) {
     EXPECT_EQ(session_type_string(SessionType::DefaultSession), "DefaultSession");
     EXPECT_EQ(session_type_string(SessionType::ProgrammingSession), "ProgrammingSession");
-    EXPECT_EQ(session_type_string(SessionType::ExtendedDiagnosticSession), "ExtendedDiagnosticSession");
+    EXPECT_EQ(session_type_string(SessionType::ExtendedDiagnosticSession),
+              "ExtendedDiagnosticSession");
 }
 
 TEST(UdsTypesTest, IsResponseSid) {
@@ -524,7 +524,7 @@ TEST(UdsTypesTest, DataIdentifierCommon) {
 TEST(UdsTypesTest, DataIdentifierOemRange) {
     DataIdentifier oem_did{0xF150};
     EXPECT_TRUE(oem_did.is_oem_specific());
-    
+
     DataIdentifier standard_did{0x1000};
     EXPECT_FALSE(standard_did.is_oem_specific());
 }
@@ -532,14 +532,14 @@ TEST(UdsTypesTest, DataIdentifierOemRange) {
 TEST(UdsTypesTest, RoutineIdentifierOemRange) {
     RoutineIdentifier oem_routine{0xF123};
     EXPECT_TRUE(oem_routine.is_oem_specific());
-    
+
     EXPECT_EQ(RoutineID::EraseMemory.value, 0xFF00);
 }
 
 TEST(UdsTypesTest, DTCConversion) {
     DTC dtc(0xB1, 0x23, 0x45);
     EXPECT_EQ(dtc.to_value(), 0xB12345);
-    
+
     auto dtc2 = DTC::from_value(0xC01234);
     EXPECT_EQ(dtc2.high_byte, 0xC0);
     EXPECT_EQ(dtc2.middle_byte, 0x12);
@@ -551,7 +551,7 @@ TEST(UdsTypesTest, DTCStatusMask) {
     EXPECT_TRUE(mask.test_failed);
     EXPECT_FALSE(mask.pending_dtc);
     EXPECT_TRUE(mask.confirmed_dtc);
-    
+
     EXPECT_EQ(mask.to_byte(), 0x09);
 }
 
@@ -571,7 +571,8 @@ TEST(NrcTest, NrcClassification) {
     EXPECT_EQ(classify_nrc(NRC::SecurityAccessDenied), NRCCategory::SecurityError);
     EXPECT_EQ(classify_nrc(NRC::RequestOutOfRange), NRCCategory::ParameterError);
     EXPECT_EQ(classify_nrc(NRC::UploadDownloadNotAccepted), NRCCategory::TransferError);
-    EXPECT_EQ(classify_nrc(NRC::RequestCorrectlyReceivedResponsePending), NRCCategory::ResponsePending);
+    EXPECT_EQ(classify_nrc(NRC::RequestCorrectlyReceivedResponsePending),
+              NRCCategory::ResponsePending);
 }
 
 TEST(NrcTest, TemporaryNrc) {
@@ -612,7 +613,7 @@ TEST(ServiceHelpersTest, ServiceHasSubFunction) {
     EXPECT_TRUE(service_has_sub_function(ServiceID::SecurityAccess));
     EXPECT_TRUE(service_has_sub_function(ServiceID::TesterPresent));
     EXPECT_TRUE(service_has_sub_function(ServiceID::RoutineControl));
-    
+
     EXPECT_FALSE(service_has_sub_function(ServiceID::ReadDataByIdentifier));
     EXPECT_FALSE(service_has_sub_function(ServiceID::WriteDataByIdentifier));
     EXPECT_FALSE(service_has_sub_function(ServiceID::TransferData));
@@ -641,7 +642,7 @@ TEST(ServiceHelpersTest, SecurityAccessHelpers) {
     EXPECT_FALSE(is_request_seed(0x02));
     EXPECT_TRUE(is_request_seed(0x03));
     EXPECT_FALSE(is_request_seed(0x04));
-    
+
     EXPECT_EQ(get_security_level(0x01), 1);
     EXPECT_EQ(get_security_level(0x02), 1);
     EXPECT_EQ(get_security_level(0x03), 2);

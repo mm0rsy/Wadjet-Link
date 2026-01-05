@@ -20,10 +20,10 @@ namespace wadjet::io {
 
 /// @brief Capture session statistics
 struct CaptureStats {
-    std::uint64_t packets_received = 0;   ///< Packets received
-    std::uint64_t packets_dropped = 0;    ///< Packets dropped (kernel)
-    std::uint64_t packets_filtered = 0;   ///< Packets filtered out
-    std::uint64_t bytes_received = 0;     ///< Total bytes received
+    std::uint64_t packets_received = 0;  ///< Packets received
+    std::uint64_t packets_dropped = 0;   ///< Packets dropped (kernel)
+    std::uint64_t packets_filtered = 0;  ///< Packets filtered out
+    std::uint64_t bytes_received = 0;    ///< Total bytes received
 };
 
 /// @brief Timestamp source for packet capture
@@ -45,11 +45,11 @@ struct HardwareTimestampCaps {
 
 /// @brief Capture session options
 struct CaptureSessionOptions {
-    std::uint32_t snaplen = 65535;     ///< Max bytes to capture per packet
-    bool promiscuous = true;           ///< Enable promiscuous mode
-    bool immediate_mode = true;        ///< Minimize latency
-    std::size_t buffer_size = 2 * 1024 * 1024;  ///< Ring buffer size
-    int timeout_ms = 100;              ///< Poll timeout in milliseconds
+    std::uint32_t snaplen = 65535;                             ///< Max bytes to capture per packet
+    bool promiscuous = true;                                   ///< Enable promiscuous mode
+    bool immediate_mode = true;                                ///< Minimize latency
+    std::size_t buffer_size = 2 * 1024 * 1024;                 ///< Ring buffer size
+    int timeout_ms = 100;                                      ///< Poll timeout in milliseconds
     TimestampSource timestamp_source = TimestampSource::Auto;  ///< Timestamp source
     bool use_tpacket_v3 = false;          ///< Use TPACKET_V3 for better performance (experimental)
     std::size_t block_size = 128 * 1024;  ///< Block size for TPACKET_V3 (must be page-aligned)

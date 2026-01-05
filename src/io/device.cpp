@@ -1,15 +1,16 @@
 #include "wadjet/io/device.hpp"
 
-#include <cstring>
 #include <ifaddrs.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
+#include <cstring>
+
 #ifdef __linux__
-#include <linux/if_packet.h>
-#include <netinet/ether.h>
+    #include <linux/if_packet.h>
+    #include <netinet/ether.h>
 #endif
 
 namespace wadjet::io {
@@ -27,8 +28,7 @@ auto enumerate_devices() -> Result<std::vector<NetworkDevice>> {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) {
         freeifaddrs(ifaddr);
-        return Result<std::vector<NetworkDevice>>::err(
-            Error{errno, "Failed to create socket"});
+        return Result<std::vector<NetworkDevice>>::err(Error{errno, "Failed to create socket"});
     }
 
     // Track which interfaces we've already processed
@@ -100,8 +100,7 @@ auto get_device(const std::string& name) -> Result<NetworkDevice> {
         }
     }
 
-    return Result<NetworkDevice>::err(
-        Error{-1, "Device not found: " + name});
+    return Result<NetworkDevice>::err(Error{-1, "Device not found: " + name});
 }
 
 auto get_default_device() -> Result<NetworkDevice> {
@@ -116,8 +115,7 @@ auto get_default_device() -> Result<NetworkDevice> {
         }
     }
 
-    return Result<NetworkDevice>::err(
-        Error{-1, "No suitable network device found"});
+    return Result<NetworkDevice>::err(Error{-1, "No suitable network device found"});
 }
 
 }  // namespace wadjet::io

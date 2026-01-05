@@ -1,7 +1,8 @@
 #include "wadjet/io/frame_filter.hpp"
 
-#include <cstring>
 #include <pcap/pcap.h>
+
+#include <cstring>
 
 namespace wadjet::io {
 
@@ -32,19 +33,15 @@ auto FrameFilter::compile(std::string_view expression, int link_type) -> Result<
             Error{-1, "Failed to create pcap handle for filter compilation"});
     }
 
-    int result = pcap_compile(
-        pcap,
-        &filter.impl_->program,
-        expression.data(),
-        1,                      // optimize
-        PCAP_NETMASK_UNKNOWN    // netmask
+    int result = pcap_compile(pcap, &filter.impl_->program, expression.data(),
+                              1,                    // optimize
+                              PCAP_NETMASK_UNKNOWN  // netmask
     );
 
     if (result != 0) {
         std::string error_msg = pcap_geterr(pcap);
         pcap_close(pcap);
-        return Result<FrameFilter>::err(
-            Error{-1, "Failed to compile BPF filter: " + error_msg});
+        return Result<FrameFilter>::err(Error{-1, "Failed to compile BPF filter: " + error_msg});
     }
 
     pcap_close(pcap);
@@ -71,10 +68,8 @@ bool FrameFilter::matches(const void* data, std::size_t len) const {
     header.caplen = static_cast<bpf_u_int32>(len);
     header.len = static_cast<bpf_u_int32>(len);
 
-    return pcap_offline_filter(
-               &impl_->program,
-               &header,
-               reinterpret_cast<const u_char*>(data)) != 0;
+    return pcap_offline_filter(&impl_->program, &header, reinterpret_cast<const u_char*>(data)) !=
+           0;
 }
 
 const void* FrameFilter::program() const {

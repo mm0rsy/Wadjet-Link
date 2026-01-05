@@ -23,9 +23,8 @@ struct MacAddress : public AddressBase<MacAddress, 6> {
     using Base::Base;  // Inherit constructors
 
     /// @brief Create MAC address from bytes
-    static constexpr MacAddress from_bytes(std::uint8_t b0, std::uint8_t b1,
-                                           std::uint8_t b2, std::uint8_t b3,
-                                           std::uint8_t b4, std::uint8_t b5) {
+    static constexpr MacAddress from_bytes(std::uint8_t b0, std::uint8_t b1, std::uint8_t b2,
+                                           std::uint8_t b3, std::uint8_t b4, std::uint8_t b5) {
         MacAddress addr;
         addr.bytes = {b0, b1, b2, b3, b4, b5};
         return addr;
@@ -43,14 +42,12 @@ struct MacAddress : public AddressBase<MacAddress, 6> {
 
     /// @brief Check if this is a broadcast address (ff:ff:ff:ff:ff:ff)
     [[nodiscard]] constexpr bool is_broadcast() const {
-        return bytes[0] == 0xff && bytes[1] == 0xff && bytes[2] == 0xff &&
-               bytes[3] == 0xff && bytes[4] == 0xff && bytes[5] == 0xff;
+        return bytes[0] == 0xff && bytes[1] == 0xff && bytes[2] == 0xff && bytes[3] == 0xff &&
+               bytes[4] == 0xff && bytes[5] == 0xff;
     }
 
     /// @brief Check if this is a multicast address (LSB of first byte is 1)
-    [[nodiscard]] constexpr bool is_multicast() const {
-        return (bytes[0] & 0x01) != 0;
-    }
+    [[nodiscard]] constexpr bool is_multicast() const { return (bytes[0] & 0x01) != 0; }
 
     /// @brief Check if this is a locally administered address
     [[nodiscard]] constexpr bool is_local() const { return (bytes[0] & 0x02) != 0; }
@@ -71,8 +68,8 @@ struct IPv4Address : public AddressBase<IPv4Address, 4> {
     using Base::Base;  // Inherit constructors
 
     /// @brief Create IPv4 address from bytes
-    static constexpr IPv4Address from_bytes(std::uint8_t b0, std::uint8_t b1,
-                                            std::uint8_t b2, std::uint8_t b3) {
+    static constexpr IPv4Address from_bytes(std::uint8_t b0, std::uint8_t b1, std::uint8_t b2,
+                                            std::uint8_t b3) {
         IPv4Address addr;
         addr.bytes = {b0, b1, b2, b3};
         return addr;
@@ -100,8 +97,7 @@ struct IPv4Address : public AddressBase<IPv4Address, 4> {
     [[nodiscard]] constexpr std::uint32_t to_uint32() const {
         return (static_cast<std::uint32_t>(bytes[0]) << 24) |
                (static_cast<std::uint32_t>(bytes[1]) << 16) |
-               (static_cast<std::uint32_t>(bytes[2]) << 8) |
-               static_cast<std::uint32_t>(bytes[3]);
+               (static_cast<std::uint32_t>(bytes[2]) << 8) | static_cast<std::uint32_t>(bytes[3]);
     }
 
     /// @brief Check if this is a loopback address (127.x.x.x)

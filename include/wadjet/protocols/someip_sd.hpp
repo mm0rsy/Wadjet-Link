@@ -101,16 +101,14 @@ using SdEntry = std::variant<ServiceEntry, EventgroupEntry>;
 
 /// @brief Decoded SOME/IP-SD header and content
 struct SomeIpSdHeader : public IDecodedHeader {
-    std::uint8_t flags = 0;          ///< SD flags
-    std::uint32_t entries_length = 0; ///< Length of entries array
-    std::uint32_t options_length = 0; ///< Length of options array
-    std::vector<SdEntry> entries;     ///< Parsed entries
-    std::vector<SdOption> options;    ///< Parsed options
+    std::uint8_t flags = 0;            ///< SD flags
+    std::uint32_t entries_length = 0;  ///< Length of entries array
+    std::uint32_t options_length = 0;  ///< Length of options array
+    std::vector<SdEntry> entries;      ///< Parsed entries
+    std::vector<SdOption> options;     ///< Parsed options
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "SOME/IP-SD";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "SOME/IP-SD"; }
 
     [[nodiscard]] std::size_t header_size() const override {
         return SD_HEADER_SIZE + entries_length + options_length;
@@ -123,14 +121,10 @@ struct SomeIpSdHeader : public IDecodedHeader {
     [[nodiscard]] std::string to_string() const override;
 
     /// @brief Check if reboot flag is set
-    [[nodiscard]] bool is_reboot() const {
-        return (flags & 0x80) != 0;
-    }
+    [[nodiscard]] bool is_reboot() const { return (flags & 0x80) != 0; }
 
     /// @brief Check if unicast flag is set
-    [[nodiscard]] bool is_unicast() const {
-        return (flags & 0x40) != 0;
-    }
+    [[nodiscard]] bool is_unicast() const { return (flags & 0x40) != 0; }
 
     /// @brief Get all service offer entries
     [[nodiscard]] std::vector<const ServiceEntry*> get_offers() const;
@@ -140,7 +134,7 @@ struct SomeIpSdHeader : public IDecodedHeader {
 
     /// @brief Find service by ID
     [[nodiscard]] const ServiceEntry* find_service(std::uint16_t service_id,
-                                                    std::uint16_t instance_id = 0xFFFF) const;
+                                                   std::uint16_t instance_id = 0xFFFF) const;
 };
 
 /// @brief SOME/IP-SD decoder
@@ -148,11 +142,12 @@ class SomeIpSdDecoder : public DecoderBase<SomeIpSdDecoder, SomeIpSdHeader> {
 public:
     /// @brief Decoder options
     struct Options {
-        bool parse_entries;   ///< Parse entry array
-        bool parse_options;   ///< Parse options array
-        std::size_t max_entries; ///< Max entries to parse (DoS protection)
-        std::size_t max_options; ///< Max options to parse
-        Options() : parse_entries(true), parse_options(true), max_entries(1000), max_options(1000) {}
+        bool parse_entries;       ///< Parse entry array
+        bool parse_options;       ///< Parse options array
+        std::size_t max_entries;  ///< Max entries to parse (DoS protection)
+        std::size_t max_options;  ///< Max options to parse
+        Options()
+            : parse_entries(true), parse_options(true), max_entries(1000), max_options(1000) {}
     };
 
     explicit SomeIpSdDecoder(Options opts = Options()) : options_(opts) {}
@@ -169,12 +164,13 @@ public:
 
 private:
     /// @brief Parse entry from data
-    [[nodiscard]] static std::optional<SdEntry> parse_entry(
-        const DecodeContext& ctx, std::size_t offset);
+    [[nodiscard]] static std::optional<SdEntry> parse_entry(const DecodeContext& ctx,
+                                                            std::size_t offset);
 
     /// @brief Parse option from data
-    [[nodiscard]] static std::optional<SdOption> parse_option(
-        const DecodeContext& ctx, std::size_t offset, std::size_t& consumed);
+    [[nodiscard]] static std::optional<SdOption> parse_option(const DecodeContext& ctx,
+                                                              std::size_t offset,
+                                                              std::size_t& consumed);
 
     Options options_;
 };

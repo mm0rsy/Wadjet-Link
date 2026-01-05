@@ -19,19 +19,19 @@ namespace wadjet::io {
 
 /// @brief Replay timing mode
 enum class ReplayTiming {
-    AsRecorded,     ///< Preserve original inter-packet timing
-    Immediate,      ///< Send packets as fast as possible
-    FixedRate,      ///< Send at a fixed packets-per-second rate
-    Scaled,         ///< Scale timing by a factor (0.5 = half speed, 2.0 = double speed)
+    AsRecorded,  ///< Preserve original inter-packet timing
+    Immediate,   ///< Send packets as fast as possible
+    FixedRate,   ///< Send at a fixed packets-per-second rate
+    Scaled,      ///< Scale timing by a factor (0.5 = half speed, 2.0 = double speed)
 };
 
 /// @brief Replay session statistics
 struct ReplayStats {
-    std::uint64_t packets_sent = 0;       ///< Packets successfully sent
-    std::uint64_t packets_failed = 0;     ///< Packets that failed to send
-    std::uint64_t bytes_sent = 0;         ///< Total bytes sent
-    std::uint64_t iterations = 0;         ///< Number of loop iterations completed
-    std::chrono::nanoseconds total_time{0}; ///< Total replay time
+    std::uint64_t packets_sent = 0;          ///< Packets successfully sent
+    std::uint64_t packets_failed = 0;        ///< Packets that failed to send
+    std::uint64_t bytes_sent = 0;            ///< Total bytes sent
+    std::uint64_t iterations = 0;            ///< Number of loop iterations completed
+    std::chrono::nanoseconds total_time{0};  ///< Total replay time
 };
 
 /// @brief Replay session options
@@ -89,8 +89,7 @@ public:
     /// @param pcap_path Path to PCAP file
     /// @param options Replay options
     /// @return ReplaySession on success, error on failure
-    static auto create(const std::string& interface,
-                       const std::filesystem::path& pcap_path,
+    static auto create(const std::string& interface, const std::filesystem::path& pcap_path,
                        Options options = Options{}) -> Result<ReplaySession>;
 
     /// @brief Create a replay session from a packet source
@@ -98,8 +97,7 @@ public:
     /// @param source Packet source (takes ownership)
     /// @param options Replay options
     /// @return ReplaySession on success, error on failure
-    static auto create(const std::string& interface,
-                       PacketSourcePtr source,
+    static auto create(const std::string& interface, PacketSourcePtr source,
                        Options options = Options{}) -> Result<ReplaySession>;
 
     /// @brief Create a replay session from pre-loaded packets
@@ -107,8 +105,7 @@ public:
     /// @param packets Vector of packets to replay
     /// @param options Replay options
     /// @return ReplaySession on success, error on failure
-    static auto create(const std::string& interface,
-                       std::vector<Packet> packets,
+    static auto create(const std::string& interface, std::vector<Packet> packets,
                        Options options = Options{}) -> Result<ReplaySession>;
 
     ReplaySession(const ReplaySession&) = delete;
@@ -124,8 +121,7 @@ public:
     /// @brief Set a progress callback
     /// @param callback Function called during replay
     /// @param interval How often to call (in packets)
-    void set_progress_callback(ReplayProgressCallback callback,
-                               std::size_t interval = 100) {
+    void set_progress_callback(ReplayProgressCallback callback, std::size_t interval = 100) {
         progress_callback_ = std::move(callback);
         progress_interval_ = interval;
     }

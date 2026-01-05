@@ -15,33 +15,32 @@
 
 #pragma once
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-#include <chrono>
-
 #include "wadjet/testing/matchers.hpp"
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
+
+#include <chrono>
 
 /// Assert that a packet matches a given matcher
 /// @param packet The packet to check
 /// @param matcher gMock matcher
-#define WADJET_ASSERT_PACKET_MATCHES(packet, matcher) \
-    ASSERT_THAT(packet, matcher)
+#define WADJET_ASSERT_PACKET_MATCHES(packet, matcher) ASSERT_THAT(packet, matcher)
 
 /// Expect that a packet matches a given matcher
 /// @param packet The packet to check
 /// @param matcher gMock matcher
-#define WADJET_EXPECT_PACKET_MATCHES(packet, matcher) \
-    EXPECT_THAT(packet, matcher)
+#define WADJET_EXPECT_PACKET_MATCHES(packet, matcher) EXPECT_THAT(packet, matcher)
 
 /// Assert that a packet is received matching the given matcher within timeout
 /// @param matcher gMock matcher for the packet
 /// @param timeout std::chrono duration for timeout
 /// @note Must be used inside a LiveCaptureTestFixture-derived test
-#define WADJET_ASSERT_PACKET(matcher, timeout) \
-    do { \
-        auto __wadjet_pkt = wait_for_match(matcher, timeout); \
-        ASSERT_TRUE(__wadjet_pkt.has_value()) \
-            << "No packet matching " #matcher " received within " \
+#define WADJET_ASSERT_PACKET(matcher, timeout)                                                 \
+    do {                                                                                       \
+        auto __wadjet_pkt = wait_for_match(matcher, timeout);                                  \
+        ASSERT_TRUE(__wadjet_pkt.has_value())                                                  \
+            << "No packet matching " #matcher " received within "                              \
             << std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() << "ms"; \
     } while (0)
 
@@ -49,11 +48,11 @@
 /// @param matcher gMock matcher for the packet
 /// @param timeout std::chrono duration for timeout
 /// @note Must be used inside a LiveCaptureTestFixture-derived test
-#define WADJET_EXPECT_PACKET(matcher, timeout) \
-    do { \
-        auto __wadjet_pkt = wait_for_match(matcher, timeout); \
-        EXPECT_TRUE(__wadjet_pkt.has_value()) \
-            << "No packet matching " #matcher " received within " \
+#define WADJET_EXPECT_PACKET(matcher, timeout)                                                 \
+    do {                                                                                       \
+        auto __wadjet_pkt = wait_for_match(matcher, timeout);                                  \
+        EXPECT_TRUE(__wadjet_pkt.has_value())                                                  \
+            << "No packet matching " #matcher " received within "                              \
             << std::chrono::duration_cast<std::chrono::milliseconds>(timeout).count() << "ms"; \
     } while (0)
 
@@ -61,10 +60,10 @@
 /// @param matcher gMock matcher for the packet
 /// @param timeout std::chrono duration for timeout
 /// @note Must be used inside a LiveCaptureTestFixture-derived test
-#define WADJET_ASSERT_NO_PACKET(matcher, timeout) \
-    do { \
-        auto __wadjet_pkt = wait_for_match(matcher, timeout); \
-        ASSERT_FALSE(__wadjet_pkt.has_value()) \
+#define WADJET_ASSERT_NO_PACKET(matcher, timeout)                  \
+    do {                                                           \
+        auto __wadjet_pkt = wait_for_match(matcher, timeout);      \
+        ASSERT_FALSE(__wadjet_pkt.has_value())                     \
             << "Unexpected packet matching " #matcher " received"; \
     } while (0)
 
@@ -72,10 +71,10 @@
 /// @param matcher gMock matcher for the packet
 /// @param timeout std::chrono duration for timeout
 /// @note Must be used inside a LiveCaptureTestFixture-derived test
-#define WADJET_EXPECT_NO_PACKET(matcher, timeout) \
-    do { \
-        auto __wadjet_pkt = wait_for_match(matcher, timeout); \
-        EXPECT_FALSE(__wadjet_pkt.has_value()) \
+#define WADJET_EXPECT_NO_PACKET(matcher, timeout)                  \
+    do {                                                           \
+        auto __wadjet_pkt = wait_for_match(matcher, timeout);      \
+        EXPECT_FALSE(__wadjet_pkt.has_value())                     \
             << "Unexpected packet matching " #matcher " received"; \
     } while (0)
 
@@ -99,69 +98,57 @@
 /// @param service_id Expected SOME/IP service ID
 /// @param method_id Expected SOME/IP method ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_ASSERT_SOMEIP_REQUEST(service_id, method_id, timeout) \
-    WADJET_ASSERT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::HasSOMEIPMethodId(method_id), \
-            ::wadjet::testing::IsSOMEIPRequest()), \
-        timeout)
+#define WADJET_ASSERT_SOMEIP_REQUEST(service_id, method_id, timeout)                         \
+    WADJET_ASSERT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::HasSOMEIPMethodId(method_id),   \
+                                          ::wadjet::testing::IsSOMEIPRequest()),             \
+                         timeout)
 
 /// Expect that a SOME/IP request for the given service/method is received
 /// @param service_id Expected SOME/IP service ID
 /// @param method_id Expected SOME/IP method ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_EXPECT_SOMEIP_REQUEST(service_id, method_id, timeout) \
-    WADJET_EXPECT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::HasSOMEIPMethodId(method_id), \
-            ::wadjet::testing::IsSOMEIPRequest()), \
-        timeout)
+#define WADJET_EXPECT_SOMEIP_REQUEST(service_id, method_id, timeout)                         \
+    WADJET_EXPECT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::HasSOMEIPMethodId(method_id),   \
+                                          ::wadjet::testing::IsSOMEIPRequest()),             \
+                         timeout)
 
 /// Assert that a SOME/IP response for the given service/method is received
 /// @param service_id Expected SOME/IP service ID
 /// @param method_id Expected SOME/IP method ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_ASSERT_SOMEIP_RESPONSE(service_id, method_id, timeout) \
-    WADJET_ASSERT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::HasSOMEIPMethodId(method_id), \
-            ::wadjet::testing::IsSOMEIPResponse()), \
-        timeout)
+#define WADJET_ASSERT_SOMEIP_RESPONSE(service_id, method_id, timeout)                        \
+    WADJET_ASSERT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::HasSOMEIPMethodId(method_id),   \
+                                          ::wadjet::testing::IsSOMEIPResponse()),            \
+                         timeout)
 
 /// Expect that a SOME/IP response for the given service/method is received
 /// @param service_id Expected SOME/IP service ID
 /// @param method_id Expected SOME/IP method ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_EXPECT_SOMEIP_RESPONSE(service_id, method_id, timeout) \
-    WADJET_EXPECT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::HasSOMEIPMethodId(method_id), \
-            ::wadjet::testing::IsSOMEIPResponse()), \
-        timeout)
+#define WADJET_EXPECT_SOMEIP_RESPONSE(service_id, method_id, timeout)                        \
+    WADJET_EXPECT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::HasSOMEIPMethodId(method_id),   \
+                                          ::wadjet::testing::IsSOMEIPResponse()),            \
+                         timeout)
 
 /// Assert that a SOME/IP notification for the given service is received
 /// @param service_id Expected SOME/IP service ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_ASSERT_SOMEIP_NOTIFICATION(service_id, timeout) \
-    WADJET_ASSERT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::IsSOMEIPNotification()), \
-        timeout)
+#define WADJET_ASSERT_SOMEIP_NOTIFICATION(service_id, timeout)                               \
+    WADJET_ASSERT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::IsSOMEIPNotification()),        \
+                         timeout)
 
 /// Expect that a SOME/IP notification for the given service is received
 /// @param service_id Expected SOME/IP service ID
 /// @param timeout std::chrono duration for timeout
-#define WADJET_EXPECT_SOMEIP_NOTIFICATION(service_id, timeout) \
-    WADJET_EXPECT_PACKET( \
-        ::testing::AllOf( \
-            ::wadjet::testing::HasSOMEIPServiceId(service_id), \
-            ::wadjet::testing::IsSOMEIPNotification()), \
-        timeout)
+#define WADJET_EXPECT_SOMEIP_NOTIFICATION(service_id, timeout)                               \
+    WADJET_EXPECT_PACKET(::testing::AllOf(::wadjet::testing::HasSOMEIPServiceId(service_id), \
+                                          ::wadjet::testing::IsSOMEIPNotification()),        \
+                         timeout)
 
 /// Assert that a DoIP routing activation request is received
 /// @param timeout std::chrono duration for timeout

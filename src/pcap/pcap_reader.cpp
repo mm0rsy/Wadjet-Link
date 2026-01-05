@@ -11,8 +11,7 @@ auto PcapReader::open(const std::filesystem::path& path) -> Result<PcapReader> {
 
     reader.file_.open(path, std::ios::binary);
     if (!reader.file_.is_open()) {
-        return Result<PcapReader>::err(
-            Error{-1, "Failed to open file: " + path.string()});
+        return Result<PcapReader>::err(Error{-1, "Failed to open file: " + path.string()});
     }
 
     auto result = reader.read_header();
@@ -73,8 +72,8 @@ auto PcapReader::read_header() -> Result<void> {
             return static_cast<std::uint16_t>((v >> 8) | (v << 8));
         };
         auto swap32 = [](std::uint32_t v) -> std::uint32_t {
-            return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) |
-                   ((v << 8) & 0xFF0000) | ((v << 24) & 0xFF000000);
+            return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) | ((v << 8) & 0xFF0000) |
+                   ((v << 24) & 0xFF000000);
         };
 
         header.version_major = swap16(header.version_major);
@@ -86,8 +85,7 @@ auto PcapReader::read_header() -> Result<void> {
     // Validate version
     if (header.version_major != 2 || header.version_minor != 4) {
         return Result<void>::err(
-            Error{-1, "Unsupported PCAP version: " +
-                          std::to_string(header.version_major) + "." +
+            Error{-1, "Unsupported PCAP version: " + std::to_string(header.version_major) + "." +
                           std::to_string(header.version_minor)});
     }
 
@@ -125,8 +123,8 @@ auto PcapReader::next_packet() -> std::optional<Packet> {
     // Handle byte swapping
     if (is_swapped_) {
         auto swap32 = [](std::uint32_t v) -> std::uint32_t {
-            return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) |
-                   ((v << 8) & 0xFF0000) | ((v << 24) & 0xFF000000);
+            return ((v >> 24) & 0xFF) | ((v >> 8) & 0xFF00) | ((v << 8) & 0xFF0000) |
+                   ((v << 24) & 0xFF000000);
         };
         pkt_header.ts_sec = swap32(pkt_header.ts_sec);
         pkt_header.ts_usec = swap32(pkt_header.ts_usec);

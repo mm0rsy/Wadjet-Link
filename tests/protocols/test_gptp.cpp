@@ -1,8 +1,8 @@
 /// @file test_gptp.cpp
 /// @brief Unit tests for gPTP (IEEE 802.1AS) protocol decoder
 
-#include "wadjet/protocols/gptp/gptp.hpp"
 #include "wadjet/protocols/dispatcher.hpp"
+#include "wadjet/protocols/gptp/gptp.hpp"
 
 #include <gtest/gtest.h>
 
@@ -40,10 +40,9 @@ std::vector<std::byte> make_sync_header(std::uint16_t seq_id = 0x1234) {
         0x00, 0x00, 0x00, 0x00,
         // Bytes 20-29: sourcePortIdentity (clock ID + port)
         0x00, 0x11, 0x22, 0xFF, 0xFE, 0x33, 0x44, 0x55,  // clock identity
-        0x00, 0x01,  // port number
+        0x00, 0x01,                                      // port number
         // Bytes 30-31: sequenceId
-        static_cast<uint8_t>((seq_id >> 8) & 0xFF),
-        static_cast<uint8_t>(seq_id & 0xFF),
+        static_cast<uint8_t>((seq_id >> 8) & 0xFF), static_cast<uint8_t>(seq_id & 0xFF),
         // Byte 32: controlField
         0x00,
         // Byte 33: logMessageInterval
@@ -81,15 +80,13 @@ std::vector<std::byte> make_pdelay_req_header() {
         // Bytes 16-19: messageTypeSpecific
         0x00, 0x00, 0x00, 0x00,
         // Bytes 20-29: sourcePortIdentity
-        0xAA, 0xBB, 0xCC, 0xFF, 0xFE, 0xDD, 0xEE, 0xFF,
-        0x00, 0x02,
+        0xAA, 0xBB, 0xCC, 0xFF, 0xFE, 0xDD, 0xEE, 0xFF, 0x00, 0x02,
         // Bytes 30-31: sequenceId
         0x00, 0x42,
         // Byte 32: controlField
         0x05,
         // Byte 33: logMessageInterval
-        0x7F
-    );
+        0x7F);
 }
 
 // Helper to make Pdelay_Req message (54 bytes total)
@@ -107,9 +104,7 @@ protected:
     GptpDecoder decoder_;
     DecodeContext ctx_;
 
-    void SetUp() override {
-        ctx_.original_offset = 0;
-    }
+    void SetUp() override { ctx_.original_offset = 0; }
 
     void set_data(const std::vector<std::byte>& data) {
         data_ = data;
@@ -127,7 +122,7 @@ TEST_F(GptpDecoderTest, DecodeSyncMessage) {
 
     auto result = decoder_.decode(ctx_);
     ASSERT_TRUE(result.is_ok());
-    
+
     const auto& header = *result;
     EXPECT_EQ(header.transport_specific, TransportSpecific::IEEE_802_1AS);
     EXPECT_EQ(header.message_type, MessageType::Sync);
@@ -147,7 +142,7 @@ TEST_F(GptpDecoderTest, DecodePdelayReqMessage) {
 
     auto result = decoder_.decode(ctx_);
     ASSERT_TRUE(result.is_ok());
-    
+
     const auto& header = *result;
     EXPECT_EQ(header.transport_specific, TransportSpecific::IEEE_802_1AS);
     EXPECT_EQ(header.message_type, MessageType::Pdelay_Req);
@@ -200,7 +195,7 @@ TEST_F(GptpDecoderTest, MessageTypeString) {
 TEST(ClockIdentityTest, FromMac) {
     MacAddress mac = MacAddress::from_bytes(0x00, 0x11, 0x22, 0x33, 0x44, 0x55);
     ClockIdentity clock = ClockIdentity::from_mac(mac);
-    
+
     EXPECT_EQ(clock.bytes[0], 0x00);
     EXPECT_EQ(clock.bytes[1], 0x11);
     EXPECT_EQ(clock.bytes[2], 0x22);
@@ -214,14 +209,14 @@ TEST(ClockIdentityTest, FromMac) {
 TEST(ClockIdentityTest, ToString) {
     ClockIdentity clock;
     clock.bytes = {0x00, 0x11, 0x22, 0xFF, 0xFE, 0x33, 0x44, 0x55};
-    
+
     EXPECT_EQ(clock.to_string(), "00:11:22:ff:fe:33:44:55");
 }
 
 TEST(ClockIdentityTest, IsZero) {
     ClockIdentity zero;
     EXPECT_TRUE(zero.is_zero());
-    
+
     ClockIdentity nonzero;
     nonzero.bytes[0] = 0x01;
     EXPECT_FALSE(nonzero.is_zero());
@@ -232,21 +227,21 @@ TEST(PortIdentityTest, ToString) {
     PortIdentity port;
     port.clock_identity.bytes = {0x00, 0x11, 0x22, 0xFF, 0xFE, 0x33, 0x44, 0x55};
     port.port_number = 1;
-    
+
     EXPECT_EQ(port.to_string(), "00:11:22:ff:fe:33:44:55-1");
 }
 
 // Test timestamp operations
 TEST(GptpTimestampTest, ToNanoseconds) {
     GptpTimestamp ts(1000, 500000000);  // 1000.5 seconds
-    
+
     auto ns = ts.to_nanoseconds();
     EXPECT_EQ(ns, 1000500000000ULL);
 }
 
 TEST(GptpTimestampTest, ToSecondsDouble) {
     GptpTimestamp ts(1000, 500000000);  // 1000.5 seconds
-    
+
     auto secs = ts.to_seconds_double();
     EXPECT_DOUBLE_EQ(secs, 1000.5);
 }
@@ -254,7 +249,7 @@ TEST(GptpTimestampTest, ToSecondsDouble) {
 TEST(GptpTimestampTest, Subtraction) {
     GptpTimestamp t1(1000, 0);
     GptpTimestamp t2(999, 500000000);  // 999.5 seconds
-    
+
     auto diff = t1 - t2;  // Should be 500ms = 500,000,000 ns
     EXPECT_EQ(diff, 500000000LL);
 }
@@ -264,7 +259,7 @@ TEST(ScaledNanosecondsTest, ToNanoseconds) {
     // Value of 65536 (2^16) represents 1 nanosecond
     ScaledNanoseconds sn(65536LL);
     EXPECT_EQ(sn.to_nanoseconds(), 1);
-    
+
     // Value of 655360 (10 * 2^16) represents 10 nanoseconds
     ScaledNanoseconds sn2(655360LL);
     EXPECT_EQ(sn2.to_nanoseconds(), 10);
@@ -273,7 +268,7 @@ TEST(ScaledNanosecondsTest, ToNanoseconds) {
 TEST(ScaledNanosecondsTest, IsZero) {
     ScaledNanoseconds zero;
     EXPECT_TRUE(zero.is_zero());
-    
+
     ScaledNanoseconds nonzero(1);
     EXPECT_FALSE(nonzero.is_zero());
 }
@@ -282,10 +277,10 @@ TEST(ScaledNanosecondsTest, IsZero) {
 TEST(LogIntervalTest, ToSeconds) {
     LogInterval log0(0);  // 2^0 = 1 second
     EXPECT_DOUBLE_EQ(log0.to_seconds(), 1.0);
-    
+
     LogInterval logMinus3(-3);  // 2^-3 = 0.125 seconds
     EXPECT_DOUBLE_EQ(logMinus3.to_seconds(), 0.125);
-    
+
     LogInterval log2(2);  // 2^2 = 4 seconds
     EXPECT_DOUBLE_EQ(log2.to_seconds(), 4.0);
 }
@@ -296,7 +291,7 @@ TEST(GptpFlagsTest, FromRaw) {
     auto flags = GptpFlags::from_raw(0x0200);
     EXPECT_TRUE(flags.two_step);
     EXPECT_FALSE(flags.unicast);
-    
+
     // Test unicast flag (bit 2 of first byte)
     flags = GptpFlags::from_raw(0x0400);
     EXPECT_FALSE(flags.two_step);
@@ -306,11 +301,11 @@ TEST(GptpFlagsTest, FromRaw) {
 // Test peer delay calculation helper
 TEST(PeerDelayTest, Calculate) {
     // Simulate peer delay measurement
-    GptpTimestamp t1(100, 0);         // Pdelay_Req sent
-    GptpTimestamp t2(100, 1000);      // Pdelay_Req received (1000ns later)
-    GptpTimestamp t3(100, 2000);      // Pdelay_Resp sent (1000ns turnaround)
-    GptpTimestamp t4(100, 3000);      // Pdelay_Resp received (1000ns propagation again)
-    
+    GptpTimestamp t1(100, 0);     // Pdelay_Req sent
+    GptpTimestamp t2(100, 1000);  // Pdelay_Req received (1000ns later)
+    GptpTimestamp t3(100, 2000);  // Pdelay_Resp sent (1000ns turnaround)
+    GptpTimestamp t4(100, 3000);  // Pdelay_Resp received (1000ns propagation again)
+
     auto delay = calculate_peer_delay(t1, t2, t3, t4);
     // peerDelay = [(t4-t1) - (t3-t2)] / 2 = [3000 - 1000] / 2 = 1000
     EXPECT_EQ(delay, 1000);
@@ -320,33 +315,29 @@ TEST(PeerDelayTest, Calculate) {
 TEST(GptpDispatcherTest, DecodeGptpPacket) {
     // Create a full Ethernet + gPTP frame
     std::vector<std::byte> frame;
-    
+
     // Ethernet header (14 bytes)
     // Destination MAC (gPTP multicast)
-    frame.insert(frame.end(), {
-        std::byte{0x01}, std::byte{0x80}, std::byte{0xC2}, 
-        std::byte{0x00}, std::byte{0x00}, std::byte{0x0E}
-    });
+    frame.insert(frame.end(), {std::byte{0x01}, std::byte{0x80}, std::byte{0xC2}, std::byte{0x00},
+                               std::byte{0x00}, std::byte{0x0E}});
     // Source MAC
-    frame.insert(frame.end(), {
-        std::byte{0x00}, std::byte{0x11}, std::byte{0x22}, 
-        std::byte{0x33}, std::byte{0x44}, std::byte{0x55}
-    });
+    frame.insert(frame.end(), {std::byte{0x00}, std::byte{0x11}, std::byte{0x22}, std::byte{0x33},
+                               std::byte{0x44}, std::byte{0x55}});
     // EtherType (0x88F7 = PTP)
     frame.insert(frame.end(), {std::byte{0x88}, std::byte{0xF7}});
-    
+
     // Add gPTP Sync message
     auto gptp_msg = make_sync_message();
     frame.insert(frame.end(), gptp_msg.begin(), gptp_msg.end());
-    
+
     // Decode with dispatcher
     ProtocolDispatcher dispatcher;
     auto result = dispatcher.decode(std::span<const std::byte>(frame));
-    
+
     EXPECT_TRUE(result.complete);
     EXPECT_TRUE(result.has_layer<ethernet::EthernetHeader>());
     EXPECT_TRUE(result.has_layer<gptp::GptpHeader>());
-    
+
     const auto* gptp_hdr = result.get_layer<gptp::GptpHeader>();
     ASSERT_NE(gptp_hdr, nullptr);
     EXPECT_EQ(gptp_hdr->message_type, MessageType::Sync);
@@ -360,10 +351,10 @@ TEST(GptpFilterTest, GptpMessage) {
     gptp.message_type = MessageType::Sync;
     gptp.domain_number = 0;
     result.layers.emplace_back(gptp);
-    
+
     auto sync_filter = gptp_message(MessageType::Sync);
     auto follow_up_filter = gptp_message(MessageType::Follow_Up);
-    
+
     EXPECT_TRUE(sync_filter(result));
     EXPECT_FALSE(follow_up_filter(result));
 }
@@ -373,10 +364,10 @@ TEST(GptpFilterTest, GptpDomain) {
     GptpHeader gptp;
     gptp.domain_number = 5;
     result.layers.emplace_back(gptp);
-    
+
     auto domain5_filter = gptp_domain(5);
     auto domain0_filter = gptp_domain(0);
-    
+
     EXPECT_TRUE(domain5_filter(result));
     EXPECT_FALSE(domain0_filter(result));
 }

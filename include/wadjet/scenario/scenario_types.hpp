@@ -30,11 +30,11 @@ using Duration = std::chrono::milliseconds;
 
 /// @brief Configuration for packet capture
 struct CaptureConfig {
-    std::string interface;              ///< Network interface (e.g., "eth0")
-    std::string filter;                 ///< BPF filter expression
+    std::string interface;                 ///< Network interface (e.g., "eth0")
+    std::string filter;                    ///< BPF filter expression
     std::optional<std::string> pcap_file;  ///< Optional pcap file for replay
-    Duration timeout{5000};             ///< Capture timeout
-    bool promiscuous{true};             ///< Enable promiscuous mode
+    Duration timeout{5000};                ///< Capture timeout
+    bool promiscuous{true};                ///< Enable promiscuous mode
 };
 
 // =============================================================================
@@ -43,22 +43,28 @@ struct CaptureConfig {
 
 /// @brief Comparison operators for expectations
 enum class CompareOp {
-    Equal,          ///< ==
-    NotEqual,       ///< !=
-    GreaterThan,    ///< >
-    GreaterEqual,   ///< >=
-    LessThan,       ///< <
-    LessEqual,      ///< <=
+    Equal,         ///< ==
+    NotEqual,      ///< !=
+    GreaterThan,   ///< >
+    GreaterEqual,  ///< >=
+    LessThan,      ///< <
+    LessEqual,     ///< <=
 };
 
 /// @brief Convert string to CompareOp
 [[nodiscard]] inline std::optional<CompareOp> parse_compare_op(std::string_view str) {
-    if (str == "==" || str == "eq" || str.empty()) return CompareOp::Equal;
-    if (str == "!=" || str == "ne") return CompareOp::NotEqual;
-    if (str == ">" || str == "gt") return CompareOp::GreaterThan;
-    if (str == ">=" || str == "ge") return CompareOp::GreaterEqual;
-    if (str == "<" || str == "lt") return CompareOp::LessThan;
-    if (str == "<=" || str == "le") return CompareOp::LessEqual;
+    if (str == "==" || str == "eq" || str.empty())
+        return CompareOp::Equal;
+    if (str == "!=" || str == "ne")
+        return CompareOp::NotEqual;
+    if (str == ">" || str == "gt")
+        return CompareOp::GreaterThan;
+    if (str == ">=" || str == "ge")
+        return CompareOp::GreaterEqual;
+    if (str == "<" || str == "lt")
+        return CompareOp::LessThan;
+    if (str == "<=" || str == "le")
+        return CompareOp::LessEqual;
     return std::nullopt;
 }
 
@@ -69,25 +75,25 @@ struct CountExpression {
 
     /// @brief Parse from string (e.g., ">= 3", "== 5", "3")
     [[nodiscard]] static std::optional<CountExpression> parse(std::string_view str);
-    
+
     /// @brief Evaluate the expression against a count
     [[nodiscard]] bool evaluate(std::size_t count) const;
 };
 
 /// @brief Ethernet frame expectations
 struct EthernetExpect {
-    std::optional<std::string> src_mac;     ///< Source MAC (e.g., "00:11:22:33:44:55")
-    std::optional<std::string> dst_mac;     ///< Destination MAC
-    std::optional<std::uint16_t> ethertype; ///< EtherType
-    std::optional<std::uint16_t> vlan_id;   ///< VLAN ID
+    std::optional<std::string> src_mac;      ///< Source MAC (e.g., "00:11:22:33:44:55")
+    std::optional<std::string> dst_mac;      ///< Destination MAC
+    std::optional<std::uint16_t> ethertype;  ///< EtherType
+    std::optional<std::uint16_t> vlan_id;    ///< VLAN ID
 };
 
 /// @brief IPv4 expectations
 struct IPv4Expect {
-    std::optional<std::string> src_ip;      ///< Source IP (e.g., "192.168.1.100")
-    std::optional<std::string> dst_ip;      ///< Destination IP
-    std::optional<std::uint8_t> protocol;   ///< IP protocol number
-    std::optional<std::uint8_t> ttl;        ///< Time-to-live
+    std::optional<std::string> src_ip;     ///< Source IP (e.g., "192.168.1.100")
+    std::optional<std::string> dst_ip;     ///< Destination IP
+    std::optional<std::uint8_t> protocol;  ///< IP protocol number
+    std::optional<std::uint8_t> ttl;       ///< Time-to-live
 };
 
 /// @brief UDP expectations
@@ -107,40 +113,27 @@ struct TCPExpect {
 };
 
 /// @brief SOME/IP message type enum for expectations
-enum class SomeIpMessageTypeExpect {
-    Request,
-    RequestNoReturn,
-    Notification,
-    Response,
-    Error,
-    Any
-};
+enum class SomeIpMessageTypeExpect { Request, RequestNoReturn, Notification, Response, Error, Any };
 
 /// @brief SOME/IP expectations
 struct SomeIpExpect {
-    std::optional<std::uint16_t> service_id;    ///< Service ID
-    std::optional<std::uint16_t> method_id;     ///< Method/Event ID
-    std::optional<std::uint16_t> client_id;     ///< Client ID
-    std::optional<std::uint16_t> session_id;    ///< Session ID
-    std::optional<SomeIpMessageTypeExpect> message_type; ///< Message type
-    std::optional<std::uint8_t> return_code;    ///< Return code
+    std::optional<std::uint16_t> service_id;              ///< Service ID
+    std::optional<std::uint16_t> method_id;               ///< Method/Event ID
+    std::optional<std::uint16_t> client_id;               ///< Client ID
+    std::optional<std::uint16_t> session_id;              ///< Session ID
+    std::optional<SomeIpMessageTypeExpect> message_type;  ///< Message type
+    std::optional<std::uint8_t> return_code;              ///< Return code
 };
 
 /// @brief SOME/IP-SD entry type for expectations
-enum class SdEntryTypeExpect {
-    FindService,
-    OfferService,
-    Subscribe,
-    SubscribeAck,
-    Any
-};
+enum class SdEntryTypeExpect { FindService, OfferService, Subscribe, SubscribeAck, Any };
 
 /// @brief SOME/IP-SD expectations
 struct SomeIpSdExpect {
-    std::optional<std::uint16_t> service_id;    ///< Service ID
-    std::optional<std::uint16_t> instance_id;   ///< Instance ID
-    std::optional<SdEntryTypeExpect> entry_type; ///< Entry type
-    std::optional<std::uint8_t> major_version;  ///< Major version
+    std::optional<std::uint16_t> service_id;      ///< Service ID
+    std::optional<std::uint16_t> instance_id;     ///< Instance ID
+    std::optional<SdEntryTypeExpect> entry_type;  ///< Entry type
+    std::optional<std::uint8_t> major_version;    ///< Major version
 };
 
 /// @brief DoIP payload type for expectations
@@ -258,10 +251,10 @@ struct CaptureStep {
 
 /// @brief Send step - inject a packet
 struct SendStep {
-    std::string interface;                      ///< Interface to send on
-    std::optional<std::string> pcap_file;       ///< Send packet from pcap
-    std::optional<std::vector<std::uint8_t>> raw_data; ///< Raw packet bytes
-    Duration delay{0};                          ///< Delay before sending
+    std::string interface;                              ///< Interface to send on
+    std::optional<std::string> pcap_file;               ///< Send packet from pcap
+    std::optional<std::vector<std::uint8_t>> raw_data;  ///< Raw packet bytes
+    Duration delay{0};                                  ///< Delay before sending
 };
 
 /// @brief Wait step - pause execution
@@ -283,28 +276,22 @@ struct ExpectStep {
     std::optional<PayloadExpect> payload;
 
     // Timing and count constraints
-    Duration within{1000};                      ///< Must match within this time
-    CountExpression count{CompareOp::GreaterEqual, 1}; ///< Expected packet count
+    Duration within{1000};                              ///< Must match within this time
+    CountExpression count{CompareOp::GreaterEqual, 1};  ///< Expected packet count
 
     // Step metadata
-    std::string description;                    ///< Human-readable description
-    bool required{true};                        ///< Fail scenario if not met
+    std::string description;  ///< Human-readable description
+    bool required{true};      ///< Fail scenario if not met
 };
 
 /// @brief Log step - output a message
 struct LogStep {
     std::string message;
-    std::string level{"info"};                  ///< info, warn, error, debug
+    std::string level{"info"};  ///< info, warn, error, debug
 };
 
 /// @brief Variant of all step types
-using Step = std::variant<
-    CaptureStep,
-    SendStep,
-    WaitStep,
-    ExpectStep,
-    LogStep
->;
+using Step = std::variant<CaptureStep, SendStep, WaitStep, ExpectStep, LogStep>;
 
 // =============================================================================
 // Scenario Definition
@@ -312,12 +299,12 @@ using Step = std::variant<
 
 /// @brief Complete test scenario
 struct Scenario {
-    std::string name;                           ///< Scenario name
-    std::string description;                    ///< Scenario description
-    std::string version{"1.0"};                 ///< Scenario format version
-    std::vector<std::string> tags;              ///< Tags for filtering
-    Duration timeout{30000};                    ///< Overall scenario timeout
-    std::vector<Step> steps;                    ///< Ordered list of steps
+    std::string name;               ///< Scenario name
+    std::string description;        ///< Scenario description
+    std::string version{"1.0"};     ///< Scenario format version
+    std::vector<std::string> tags;  ///< Tags for filtering
+    Duration timeout{30000};        ///< Overall scenario timeout
+    std::vector<Step> steps;        ///< Ordered list of steps
 
     /// @brief Check if scenario has any expect steps
     [[nodiscard]] bool has_expectations() const;
@@ -345,8 +332,8 @@ struct ScenarioResult {
     bool passed{false};
     std::vector<ExpectResult> expect_results;
     Duration total_elapsed{0};
-    std::string error_message;                  ///< Set if scenario failed to run
-    std::optional<std::string> pcap_file;       ///< Saved pcap on failure
+    std::string error_message;             ///< Set if scenario failed to run
+    std::optional<std::string> pcap_file;  ///< Saved pcap on failure
 
     /// @brief Get count of passed expectations
     [[nodiscard]] std::size_t passed_count() const;
@@ -364,7 +351,7 @@ struct ScenarioResult {
 
 inline std::optional<CountExpression> CountExpression::parse(std::string_view str) {
     CountExpression result;
-    
+
     // Trim whitespace
     while (!str.empty() && std::isspace(static_cast<unsigned char>(str.front()))) {
         str.remove_prefix(1);
@@ -372,11 +359,11 @@ inline std::optional<CountExpression> CountExpression::parse(std::string_view st
     while (!str.empty() && std::isspace(static_cast<unsigned char>(str.back()))) {
         str.remove_suffix(1);
     }
-    
+
     if (str.empty()) {
         return std::nullopt;
     }
-    
+
     // Check for operator prefix
     if (str.starts_with(">=")) {
         result.op = CompareOp::GreaterEqual;
@@ -400,12 +387,12 @@ inline std::optional<CountExpression> CountExpression::parse(std::string_view st
         // No operator, assume >= (at least N)
         result.op = CompareOp::GreaterEqual;
     }
-    
+
     // Trim whitespace after operator
     while (!str.empty() && std::isspace(static_cast<unsigned char>(str.front()))) {
         str.remove_prefix(1);
     }
-    
+
     // Parse number
     std::size_t value = 0;
     for (char c : str) {
@@ -415,19 +402,25 @@ inline std::optional<CountExpression> CountExpression::parse(std::string_view st
             return std::nullopt;  // Invalid character
         }
     }
-    
+
     result.value = value;
     return result;
 }
 
 inline bool CountExpression::evaluate(std::size_t count) const {
     switch (op) {
-        case CompareOp::Equal:        return count == value;
-        case CompareOp::NotEqual:     return count != value;
-        case CompareOp::GreaterThan:  return count > value;
-        case CompareOp::GreaterEqual: return count >= value;
-        case CompareOp::LessThan:     return count < value;
-        case CompareOp::LessEqual:    return count <= value;
+        case CompareOp::Equal:
+            return count == value;
+        case CompareOp::NotEqual:
+            return count != value;
+        case CompareOp::GreaterThan:
+            return count > value;
+        case CompareOp::GreaterEqual:
+            return count >= value;
+        case CompareOp::LessThan:
+            return count < value;
+        case CompareOp::LessEqual:
+            return count <= value;
     }
     return false;
 }
@@ -454,7 +447,8 @@ inline std::vector<const ExpectStep*> Scenario::get_expectations() const {
 inline std::size_t ScenarioResult::passed_count() const {
     std::size_t count = 0;
     for (const auto& r : expect_results) {
-        if (r.passed) ++count;
+        if (r.passed)
+            ++count;
     }
     return count;
 }

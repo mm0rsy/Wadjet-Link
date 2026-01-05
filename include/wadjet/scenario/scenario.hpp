@@ -29,7 +29,7 @@
 
 #pragma once
 
-#include "wadjet/scenario/scenario_types.hpp"
 #include "wadjet/scenario/parser.hpp"
-#include "wadjet/scenario/runner.hpp"
 #include "wadjet/scenario/report.hpp"
+#include "wadjet/scenario/runner.hpp"
+#include "wadjet/scenario/scenario_types.hpp"

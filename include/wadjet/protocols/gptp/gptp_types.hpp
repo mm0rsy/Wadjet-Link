@@ -2,7 +2,7 @@
 
 /// @file gptp_types.hpp
 /// @brief gPTP (IEEE 802.1AS) type definitions
-/// 
+///
 /// This file contains the fundamental types used in the Generalized Precision
 /// Time Protocol (gPTP) as defined in IEEE 802.1AS-2020.
 
@@ -46,14 +46,12 @@ inline constexpr std::size_t SIGNALING_MESSAGE_SIZE = 10;
 inline constexpr std::size_t FOLLOW_UP_TLV_SIZE = 28;
 
 /// @brief gPTP multicast MAC address for all time-aware systems
-inline constexpr std::array<std::uint8_t, 6> GPTP_MULTICAST_MAC = {
-    0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E
-};
+inline constexpr std::array<std::uint8_t, 6> GPTP_MULTICAST_MAC = {0x01, 0x80, 0xC2,
+                                                                   0x00, 0x00, 0x0E};
 
 /// @brief gPTP multicast MAC address for Pdelay messages
-inline constexpr std::array<std::uint8_t, 6> GPTP_PDELAY_MULTICAST_MAC = {
-    0x01, 0x80, 0xC2, 0x00, 0x00, 0x0E
-};
+inline constexpr std::array<std::uint8_t, 6> GPTP_PDELAY_MULTICAST_MAC = {0x01, 0x80, 0xC2,
+                                                                          0x00, 0x00, 0x0E};
 
 /// @brief gPTP protocol version (IEEE 802.1AS)
 inline constexpr std::uint8_t GPTP_VERSION_MAJOR = 2;
@@ -64,47 +62,56 @@ inline constexpr std::uint8_t AUTOMOTIVE_DOMAIN = 0;
 
 /// @brief gPTP message types as defined in IEEE 1588-2019 / 802.1AS-2020
 enum class MessageType : std::uint8_t {
-    Sync = 0x0,                     ///< Sync message
-    Delay_Req = 0x1,                ///< Delay_Req message (not used in gPTP)
-    Pdelay_Req = 0x2,               ///< Peer delay request
-    Pdelay_Resp = 0x3,              ///< Peer delay response
-    Reserved_4 = 0x4,               ///< Reserved
-    Reserved_5 = 0x5,               ///< Reserved
-    Reserved_6 = 0x6,               ///< Reserved
-    Reserved_7 = 0x7,               ///< Reserved
-    Follow_Up = 0x8,                ///< Follow_Up message
-    Delay_Resp = 0x9,               ///< Delay_Resp message (not used in gPTP)
-    Pdelay_Resp_Follow_Up = 0xA,    ///< Peer delay response follow up
-    Announce = 0xB,                 ///< Announce message
-    Signaling = 0xC,                ///< Signaling message
-    Management = 0xD,               ///< Management message
-    Reserved_E = 0xE,               ///< Reserved
-    Reserved_F = 0xF,               ///< Reserved
+    Sync = 0x0,                   ///< Sync message
+    Delay_Req = 0x1,              ///< Delay_Req message (not used in gPTP)
+    Pdelay_Req = 0x2,             ///< Peer delay request
+    Pdelay_Resp = 0x3,            ///< Peer delay response
+    Reserved_4 = 0x4,             ///< Reserved
+    Reserved_5 = 0x5,             ///< Reserved
+    Reserved_6 = 0x6,             ///< Reserved
+    Reserved_7 = 0x7,             ///< Reserved
+    Follow_Up = 0x8,              ///< Follow_Up message
+    Delay_Resp = 0x9,             ///< Delay_Resp message (not used in gPTP)
+    Pdelay_Resp_Follow_Up = 0xA,  ///< Peer delay response follow up
+    Announce = 0xB,               ///< Announce message
+    Signaling = 0xC,              ///< Signaling message
+    Management = 0xD,             ///< Management message
+    Reserved_E = 0xE,             ///< Reserved
+    Reserved_F = 0xF,             ///< Reserved
 };
 
 /// @brief Convert message type to human-readable string
 [[nodiscard]] constexpr std::string_view message_type_string(MessageType type) {
     switch (type) {
-        case MessageType::Sync: return "Sync";
-        case MessageType::Delay_Req: return "Delay_Req";
-        case MessageType::Pdelay_Req: return "Pdelay_Req";
-        case MessageType::Pdelay_Resp: return "Pdelay_Resp";
-        case MessageType::Follow_Up: return "Follow_Up";
-        case MessageType::Delay_Resp: return "Delay_Resp";
-        case MessageType::Pdelay_Resp_Follow_Up: return "Pdelay_Resp_Follow_Up";
-        case MessageType::Announce: return "Announce";
-        case MessageType::Signaling: return "Signaling";
-        case MessageType::Management: return "Management";
-        default: return "Reserved";
+        case MessageType::Sync:
+            return "Sync";
+        case MessageType::Delay_Req:
+            return "Delay_Req";
+        case MessageType::Pdelay_Req:
+            return "Pdelay_Req";
+        case MessageType::Pdelay_Resp:
+            return "Pdelay_Resp";
+        case MessageType::Follow_Up:
+            return "Follow_Up";
+        case MessageType::Delay_Resp:
+            return "Delay_Resp";
+        case MessageType::Pdelay_Resp_Follow_Up:
+            return "Pdelay_Resp_Follow_Up";
+        case MessageType::Announce:
+            return "Announce";
+        case MessageType::Signaling:
+            return "Signaling";
+        case MessageType::Management:
+            return "Management";
+        default:
+            return "Reserved";
     }
 }
 
 /// @brief Check if message type is an event message (requires timestamp)
 [[nodiscard]] constexpr bool is_event_message(MessageType type) {
-    return type == MessageType::Sync ||
-           type == MessageType::Delay_Req ||
-           type == MessageType::Pdelay_Req ||
-           type == MessageType::Pdelay_Resp;
+    return type == MessageType::Sync || type == MessageType::Delay_Req ||
+           type == MessageType::Pdelay_Req || type == MessageType::Pdelay_Resp;
 }
 
 /// @brief Check if message type is a general message
@@ -114,27 +121,27 @@ enum class MessageType : std::uint8_t {
 
 /// @brief gPTP transport specific values
 enum class TransportSpecific : std::uint8_t {
-    IEEE_802_1AS = 0x1,             ///< gPTP (802.1AS) profile
-    IEEE_1588 = 0x0,                ///< Standard PTP (IEEE 1588)
+    IEEE_802_1AS = 0x1,  ///< gPTP (802.1AS) profile
+    IEEE_1588 = 0x0,     ///< Standard PTP (IEEE 1588)
 };
 
 /// @brief gPTP flags in header
 struct GptpFlags {
     // Octet 1 (flags[0])
-    bool alternate_master = false;      ///< alternateMasterFlag
-    bool two_step = false;              ///< twoStepFlag
-    bool unicast = false;               ///< unicastFlag
-    bool ptp_profile_specific_1 = false; ///< PTP profile Specific 1
-    bool ptp_profile_specific_2 = false; ///< PTP profile Specific 2
-    bool reserved = false;              ///< Reserved
+    bool alternate_master = false;        ///< alternateMasterFlag
+    bool two_step = false;                ///< twoStepFlag
+    bool unicast = false;                 ///< unicastFlag
+    bool ptp_profile_specific_1 = false;  ///< PTP profile Specific 1
+    bool ptp_profile_specific_2 = false;  ///< PTP profile Specific 2
+    bool reserved = false;                ///< Reserved
 
     // Octet 2 (flags[1])
-    bool leap_61 = false;               ///< leap61
-    bool leap_59 = false;               ///< leap59
-    bool current_utc_offset_valid = false; ///< currentUtcOffsetValid
-    bool ptp_timescale = false;         ///< ptpTimescale
-    bool time_traceable = false;        ///< timeTraceable
-    bool frequency_traceable = false;   ///< frequencyTraceable
+    bool leap_61 = false;                   ///< leap61
+    bool leap_59 = false;                   ///< leap59
+    bool current_utc_offset_valid = false;  ///< currentUtcOffsetValid
+    bool ptp_timescale = false;             ///< ptpTimescale
+    bool time_traceable = false;            ///< timeTraceable
+    bool frequency_traceable = false;       ///< frequencyTraceable
 
     /// @brief Parse flags from two bytes
     static GptpFlags from_bytes(std::uint8_t octet0, std::uint8_t octet1) {
@@ -169,25 +176,36 @@ struct GptpFlags {
         std::uint8_t octet0 = 0;
         std::uint8_t octet1 = 0;
 
-        if (alternate_master) octet0 |= 0x01;
-        if (two_step) octet0 |= 0x02;
-        if (unicast) octet0 |= 0x04;
-        if (ptp_profile_specific_1) octet0 |= 0x20;
-        if (ptp_profile_specific_2) octet0 |= 0x40;
+        if (alternate_master)
+            octet0 |= 0x01;
+        if (two_step)
+            octet0 |= 0x02;
+        if (unicast)
+            octet0 |= 0x04;
+        if (ptp_profile_specific_1)
+            octet0 |= 0x20;
+        if (ptp_profile_specific_2)
+            octet0 |= 0x40;
 
-        if (leap_61) octet1 |= 0x01;
-        if (leap_59) octet1 |= 0x02;
-        if (current_utc_offset_valid) octet1 |= 0x04;
-        if (ptp_timescale) octet1 |= 0x08;
-        if (time_traceable) octet1 |= 0x10;
-        if (frequency_traceable) octet1 |= 0x20;
+        if (leap_61)
+            octet1 |= 0x01;
+        if (leap_59)
+            octet1 |= 0x02;
+        if (current_utc_offset_valid)
+            octet1 |= 0x04;
+        if (ptp_timescale)
+            octet1 |= 0x08;
+        if (time_traceable)
+            octet1 |= 0x10;
+        if (frequency_traceable)
+            octet1 |= 0x20;
 
         return {octet0, octet1};
     }
 };
 
 /// @brief Clock identity (8 bytes EUI-64 format)
-/// 
+///
 /// Typically derived from MAC address by inserting 0xFF 0xFE in the middle.
 /// Example: MAC 00:11:22:33:44:55 -> Clock ID 00:11:22:FF:FE:33:44:55
 struct ClockIdentity {
@@ -219,13 +237,9 @@ struct ClockIdentity {
     }
 
     /// @brief Check equality
-    bool operator==(const ClockIdentity& other) const {
-        return bytes == other.bytes;
-    }
+    bool operator==(const ClockIdentity& other) const { return bytes == other.bytes; }
 
-    bool operator!=(const ClockIdentity& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const ClockIdentity& other) const { return !(*this == other); }
 
     /// @brief Comparison for ordered containers (std::map, std::set)
     bool operator<(const ClockIdentity& other) const { return bytes < other.bytes; }
@@ -233,17 +247,16 @@ struct ClockIdentity {
     /// @brief Convert to string representation
     [[nodiscard]] std::string to_string() const {
         char buf[24];
-        std::snprintf(buf, sizeof(buf),
-            "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5], bytes[6], bytes[7]);
+        std::snprintf(buf, sizeof(buf), "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", bytes[0],
+                      bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
         return buf;
     }
 
     /// @brief Check if this is an all-zeros identity
     [[nodiscard]] bool is_zero() const {
         for (auto b : bytes) {
-            if (b != 0) return false;
+            if (b != 0)
+                return false;
         }
         return true;
     }
@@ -264,13 +277,10 @@ struct PortIdentity {
 
     /// @brief Check equality
     bool operator==(const PortIdentity& other) const {
-        return clock_identity == other.clock_identity &&
-               port_number == other.port_number;
+        return clock_identity == other.clock_identity && port_number == other.port_number;
     }
 
-    bool operator!=(const PortIdentity& other) const {
-        return !(*this == other);
-    }
+    bool operator!=(const PortIdentity& other) const { return !(*this == other); }
 
     /// @brief Convert to string representation
     [[nodiscard]] std::string to_string() const {
@@ -279,41 +289,35 @@ struct PortIdentity {
 };
 
 /// @brief gPTP scaled nanoseconds (64-bit signed, scaled by 2^16)
-/// 
+///
 /// Used for correction fields. The value represents nanoseconds scaled by 2^16.
 struct ScaledNanoseconds {
     std::int64_t scaled_ns = 0;  ///< Scaled nanoseconds (value * 2^16)
 
     ScaledNanoseconds() = default;
-    
+
     explicit ScaledNanoseconds(std::int64_t val) : scaled_ns(val) {}
 
     /// @brief Parse from 8-byte correction field (scaled nanoseconds * 2^16)
     static ScaledNanoseconds from_correction_field(const std::byte* ptr);
 
     /// @brief Convert to nanoseconds (integer)
-    [[nodiscard]] std::int64_t to_nanoseconds() const {
-        return scaled_ns >> 16;
-    }
+    [[nodiscard]] std::int64_t to_nanoseconds() const { return scaled_ns >> 16; }
 
     /// @brief Convert to double (in nanoseconds, with fractional part)
-    [[nodiscard]] double to_double() const {
-        return static_cast<double>(scaled_ns) / 65536.0;
-    }
+    [[nodiscard]] double to_double() const { return static_cast<double>(scaled_ns) / 65536.0; }
 
     /// @brief Check if value is zero
-    [[nodiscard]] bool is_zero() const {
-        return scaled_ns == 0;
-    }
+    [[nodiscard]] bool is_zero() const { return scaled_ns == 0; }
 };
 
 /// @brief gPTP timestamp (80-bit: 48-bit seconds + 32-bit nanoseconds)
-/// 
+///
 /// Represents a precise point in time with sub-nanosecond resolution support.
 struct GptpTimestamp {
-    std::uint16_t seconds_msb = 0;     ///< Upper 16 bits of seconds
-    std::uint32_t seconds_lsb = 0;     ///< Lower 32 bits of seconds
-    std::uint32_t nanoseconds = 0;     ///< Nanoseconds (0-999,999,999)
+    std::uint16_t seconds_msb = 0;  ///< Upper 16 bits of seconds
+    std::uint32_t seconds_lsb = 0;  ///< Lower 32 bits of seconds
+    std::uint32_t nanoseconds = 0;  ///< Nanoseconds (0-999,999,999)
 
     GptpTimestamp() = default;
 
@@ -342,8 +346,7 @@ struct GptpTimestamp {
 
     /// @brief Convert to double seconds
     [[nodiscard]] double to_seconds_double() const {
-        return static_cast<double>(seconds()) +
-               static_cast<double>(nanoseconds) / 1'000'000'000.0;
+        return static_cast<double>(seconds()) + static_cast<double>(nanoseconds) / 1'000'000'000.0;
     }
 
     /// @brief Subtract two timestamps (a - b) returning signed nanoseconds
@@ -356,17 +359,17 @@ struct GptpTimestamp {
     /// @brief Convert to string representation
     [[nodiscard]] std::string to_string() const {
         char buf[64];
-        std::snprintf(buf, sizeof(buf), "%lu.%09u", 
-            static_cast<unsigned long>(seconds()), nanoseconds);
+        std::snprintf(buf, sizeof(buf), "%lu.%09u", static_cast<unsigned long>(seconds()),
+                      nanoseconds);
         return buf;
     }
 };
 
 /// @brief Clock quality (from Announce messages)
 struct ClockQuality {
-    std::uint8_t clock_class = 0;           ///< Clock class (248 = default)
-    std::uint8_t clock_accuracy = 0;        ///< Clock accuracy enumeration
-    std::uint16_t offset_scaled_log_variance = 0; ///< Offset scaled log variance
+    std::uint8_t clock_class = 0;                  ///< Clock class (248 = default)
+    std::uint8_t clock_accuracy = 0;               ///< Clock accuracy enumeration
+    std::uint16_t offset_scaled_log_variance = 0;  ///< Offset scaled log variance
 
     /// @brief Parse from 4 bytes
     static ClockQuality from_bytes(const std::byte* ptr);
@@ -376,7 +379,7 @@ struct ClockQuality {
 };
 
 /// @brief Time interval (scaled nanoseconds for rates)
-/// 
+///
 /// Represents a time interval in log2 form. For example:
 /// - logInterval = 0  means interval = 2^0 = 1 second
 /// - logInterval = -3 means interval = 2^-3 = 125 milliseconds
@@ -387,14 +390,10 @@ struct LogInterval {
     explicit LogInterval(std::int8_t v) : value(v) {}
 
     /// @brief Convert to seconds as a double
-    [[nodiscard]] double to_seconds() const {
-        return std::pow(2.0, static_cast<double>(value));
-    }
+    [[nodiscard]] double to_seconds() const { return std::pow(2.0, static_cast<double>(value)); }
 
     /// @brief Convert to milliseconds as a double
-    [[nodiscard]] double to_milliseconds() const {
-        return to_seconds() * 1000.0;
-    }
+    [[nodiscard]] double to_milliseconds() const { return to_seconds() * 1000.0; }
 
     /// @brief Convert to string representation
     [[nodiscard]] std::string to_string() const {
@@ -414,7 +413,7 @@ enum class TlvType : std::uint16_t {
     GrantUnicastTransmission = 0x0005,
     CancelUnicastTransmission = 0x0006,
     AcknowledgeCancelUnicastTransmission = 0x0007,
-    PATH_TRACE = 0x0008,              ///< Path Trace TLV
+    PATH_TRACE = 0x0008,  ///< Path Trace TLV
     AlternateTimeOffsetIndicator = 0x0009,
 
     // gPTP specific (802.1AS)
@@ -437,14 +436,14 @@ enum class TlvType : std::uint16_t {
 
 /// @brief Time source enumeration (for Announce messages)
 enum class TimeSource : std::uint8_t {
-    AtomicClock = 0x10,        ///< Atomic clock
-    GPS = 0x20,                ///< GPS
-    TerrestrialRadio = 0x30,   ///< Terrestrial radio
-    PTP = 0x40,                ///< PTP (synchronized to another PTP clock)
-    NTP = 0x50,                ///< NTP
-    HandSet = 0x60,            ///< Hand set
-    Other = 0x90,              ///< Other
-    InternalOscillator = 0xA0, ///< Internal oscillator
+    AtomicClock = 0x10,         ///< Atomic clock
+    GPS = 0x20,                 ///< GPS
+    TerrestrialRadio = 0x30,    ///< Terrestrial radio
+    PTP = 0x40,                 ///< PTP (synchronized to another PTP clock)
+    NTP = 0x50,                 ///< NTP
+    HandSet = 0x60,             ///< Hand set
+    Other = 0x90,               ///< Other
+    InternalOscillator = 0xA0,  ///< Internal oscillator
 };
 
 /// @brief Convert TLV type to string

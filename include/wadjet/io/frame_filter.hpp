@@ -27,8 +27,7 @@ public:
     /// @param expression BPF filter expression (e.g., "udp port 30490")
     /// @param link_type Link layer type (default: Ethernet)
     /// @return Compiled filter or error
-    static auto compile(std::string_view expression,
-                        int link_type = 1) -> Result<FrameFilter>;
+    static auto compile(std::string_view expression, int link_type = 1) -> Result<FrameFilter>;
 
     /// @brief Create an "accept all" filter
     static auto accept_all() -> FrameFilter;

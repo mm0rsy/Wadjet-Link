@@ -10,10 +10,8 @@ namespace wadjet::protocols::ipv4 {
 
 std::string IPv4Header::to_string() const {
     std::ostringstream oss;
-    oss << "IPv4 { src=" << src_ip.to_string()
-        << ", dst=" << dst_ip.to_string()
-        << ", proto=" << static_cast<int>(protocol)
-        << ", len=" << total_length
+    oss << "IPv4 { src=" << src_ip.to_string() << ", dst=" << dst_ip.to_string()
+        << ", proto=" << static_cast<int>(protocol) << ", len=" << total_length
         << ", ttl=" << static_cast<int>(ttl);
 
     if (flags.dont_fragment) {
@@ -39,8 +37,7 @@ std::uint16_t IPv4Decoder::calculate_checksum(std::span<const std::byte> header_
     for (std::size_t i = 0; i + 1 < header_data.size(); i += 2) {
         std::uint16_t word = static_cast<std::uint16_t>(
             (static_cast<unsigned int>(static_cast<std::uint8_t>(header_data[i])) << 8) |
-             static_cast<unsigned int>(static_cast<std::uint8_t>(header_data[i + 1]))
-        );
+            static_cast<unsigned int>(static_cast<std::uint8_t>(header_data[i + 1])));
         sum += word;
     }
 
@@ -60,8 +57,7 @@ std::uint16_t IPv4Decoder::calculate_checksum(std::span<const std::byte> header_
 IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
     // Check minimum size
     if (!ctx.has_bytes(MIN_HEADER_SIZE)) {
-        return make_error(DecodeErrorCode::BufferTooSmall,
-                          "IPv4 header too small");
+        return make_error(DecodeErrorCode::BufferTooSmall, "IPv4 header too small");
     }
 
     IPv4Header header;
@@ -86,8 +82,7 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
     std::size_t header_len = static_cast<std::size_t>(header.ihl) * 4;
     if (!ctx.has_bytes(header_len)) {
         return make_error(DecodeErrorCode::BufferTooSmall,
-                          "IPv4 header truncated (need " +
-                          std::to_string(header_len) + " bytes)");
+                          "IPv4 header truncated (need " + std::to_string(header_len) + " bytes)");
     }
 
     // Second byte: DSCP and ECN
@@ -136,8 +131,7 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
         header.checksum_valid = (computed == 0);
 
         if (!header.checksum_valid && !options_.allow_bad_checksum) {
-            return make_error(DecodeErrorCode::InvalidChecksum,
-                              "IPv4 header checksum mismatch");
+            return make_error(DecodeErrorCode::InvalidChecksum, "IPv4 header checksum mismatch");
         }
     } else {
         header.checksum_valid = true;  // Assume valid if not checking
@@ -145,8 +139,7 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
 
     // Validate total length
     if (header.total_length < header_len) {
-        return make_error(DecodeErrorCode::InvalidLength,
-                          "Total length less than header length");
+        return make_error(DecodeErrorCode::InvalidLength, "Total length less than header length");
     }
 
     // Create context for next layer

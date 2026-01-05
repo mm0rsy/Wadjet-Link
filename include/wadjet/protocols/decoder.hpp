@@ -22,28 +22,37 @@ namespace wadjet::protocols {
 /// @brief Error codes for decoding failures
 enum class DecodeErrorCode {
     Success = 0,
-    BufferTooSmall,      ///< Not enough data for header
-    InvalidHeader,       ///< Header validation failed
-    InvalidChecksum,     ///< Checksum mismatch
-    InvalidVersion,      ///< Unsupported protocol version
-    InvalidLength,       ///< Length field inconsistent
-    MalformedData,       ///< Data structure is malformed
-    UnsupportedProtocol, ///< Protocol not recognized
-    TruncatedPayload,    ///< Payload truncated
+    BufferTooSmall,       ///< Not enough data for header
+    InvalidHeader,        ///< Header validation failed
+    InvalidChecksum,      ///< Checksum mismatch
+    InvalidVersion,       ///< Unsupported protocol version
+    InvalidLength,        ///< Length field inconsistent
+    MalformedData,        ///< Data structure is malformed
+    UnsupportedProtocol,  ///< Protocol not recognized
+    TruncatedPayload,     ///< Payload truncated
 };
 
 /// @brief Convert error code to string
 [[nodiscard]] constexpr std::string_view decode_error_string(DecodeErrorCode code) {
     switch (code) {
-        case DecodeErrorCode::Success: return "Success";
-        case DecodeErrorCode::BufferTooSmall: return "Buffer too small";
-        case DecodeErrorCode::InvalidHeader: return "Invalid header";
-        case DecodeErrorCode::InvalidChecksum: return "Invalid checksum";
-        case DecodeErrorCode::InvalidVersion: return "Invalid version";
-        case DecodeErrorCode::InvalidLength: return "Invalid length";
-        case DecodeErrorCode::MalformedData: return "Malformed data";
-        case DecodeErrorCode::UnsupportedProtocol: return "Unsupported protocol";
-        case DecodeErrorCode::TruncatedPayload: return "Truncated payload";
+        case DecodeErrorCode::Success:
+            return "Success";
+        case DecodeErrorCode::BufferTooSmall:
+            return "Buffer too small";
+        case DecodeErrorCode::InvalidHeader:
+            return "Invalid header";
+        case DecodeErrorCode::InvalidChecksum:
+            return "Invalid checksum";
+        case DecodeErrorCode::InvalidVersion:
+            return "Invalid version";
+        case DecodeErrorCode::InvalidLength:
+            return "Invalid length";
+        case DecodeErrorCode::MalformedData:
+            return "Malformed data";
+        case DecodeErrorCode::UnsupportedProtocol:
+            return "Unsupported protocol";
+        case DecodeErrorCode::TruncatedPayload:
+            return "Truncated payload";
     }
     return "Unknown error";
 }
@@ -51,7 +60,7 @@ enum class DecodeErrorCode {
 /// @brief Decode error with context
 struct DecodeError {
     DecodeErrorCode code;
-    std::size_t offset;      ///< Byte offset where error occurred
+    std::size_t offset;  ///< Byte offset where error occurred
     std::string message;
 
     DecodeError() : code(DecodeErrorCode::Success), offset(0) {}
@@ -72,16 +81,16 @@ struct DecodeError {
 /// Contains the remaining data to decode plus metadata accumulated
 /// from previous decoder stages (e.g., encapsulating protocol info).
 struct DecodeContext {
-    std::span<const std::byte> data;     ///< Remaining data to decode
-    std::size_t original_offset = 0;     ///< Offset from original packet start
-    Timestamp timestamp;                  ///< Packet timestamp
+    std::span<const std::byte> data;  ///< Remaining data to decode
+    std::size_t original_offset = 0;  ///< Offset from original packet start
+    Timestamp timestamp;              ///< Packet timestamp
 
     /// @brief Protocol-specific metadata from previous layers
     struct LayerInfo {
-        std::uint16_t ethertype = 0;     ///< Ethertype from Ethernet layer
-        std::uint8_t ip_protocol = 0;    ///< Protocol from IP layer
-        std::uint16_t src_port = 0;      ///< Source port from transport layer
-        std::uint16_t dst_port = 0;      ///< Destination port from transport layer
+        std::uint16_t ethertype = 0;   ///< Ethertype from Ethernet layer
+        std::uint8_t ip_protocol = 0;  ///< Protocol from IP layer
+        std::uint16_t src_port = 0;    ///< Source port from transport layer
+        std::uint16_t dst_port = 0;    ///< Destination port from transport layer
     } layer_info;
 
     /// @brief Create context from packet view
@@ -106,9 +115,7 @@ struct DecodeContext {
     }
 
     /// @brief Check if enough data remains
-    [[nodiscard]] bool has_bytes(std::size_t n) const {
-        return data.size() >= n;
-    }
+    [[nodiscard]] bool has_bytes(std::size_t n) const { return data.size() >= n; }
 
     /// @brief Read 16-bit value at offset (network byte order)
     [[nodiscard]] std::uint16_t read_be16(std::size_t offset) const {
@@ -135,8 +142,7 @@ struct DecodeContext {
     }
 
     /// @brief Read raw bytes at offset
-    [[nodiscard]] std::span<const std::byte> read_bytes(std::size_t offset,
-                                                         std::size_t len) const {
+    [[nodiscard]] std::span<const std::byte> read_bytes(std::size_t offset, std::size_t len) const {
         if (offset + len <= data.size()) {
             return data.subspan(offset, len);
         }
@@ -150,9 +156,9 @@ class IDecodedHeader;
 /// @brief Result of a decode operation
 template <typename HeaderT>
 struct DecodeResultT {
-    std::optional<HeaderT> header_;     ///< Decoded header (if success)
-    DecodeContext next_context;         ///< Context for next decoder
-    DecodeError error_;                 ///< Error info
+    std::optional<HeaderT> header_;  ///< Decoded header (if success)
+    DecodeContext next_context;      ///< Context for next decoder
+    DecodeError error_;              ///< Error info
 
     [[nodiscard]] bool is_ok() const { return error_.is_ok(); }
     [[nodiscard]] explicit operator bool() const { return is_ok(); }
@@ -238,8 +244,7 @@ public:
 
 protected:
     /// @brief Create error result
-    static Result make_error(DecodeErrorCode code, std::string msg = "",
-                             std::size_t offset = 0) {
+    static Result make_error(DecodeErrorCode code, std::string msg = "", std::size_t offset = 0) {
         Result result;
         result.error_ = DecodeError(code, offset, std::move(msg));
         return result;

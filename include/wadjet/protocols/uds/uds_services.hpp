@@ -6,8 +6,8 @@
 /// This file contains request/response structures for all UDS services
 /// as defined in ISO 14229-1.
 
-#include "uds_types.hpp"
 #include "uds_nrc.hpp"
+#include "uds_types.hpp"
 
 #include <optional>
 #include <span>
@@ -65,44 +65,18 @@ struct NegativeResponseMessage;
 /// @brief Variant type for all UDS service messages
 using UdsServiceMessage = std::variant<
     std::monostate,  // Unknown/unparsed
-    DiagnosticSessionControlRequest,
-    DiagnosticSessionControlResponse,
-    ECUResetRequest,
-    ECUResetResponse,
-    SecurityAccessRequest,
-    SecurityAccessResponse,
-    CommunicationControlRequest,
-    CommunicationControlResponse,
-    TesterPresentRequest,
-    TesterPresentResponse,
-    ControlDTCSettingRequest,
-    ControlDTCSettingResponse,
-    ReadDataByIdentifierRequest,
-    ReadDataByIdentifierResponse,
-    WriteDataByIdentifierRequest,
-    WriteDataByIdentifierResponse,
-    ReadDTCInformationRequest,
-    ReadDTCInformationResponse,
-    ClearDiagnosticInformationRequest,
-    ClearDiagnosticInformationResponse,
-    RoutineControlRequest,
-    RoutineControlResponse,
-    InputOutputControlByIdentifierRequest,
-    InputOutputControlByIdentifierResponse,
-    RequestDownloadRequest,
-    RequestDownloadResponse,
-    RequestUploadRequest,
-    RequestUploadResponse,
-    TransferDataRequest,
-    TransferDataResponse,
-    RequestTransferExitRequest,
-    RequestTransferExitResponse,
-    ReadMemoryByAddressRequest,
-    ReadMemoryByAddressResponse,
-    WriteMemoryByAddressRequest,
-    WriteMemoryByAddressResponse,
-    NegativeResponseMessage
->;
+    DiagnosticSessionControlRequest, DiagnosticSessionControlResponse, ECUResetRequest,
+    ECUResetResponse, SecurityAccessRequest, SecurityAccessResponse, CommunicationControlRequest,
+    CommunicationControlResponse, TesterPresentRequest, TesterPresentResponse,
+    ControlDTCSettingRequest, ControlDTCSettingResponse, ReadDataByIdentifierRequest,
+    ReadDataByIdentifierResponse, WriteDataByIdentifierRequest, WriteDataByIdentifierResponse,
+    ReadDTCInformationRequest, ReadDTCInformationResponse, ClearDiagnosticInformationRequest,
+    ClearDiagnosticInformationResponse, RoutineControlRequest, RoutineControlResponse,
+    InputOutputControlByIdentifierRequest, InputOutputControlByIdentifierResponse,
+    RequestDownloadRequest, RequestDownloadResponse, RequestUploadRequest, RequestUploadResponse,
+    TransferDataRequest, TransferDataResponse, RequestTransferExitRequest,
+    RequestTransferExitResponse, ReadMemoryByAddressRequest, ReadMemoryByAddressResponse,
+    WriteMemoryByAddressRequest, WriteMemoryByAddressResponse, NegativeResponseMessage>;
 
 // =============================================================================
 // Diagnostic Session Control (0x10)
@@ -125,8 +99,8 @@ struct DiagnosticSessionControlRequest {
 /// @brief DiagnosticSessionControl Positive Response
 struct DiagnosticSessionControlResponse {
     SessionType session_type = SessionType::DefaultSession;
-    std::uint16_t p2_server_max_ms = 0;      ///< P2 timing in milliseconds
-    std::uint16_t p2_star_server_max_ms = 0; ///< P2* timing in 10ms units
+    std::uint16_t p2_server_max_ms = 0;       ///< P2 timing in milliseconds
+    std::uint16_t p2_star_server_max_ms = 0;  ///< P2* timing in 10ms units
 
     /// @brief Get P2* in milliseconds
     [[nodiscard]] std::uint32_t p2_star_ms() const {
@@ -149,9 +123,7 @@ struct ECUResetRequest {
     bool suppress_positive_response = false;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ECUReset;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ECUReset; }
 
     /// @brief Minimum message size (SID + sub-function)
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -163,9 +135,7 @@ struct ECUResetResponse {
     std::optional<std::uint8_t> power_down_time;  ///< For rapid shutdown, time in seconds
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ECUReset;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ECUReset; }
 };
 
 // =============================================================================
@@ -179,14 +149,10 @@ struct SecurityAccessRequest {
     std::vector<std::uint8_t> security_key;  ///< Key for sendKey requests
 
     /// @brief Check if this is a seed request
-    [[nodiscard]] bool is_request_seed() const {
-        return (access_type & 0x01) != 0;
-    }
+    [[nodiscard]] bool is_request_seed() const { return (access_type & 0x01) != 0; }
 
     /// @brief Check if this is a key send
-    [[nodiscard]] bool is_send_key() const {
-        return (access_type & 0x01) == 0;
-    }
+    [[nodiscard]] bool is_send_key() const { return (access_type & 0x01) == 0; }
 
     /// @brief Get security level (1-33)
     [[nodiscard]] std::uint8_t security_level() const {
@@ -194,9 +160,7 @@ struct SecurityAccessRequest {
     }
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::SecurityAccess;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::SecurityAccess; }
 
     /// @brief Minimum message size (SID + sub-function)
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -210,15 +174,14 @@ struct SecurityAccessResponse {
     /// @brief Check if seed is zero (already unlocked)
     [[nodiscard]] bool is_already_unlocked() const {
         for (auto b : security_seed) {
-            if (b != 0) return false;
+            if (b != 0)
+                return false;
         }
         return true;
     }
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::SecurityAccess;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::SecurityAccess; }
 };
 
 // =============================================================================
@@ -261,9 +224,7 @@ struct TesterPresentRequest {
     bool suppress_positive_response = false;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::TesterPresent;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::TesterPresent; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -274,9 +235,7 @@ struct TesterPresentResponse {
     std::uint8_t sub_function = 0x00;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::TesterPresent;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::TesterPresent; }
 };
 
 // =============================================================================
@@ -290,9 +249,7 @@ struct ControlDTCSettingRequest {
     std::vector<std::uint8_t> dtc_setting_control_option_record;  ///< Optional OEM data
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ControlDTCSetting;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ControlDTCSetting; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -303,9 +260,7 @@ struct ControlDTCSettingResponse {
     ControlDTCSettingType dtc_setting_type = ControlDTCSettingType::On;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ControlDTCSetting;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ControlDTCSetting; }
 };
 
 // =============================================================================
@@ -343,7 +298,8 @@ struct ReadDataByIdentifierResponse {
     /// @brief Find data for a specific DID
     [[nodiscard]] const DataRecord* find_did(DataIdentifier did) const {
         for (const auto& record : records) {
-            if (record.did == did) return &record;
+            if (record.did == did)
+                return &record;
         }
         return nullptr;
     }
@@ -395,9 +351,7 @@ struct ReadDTCInformationRequest {
     std::optional<std::uint8_t> memory_selection;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ReadDTCInformation;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ReadDTCInformation; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -420,9 +374,7 @@ struct ReadDTCInformationResponse {
     std::vector<std::uint8_t> dtc_record_data;  ///< For snapshot/extended data
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ReadDTCInformation;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ReadDTCInformation; }
 };
 
 // =============================================================================
@@ -434,9 +386,7 @@ struct ClearDiagnosticInformationRequest {
     std::uint32_t group_of_dtc = 0xFFFFFF;  ///< 0xFFFFFF = all DTCs
 
     /// @brief Check if clearing all DTCs
-    [[nodiscard]] bool is_clear_all() const {
-        return group_of_dtc == 0xFFFFFF;
-    }
+    [[nodiscard]] bool is_clear_all() const { return group_of_dtc == 0xFFFFFF; }
 
     /// @brief Get service ID
     [[nodiscard]] static constexpr ServiceID service_id() {
@@ -467,9 +417,7 @@ struct RoutineControlRequest {
     bool suppress_positive_response = false;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RoutineControl;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RoutineControl; }
 
     /// @brief Minimum message size (SID + sub + 2-byte routine ID)
     [[nodiscard]] static constexpr std::size_t min_size() { return 4; }
@@ -483,9 +431,7 @@ struct RoutineControlResponse {
     std::vector<std::uint8_t> routine_status_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RoutineControl;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RoutineControl; }
 };
 
 // =============================================================================
@@ -532,9 +478,7 @@ struct RequestDownloadRequest {
     std::uint64_t memory_size = 0;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestDownload;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestDownload; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 4; }
@@ -546,9 +490,7 @@ struct RequestDownloadResponse {
     std::uint32_t max_number_of_block_length = 0;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestDownload;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestDownload; }
 };
 
 // =============================================================================
@@ -563,9 +505,7 @@ struct RequestUploadRequest {
     std::uint64_t memory_size = 0;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestUpload;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestUpload; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 4; }
@@ -577,9 +517,7 @@ struct RequestUploadResponse {
     std::uint32_t max_number_of_block_length = 0;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestUpload;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestUpload; }
 };
 
 // =============================================================================
@@ -592,9 +530,7 @@ struct TransferDataRequest {
     std::vector<std::uint8_t> transfer_request_parameter_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::TransferData;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::TransferData; }
 
     /// @brief Minimum message size (SID + block counter)
     [[nodiscard]] static constexpr std::size_t min_size() { return 2; }
@@ -606,9 +542,7 @@ struct TransferDataResponse {
     std::vector<std::uint8_t> transfer_response_parameter_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::TransferData;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::TransferData; }
 };
 
 // =============================================================================
@@ -620,9 +554,7 @@ struct RequestTransferExitRequest {
     std::vector<std::uint8_t> transfer_request_parameter_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestTransferExit;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestTransferExit; }
 
     /// @brief Minimum message size (SID only)
     [[nodiscard]] static constexpr std::size_t min_size() { return 1; }
@@ -633,9 +565,7 @@ struct RequestTransferExitResponse {
     std::vector<std::uint8_t> transfer_response_parameter_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::RequestTransferExit;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::RequestTransferExit; }
 };
 
 // =============================================================================
@@ -649,9 +579,7 @@ struct ReadMemoryByAddressRequest {
     std::uint64_t memory_size = 0;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ReadMemoryByAddress;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ReadMemoryByAddress; }
 
     /// @brief Minimum message size
     [[nodiscard]] static constexpr std::size_t min_size() { return 4; }
@@ -662,9 +590,7 @@ struct ReadMemoryByAddressResponse {
     std::vector<std::uint8_t> data_record;
 
     /// @brief Get service ID
-    [[nodiscard]] static constexpr ServiceID service_id() {
-        return ServiceID::ReadMemoryByAddress;
-    }
+    [[nodiscard]] static constexpr ServiceID service_id() { return ServiceID::ReadMemoryByAddress; }
 };
 
 // =============================================================================
@@ -719,9 +645,7 @@ struct NegativeResponseMessage {
     }
 
     /// @brief Check if this is a temporary error (can retry)
-    [[nodiscard]] bool is_temporary() const {
-        return is_temporary_nrc(negative_response_code);
-    }
+    [[nodiscard]] bool is_temporary() const { return is_temporary_nrc(negative_response_code); }
 
     /// @brief Get NRC description string
     [[nodiscard]] std::string_view nrc_string() const {
@@ -734,9 +658,7 @@ struct NegativeResponseMessage {
     }
 
     /// @brief Get service ID (for response SID - always 0x7F)
-    [[nodiscard]] static constexpr std::uint8_t response_sid() {
-        return NEGATIVE_RESPONSE_SID;
-    }
+    [[nodiscard]] static constexpr std::uint8_t response_sid() { return NEGATIVE_RESPONSE_SID; }
 
     /// @brief Message size (always 3 bytes)
     [[nodiscard]] static constexpr std::size_t size() { return 3; }
@@ -782,8 +704,8 @@ struct NegativeResponseMessage {
 }
 
 /// @brief Create sub-function byte from value and suppress flag
-[[nodiscard]] constexpr std::uint8_t make_sub_function_byte(
-    std::uint8_t sub_function, bool suppress_positive_response) {
+[[nodiscard]] constexpr std::uint8_t make_sub_function_byte(std::uint8_t sub_function,
+                                                            bool suppress_positive_response) {
     return (sub_function & 0x7F) | (suppress_positive_response ? 0x80 : 0x00);
 }
 

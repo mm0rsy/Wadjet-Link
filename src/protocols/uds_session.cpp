@@ -4,6 +4,7 @@
 /// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
 
 #include "wadjet/protocols/uds/uds_session.hpp"
+
 #include "wadjet/protocols/uds/uds.hpp"
 
 #include <algorithm>
@@ -17,7 +18,8 @@ namespace wadjet::protocols::uds {
 bool SecurityState::is_unlocked(std::uint8_t level) const {
     std::lock_guard lock(mutex_);
     auto it = levels_.find(level);
-    if (it == levels_.end()) return false;
+    if (it == levels_.end())
+        return false;
     return it->second.unlocked && !it->second.is_locked_out();
 }
 
@@ -74,7 +76,8 @@ void SecurityState::key_rejected(std::uint8_t level) {
 bool SecurityState::is_locked_out(std::uint8_t level) const {
     std::lock_guard lock(mutex_);
     auto it = levels_.find(level);
-    if (it == levels_.end()) return false;
+    if (it == levels_.end())
+        return false;
     return it->second.is_locked_out();
 }
 
@@ -90,8 +93,7 @@ std::chrono::milliseconds SecurityState::lockout_remaining(std::uint8_t level) c
         return std::chrono::milliseconds{0};
     }
 
-    return std::chrono::duration_cast<std::chrono::milliseconds>(
-        *it->second.lockout_until - now);
+    return std::chrono::duration_cast<std::chrono::milliseconds>(*it->second.lockout_until - now);
 }
 
 void SecurityState::reset() {
@@ -104,7 +106,8 @@ void SecurityState::reset() {
 const SecurityLevelState* SecurityState::get_level_state(std::uint8_t level) const {
     std::lock_guard lock(mutex_);
     auto it = levels_.find(level);
-    if (it == levels_.end()) return nullptr;
+    if (it == levels_.end())
+        return nullptr;
     return &it->second;
 }
 
@@ -113,10 +116,9 @@ const SecurityLevelState* SecurityState::get_level_state(std::uint8_t level) con
 // =============================================================================
 
 UdsSession::UdsSession(std::uint16_t ecu_address)
-    : ecu_address_(ecu_address)
-    , last_activity_(std::chrono::steady_clock::now())
-    , session_start_(std::chrono::steady_clock::now()) {
-}
+    : ecu_address_(ecu_address),
+      last_activity_(std::chrono::steady_clock::now()),
+      session_start_(std::chrono::steady_clock::now()) {}
 
 bool UdsSession::process_message(std::span<const std::uint8_t> data, bool is_request) {
     UdsDecoder decoder;
@@ -128,7 +130,8 @@ bool UdsSession::process_message(std::span<const std::uint8_t> data, bool is_req
     return process_decoded(result->header, result->message, is_request);
 }
 
-bool UdsSession::process_decoded(const UdsHeader& header, const UdsServiceMessage& message, bool is_request) {
+bool UdsSession::process_decoded(const UdsHeader& header, const UdsServiceMessage& message,
+                                 bool is_request) {
     std::lock_guard lock(mutex_);
     update_activity();
 
@@ -212,7 +215,8 @@ std::chrono::milliseconds UdsSession::time_since_activity() const {
 
 bool UdsSession::is_timed_out() const {
     // Note: mutex should already be held by caller
-    if (state_ == SessionState::Idle) return false;
+    if (state_ == SessionState::Idle)
+        return false;
 
     auto elapsed = std::chrono::steady_clock::now() - last_activity_;
     return elapsed > timing_.s3_server;
@@ -288,12 +292,14 @@ void UdsSession::force_session_type(SessionType type) {
     transition_to_session(type);
 }
 
-void UdsSession::handle_diagnostic_session_control_request(const DiagnosticSessionControlRequest& /* req */) {
+void UdsSession::handle_diagnostic_session_control_request(
+    const DiagnosticSessionControlRequest& /* req */) {
     // Request doesn't change state until response confirms it
     // But we track the requested session for correlation
 }
 
-void UdsSession::handle_diagnostic_session_control_response(const DiagnosticSessionControlResponse& resp) {
+void UdsSession::handle_diagnostic_session_control_response(
+    const DiagnosticSessionControlResponse& resp) {
     bool was_idle = (state_ == SessionState::Idle);
     SessionType old_type = session_type_;
 
@@ -419,8 +425,7 @@ bool UdsSessionManager::has_session(std::uint16_t ecu_address) const {
 }
 
 bool UdsSessionManager::process_message(std::uint16_t ecu_address,
-                                        std::span<const std::uint8_t> data,
-                                        bool is_request) {
+                                        std::span<const std::uint8_t> data, bool is_request) {
     return get_session(ecu_address).process_message(data, is_request);
 }
 

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <wadjet/version.hpp>
+
 #include <cstring>
 
 namespace wadjet::test {

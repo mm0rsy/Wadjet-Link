@@ -73,17 +73,17 @@ struct DecodeStackResult {
 
 /// @brief Protocol dispatcher options
 struct DispatcherOptions {
-    bool stop_on_error = false;       ///< Stop decoding on first error
-    bool decode_application = true;   ///< Decode app-layer (SOME/IP, DoIP)
-    std::size_t max_layers = 16;      ///< Maximum number of protocol layers
-    bool validate_ipv4_checksum = false; ///< Validate IPv4 header checksum
+    bool stop_on_error = false;           ///< Stop decoding on first error
+    bool decode_application = true;       ///< Decode app-layer (SOME/IP, DoIP)
+    std::size_t max_layers = 16;          ///< Maximum number of protocol layers
+    bool validate_ipv4_checksum = false;  ///< Validate IPv4 header checksum
 };
 
 /// @brief Protocol dispatcher - chains decoders based on protocol fields
-/// 
+///
 /// The dispatcher follows the protocol stack:
 ///   Ethernet -> VLAN? -> IPv4 -> UDP/TCP -> SOME/IP/DoIP
-/// 
+///
 /// @example
 ///   ProtocolDispatcher dispatcher;
 ///   auto result = dispatcher.decode(packet_data);
@@ -93,7 +93,7 @@ struct DispatcherOptions {
 class ProtocolDispatcher {
 public:
     explicit ProtocolDispatcher(DispatcherOptions opts = DispatcherOptions{})
-        : options_(opts), 
+        : options_(opts),
           ipv4_decoder_(ipv4::IPv4Decoder::Options{
               opts.validate_ipv4_checksum,  // validate_checksum
               true                          // allow_bad_checksum
@@ -113,15 +113,12 @@ public:
 
 private:
     /// @brief Decode transport layer (UDP/TCP)
-    void decode_transport(DecodeStackResult& result,
-                         std::span<const std::byte>& data,
-                         std::uint8_t ip_protocol) const;
+    void decode_transport(DecodeStackResult& result, std::span<const std::byte>& data,
+                          std::uint8_t ip_protocol) const;
 
     /// @brief Decode application layer (SOME/IP, DoIP, SOME/IP-SD)
-    void decode_application(DecodeStackResult& result,
-                           std::span<const std::byte>& data,
-                           std::uint16_t src_port,
-                           std::uint16_t dst_port) const;
+    void decode_application(DecodeStackResult& result, std::span<const std::byte>& data,
+                            std::uint16_t src_port, std::uint16_t dst_port) const;
 
     /// @brief Decode gPTP (IEEE 802.1AS) layer
     void decode_gptp(DecodeStackResult& result, std::span<const std::byte>& data) const;
@@ -160,9 +157,7 @@ using ProtocolFilter = std::function<bool(const DecodeStackResult&)>;
 /// @brief Create filter for packets containing a specific protocol
 template <typename HeaderT>
 [[nodiscard]] ProtocolFilter has_protocol() {
-    return [](const DecodeStackResult& result) {
-        return result.has_layer<HeaderT>();
-    };
+    return [](const DecodeStackResult& result) { return result.has_layer<HeaderT>(); };
 }
 
 /// @brief Create filter for SOME/IP service ID
@@ -177,7 +172,7 @@ template <typename HeaderT>
 
 /// @brief Create filter for SOME/IP method ID
 [[nodiscard]] inline ProtocolFilter someip_method(std::uint16_t service_id,
-                                                   std::uint16_t method_id) {
+                                                  std::uint16_t method_id) {
     return [service_id, method_id](const DecodeStackResult& result) {
         if (auto* hdr = result.get_layer<someip::SomeIpHeader>()) {
             return hdr->service_id == service_id && hdr->method_id == method_id;
@@ -260,9 +255,7 @@ template <typename HeaderT>
 
 /// @brief Negate a filter
 [[nodiscard]] inline ProtocolFilter operator!(ProtocolFilter filter) {
-    return [f = std::move(filter)](const DecodeStackResult& result) {
-        return !f(result);
-    };
+    return [f = std::move(filter)](const DecodeStackResult& result) { return !f(result); };
 }
 
 }  // namespace wadjet::protocols

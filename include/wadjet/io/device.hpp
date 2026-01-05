@@ -13,15 +13,15 @@ namespace wadjet::io {
 
 /// @brief Network interface information
 struct NetworkDevice {
-    std::string name;          ///< Interface name (e.g., "eth0")
-    std::string description;   ///< Description (if available)
-    MacAddress mac;            ///< MAC address
-    std::uint32_t index;       ///< Interface index
-    std::uint32_t mtu;         ///< Maximum Transmission Unit
-    bool is_up;                ///< Interface is up
-    bool is_running;           ///< Interface is running
-    bool is_loopback;          ///< Loopback interface
-    bool supports_promiscuous; ///< Supports promiscuous mode
+    std::string name;           ///< Interface name (e.g., "eth0")
+    std::string description;    ///< Description (if available)
+    MacAddress mac;             ///< MAC address
+    std::uint32_t index;        ///< Interface index
+    std::uint32_t mtu;          ///< Maximum Transmission Unit
+    bool is_up;                 ///< Interface is up
+    bool is_running;            ///< Interface is running
+    bool is_loopback;           ///< Loopback interface
+    bool supports_promiscuous;  ///< Supports promiscuous mode
 };
 
 /// @brief Enumerate network devices

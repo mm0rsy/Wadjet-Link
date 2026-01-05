@@ -9,14 +9,14 @@ namespace wadjet::pcap {
 
 /// @brief PCAPNG block types
 enum class PcapngBlockType : std::uint32_t {
-    SectionHeader = 0x0A0D0D0A,          ///< Section Header Block (SHB)
-    InterfaceDescription = 0x00000001,   ///< Interface Description Block (IDB)
-    EnhancedPacket = 0x00000006,         ///< Enhanced Packet Block (EPB)
-    SimplePacket = 0x00000003,           ///< Simple Packet Block (SPB)
-    NameResolution = 0x00000004,         ///< Name Resolution Block (NRB)
-    InterfaceStatistics = 0x00000005,    ///< Interface Statistics Block (ISB)
-    CustomBlock = 0x00000BAD,            ///< Custom Block
-    CustomBlockCopyable = 0x40000BAD,    ///< Custom Block (copyable)
+    SectionHeader = 0x0A0D0D0A,         ///< Section Header Block (SHB)
+    InterfaceDescription = 0x00000001,  ///< Interface Description Block (IDB)
+    EnhancedPacket = 0x00000006,        ///< Enhanced Packet Block (EPB)
+    SimplePacket = 0x00000003,          ///< Simple Packet Block (SPB)
+    NameResolution = 0x00000004,        ///< Name Resolution Block (NRB)
+    InterfaceStatistics = 0x00000005,   ///< Interface Statistics Block (ISB)
+    CustomBlock = 0x00000BAD,           ///< Custom Block
+    CustomBlockCopyable = 0x40000BAD,   ///< Custom Block (copyable)
 };
 
 /// @brief PCAPNG byte order magic
@@ -24,52 +24,52 @@ constexpr std::uint32_t PCAPNG_BYTE_ORDER_MAGIC = 0x1A2B3C4D;
 
 /// @brief PCAPNG option types (common)
 enum class PcapngOptionType : std::uint16_t {
-    EndOfOpt = 0,        ///< End of options
-    Comment = 1,         ///< Comment (UTF-8 string)
+    EndOfOpt = 0,  ///< End of options
+    Comment = 1,   ///< Comment (UTF-8 string)
     // SHB-specific options
-    SHB_Hardware = 2,    ///< Hardware description
-    SHB_OS = 3,          ///< Operating system
-    SHB_UserAppl = 4,    ///< User application
+    SHB_Hardware = 2,  ///< Hardware description
+    SHB_OS = 3,        ///< Operating system
+    SHB_UserAppl = 4,  ///< User application
     // IDB-specific options
-    IDB_Name = 2,        ///< Interface name
-    IDB_Description = 3, ///< Interface description
-    IDB_IPv4Addr = 4,    ///< IPv4 address
-    IDB_IPv6Addr = 5,    ///< IPv6 address
-    IDB_MACAddr = 6,     ///< MAC address
-    IDB_EUIAddr = 7,     ///< EUI address
-    IDB_Speed = 8,       ///< Interface speed (bps)
-    IDB_TSResol = 9,     ///< Timestamp resolution
-    IDB_TZone = 10,      ///< Time zone
-    IDB_Filter = 11,     ///< BPF filter
-    IDB_OS = 12,         ///< Operating system
-    IDB_FCSLen = 13,     ///< Frame Check Sequence length
-    IDB_TSOffset = 14,   ///< Timestamp offset
-    IDB_Hardware = 15,   ///< Hardware description
+    IDB_Name = 2,         ///< Interface name
+    IDB_Description = 3,  ///< Interface description
+    IDB_IPv4Addr = 4,     ///< IPv4 address
+    IDB_IPv6Addr = 5,     ///< IPv6 address
+    IDB_MACAddr = 6,      ///< MAC address
+    IDB_EUIAddr = 7,      ///< EUI address
+    IDB_Speed = 8,        ///< Interface speed (bps)
+    IDB_TSResol = 9,      ///< Timestamp resolution
+    IDB_TZone = 10,       ///< Time zone
+    IDB_Filter = 11,      ///< BPF filter
+    IDB_OS = 12,          ///< Operating system
+    IDB_FCSLen = 13,      ///< Frame Check Sequence length
+    IDB_TSOffset = 14,    ///< Timestamp offset
+    IDB_Hardware = 15,    ///< Hardware description
     // EPB-specific options
-    EPB_Flags = 2,       ///< Packet flags
-    EPB_Hash = 3,        ///< Packet hash
-    EPB_DropCount = 4,   ///< Dropped packets count
-    EPB_PacketId = 5,    ///< Packet ID
-    EPB_Queue = 6,       ///< Queue ID
-    EPB_Verdict = 7,     ///< Verdict
+    EPB_Flags = 2,      ///< Packet flags
+    EPB_Hash = 3,       ///< Packet hash
+    EPB_DropCount = 4,  ///< Dropped packets count
+    EPB_PacketId = 5,   ///< Packet ID
+    EPB_Queue = 6,      ///< Queue ID
+    EPB_Verdict = 7,    ///< Verdict
     // ISB-specific options
-    ISB_StartTime = 2,   ///< Capture start time
-    ISB_EndTime = 3,     ///< Capture end time
-    ISB_IFRecv = 4,      ///< Packets received
-    ISB_IFDrop = 5,      ///< Packets dropped by interface
-    ISB_FilterAccept = 6,///< Packets accepted by filter
-    ISB_OSDrops = 7,     ///< Packets dropped by OS
-    ISB_UsrDeliv = 8,    ///< Packets delivered to user
+    ISB_StartTime = 2,     ///< Capture start time
+    ISB_EndTime = 3,       ///< Capture end time
+    ISB_IFRecv = 4,        ///< Packets received
+    ISB_IFDrop = 5,        ///< Packets dropped by interface
+    ISB_FilterAccept = 6,  ///< Packets accepted by filter
+    ISB_OSDrops = 7,       ///< Packets dropped by OS
+    ISB_UsrDeliv = 8,      ///< Packets delivered to user
 };
 
 /// @brief Section Header Block (SHB) fixed fields
 struct PcapngSHB {
-    std::uint32_t block_type;       ///< Block type = 0x0A0D0D0A
-    std::uint32_t block_total_len;  ///< Total block length
-    std::uint32_t byte_order_magic; ///< Byte order magic = 0x1A2B3C4D
-    std::uint16_t major_version;    ///< Major version = 1
-    std::uint16_t minor_version;    ///< Minor version = 0
-    std::int64_t section_length;    ///< Section length (-1 = unspecified)
+    std::uint32_t block_type;        ///< Block type = 0x0A0D0D0A
+    std::uint32_t block_total_len;   ///< Total block length
+    std::uint32_t byte_order_magic;  ///< Byte order magic = 0x1A2B3C4D
+    std::uint16_t major_version;     ///< Major version = 1
+    std::uint16_t minor_version;     ///< Minor version = 0
+    std::int64_t section_length;     ///< Section length (-1 = unspecified)
     // Options follow, then block_total_len repeated
 };
 

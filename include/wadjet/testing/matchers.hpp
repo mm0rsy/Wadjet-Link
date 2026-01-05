@@ -61,8 +61,7 @@ inline std::span<const std::byte> get_packet_data(std::span<const std::byte> pkt
 
 /// @brief Extract raw data span from span of uint8_t
 inline std::span<const std::byte> get_packet_data(std::span<const uint8_t> pkt) {
-    return std::span<const std::byte>(
-        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+    return std::span<const std::byte>(reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
 }
 
 /// @brief Extract raw data span from vector of bytes
@@ -72,15 +71,13 @@ inline std::span<const std::byte> get_packet_data(const std::vector<std::byte>& 
 
 /// @brief Extract raw data span from vector of uint8_t
 inline std::span<const std::byte> get_packet_data(const std::vector<uint8_t>& pkt) {
-    return std::span<const std::byte>(
-        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+    return std::span<const std::byte>(reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
 }
 
 /// @brief Generic fallback for array types
 template <std::size_t N>
 std::span<const std::byte> get_packet_data(const std::array<uint8_t, N>& pkt) {
-    return std::span<const std::byte>(
-        reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
+    return std::span<const std::byte>(reinterpret_cast<const std::byte*>(pkt.data()), pkt.size());
 }
 
 /// @brief Decode packet and return result
@@ -159,9 +156,7 @@ public:
         return eth->src_mac == expected_;
     }
 
-    void DescribeTo(std::ostream* os) const {
-        *os << "has source MAC " << expected_.to_string();
-    }
+    void DescribeTo(std::ostream* os) const { *os << "has source MAC " << expected_.to_string(); }
 
     void DescribeNegationTo(std::ostream* os) const {
         *os << "does not have source MAC " << expected_.to_string();
@@ -264,9 +259,8 @@ public:
         }
 
         // Check if VLAN tag is present (ethertype at offset 12-13)
-        auto ethertype =
-            (static_cast<uint16_t>(static_cast<uint8_t>(data[12])) << 8) |
-            static_cast<uint16_t>(static_cast<uint8_t>(data[13]));
+        auto ethertype = (static_cast<uint16_t>(static_cast<uint8_t>(data[12])) << 8) |
+                         static_cast<uint16_t>(static_cast<uint8_t>(data[13]));
 
         if (ethertype != 0x8100 && ethertype != 0x88A8) {
             if (listener->IsInterested()) {
@@ -276,9 +270,8 @@ public:
         }
 
         // VLAN ID is in bytes 14-15, lower 12 bits
-        auto tci =
-            (static_cast<uint16_t>(static_cast<uint8_t>(data[14])) << 8) |
-            static_cast<uint16_t>(static_cast<uint8_t>(data[15]));
+        auto tci = (static_cast<uint16_t>(static_cast<uint8_t>(data[14])) << 8) |
+                   static_cast<uint16_t>(static_cast<uint8_t>(data[15]));
         auto vlan_id = tci & 0x0FFF;
 
         if (listener->IsInterested()) {
@@ -288,7 +281,9 @@ public:
     }
 
     void DescribeTo(std::ostream* os) const { *os << "has VLAN ID " << expected_; }
-    void DescribeNegationTo(std::ostream* os) const { *os << "does not have VLAN ID " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have VLAN ID " << expected_;
+    }
 
 private:
     std::uint16_t expected_;
@@ -326,9 +321,7 @@ public:
         return ip->src_ip == expected_;
     }
 
-    void DescribeTo(std::ostream* os) const {
-        *os << "has source IP " << expected_.to_string();
-    }
+    void DescribeTo(std::ostream* os) const { *os << "has source IP " << expected_.to_string(); }
 
     void DescribeNegationTo(std::ostream* os) const {
         *os << "does not have source IP " << expected_.to_string();
@@ -485,7 +478,9 @@ public:
     }
 
     void DescribeTo(std::ostream* os) const { *os << "has source port " << expected_; }
-    void DescribeNegationTo(std::ostream* os) const { *os << "does not have source port " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have source port " << expected_;
+    }
 
 private:
     std::uint16_t expected_;
@@ -695,7 +690,8 @@ inline ::testing::PolymorphicMatcher<HasSOMEIPMessageTypeMatcher> IsSOMEIPReques
 /// @brief Matcher: packet has specific DoIP payload type
 class HasDoIPPayloadTypeMatcher {
 public:
-    explicit HasDoIPPayloadTypeMatcher(protocols::doip::PayloadType payload_type) : expected_(payload_type) {}
+    explicit HasDoIPPayloadTypeMatcher(protocols::doip::PayloadType payload_type)
+        : expected_(payload_type) {}
 
     template <typename T>
     bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
@@ -711,7 +707,7 @@ public:
 
         const auto* doip = result.get_layer<protocols::doip::DoIPHeader>();
         if (listener->IsInterested()) {
-            *listener << "has DoIP payload type 0x" << std::hex 
+            *listener << "has DoIP payload type 0x" << std::hex
                       << static_cast<uint16_t>(doip->payload_type);
         }
         return doip->payload_type == expected_;
@@ -750,13 +746,16 @@ inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPRoutingAct
 }
 
 /// @brief Matcher: packet is a DoIP vehicle identification request
-inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPVehicleIdentificationRequest() {
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher>
+IsDoIPVehicleIdentificationRequest() {
     return HasDoIPPayloadType(protocols::doip::PayloadType::VehicleIdentificationRequest);
 }
 
 /// @brief Matcher: packet is a DoIP vehicle identification response
-inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher> IsDoIPVehicleIdentificationResponse() {
-    return HasDoIPPayloadType(protocols::doip::PayloadType::VehicleAnnouncementOrIdentificationResponse);
+inline ::testing::PolymorphicMatcher<HasDoIPPayloadTypeMatcher>
+IsDoIPVehicleIdentificationResponse() {
+    return HasDoIPPayloadType(
+        protocols::doip::PayloadType::VehicleAnnouncementOrIdentificationResponse);
 }
 
 // =============================================================================
@@ -1103,17 +1102,17 @@ inline ::testing::PolymorphicMatcher<IsGptpTwoStepMatcher> IsGptpTwoStep() {
 /// @brief Matcher: packet payload contains specific bytes
 class PayloadContainsMatcher {
 public:
-    explicit PayloadContainsMatcher(std::vector<std::uint8_t> pattern) : pattern_(std::move(pattern)) {}
+    explicit PayloadContainsMatcher(std::vector<std::uint8_t> pattern)
+        : pattern_(std::move(pattern)) {}
 
     template <typename T>
     bool MatchAndExplain(const T& pkt, ::testing::MatchResultListener* listener) const {
         auto data = detail::get_packet_data(pkt);
 
         // Search for pattern in raw data
-        auto it = std::search(
-            reinterpret_cast<const uint8_t*>(data.data()),
-            reinterpret_cast<const uint8_t*>(data.data()) + data.size(),
-            pattern_.begin(), pattern_.end());
+        auto it = std::search(reinterpret_cast<const uint8_t*>(data.data()),
+                              reinterpret_cast<const uint8_t*>(data.data()) + data.size(),
+                              pattern_.begin(), pattern_.end());
 
         bool found = it != (reinterpret_cast<const uint8_t*>(data.data()) + data.size());
         if (listener->IsInterested()) {
@@ -1161,7 +1160,9 @@ public:
     }
 
     void DescribeTo(std::ostream* os) const { *os << "has payload size " << expected_; }
-    void DescribeNegationTo(std::ostream* os) const { *os << "does not have payload size " << expected_; }
+    void DescribeNegationTo(std::ostream* os) const {
+        *os << "does not have payload size " << expected_;
+    }
 
 private:
     std::size_t expected_;

@@ -21,19 +21,26 @@ inline constexpr std::size_t MAX_HEADER_SIZE = 60;
 
 /// @brief TCP flags
 struct TcpFlags {
-    bool fin : 1;    ///< No more data from sender
-    bool syn : 1;    ///< Synchronize sequence numbers
-    bool rst : 1;    ///< Reset connection
-    bool psh : 1;    ///< Push function
-    bool ack : 1;    ///< Acknowledgment field valid
-    bool urg : 1;    ///< Urgent pointer field valid
-    bool ece : 1;    ///< ECN-Echo
-    bool cwr : 1;    ///< Congestion Window Reduced
-    bool ns : 1;     ///< ECN-nonce concealment
+    bool fin : 1;  ///< No more data from sender
+    bool syn : 1;  ///< Synchronize sequence numbers
+    bool rst : 1;  ///< Reset connection
+    bool psh : 1;  ///< Push function
+    bool ack : 1;  ///< Acknowledgment field valid
+    bool urg : 1;  ///< Urgent pointer field valid
+    bool ece : 1;  ///< ECN-Echo
+    bool cwr : 1;  ///< Congestion Window Reduced
+    bool ns : 1;   ///< ECN-nonce concealment
 
     TcpFlags()
-        : fin(false), syn(false), rst(false), psh(false)
-        , ack(false), urg(false), ece(false), cwr(false), ns(false) {}
+        : fin(false),
+          syn(false),
+          rst(false),
+          psh(false),
+          ack(false),
+          urg(false),
+          ece(false),
+          cwr(false),
+          ns(false) {}
 
     explicit TcpFlags(std::uint16_t flags_word) {
         fin = (flags_word >> 0) & 1;
@@ -74,8 +81,7 @@ struct TcpOption {
     [[nodiscard]] std::optional<std::uint8_t> window_scale() const;
 
     /// @brief Get timestamps (if kind == Timestamps)
-    [[nodiscard]] std::optional<std::pair<std::uint32_t, std::uint32_t>>
-        timestamps() const;
+    [[nodiscard]] std::optional<std::pair<std::uint32_t, std::uint32_t>> timestamps() const;
 };
 
 /// @brief Decoded TCP header
@@ -93,9 +99,7 @@ struct TcpHeader : public IDecodedHeader {
     bool checksum_valid = true;      ///< Whether checksum was validated
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "TCP";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "TCP"; }
 
     [[nodiscard]] std::size_t header_size() const override {
         return static_cast<std::size_t>(data_offset) * 4;
@@ -132,7 +136,7 @@ public:
     /// @brief Decoder options
     struct Options {
         bool parse_options;      ///< Parse TCP options
-        bool validate_checksum; ///< Validate TCP checksum
+        bool validate_checksum;  ///< Validate TCP checksum
         Options() : parse_options(true), validate_checksum(false) {}
     };
 
@@ -141,8 +145,7 @@ public:
     [[nodiscard]] std::string_view name() const override { return "TCP"; }
 
     [[nodiscard]] bool can_decode(const DecodeContext& ctx) const override {
-        return ctx.layer_info.ip_protocol ==
-               static_cast<std::uint8_t>(IpProtocol::TCP);
+        return ctx.layer_info.ip_protocol == static_cast<std::uint8_t>(IpProtocol::TCP);
     }
 
     /// @brief Decode TCP header
@@ -150,8 +153,7 @@ public:
 
 private:
     /// @brief Parse TCP options
-    [[nodiscard]] static std::vector<TcpOption> parse_options(
-        std::span<const std::byte> opts_data);
+    [[nodiscard]] static std::vector<TcpOption> parse_options(std::span<const std::byte> opts_data);
 
     Options options_;
 };

@@ -30,8 +30,8 @@ inline constexpr std::uint16_t ETHERTYPE_QINQ = 0x88A8;
 
 /// @brief VLAN tag information (802.1Q)
 struct VlanTag {
-    std::uint16_t tpid = 0;          ///< Tag Protocol ID (0x8100 or 0x88A8)
-    std::uint16_t tci = 0;           ///< Tag Control Information
+    std::uint16_t tpid = 0;  ///< Tag Protocol ID (0x8100 or 0x88A8)
+    std::uint16_t tci = 0;   ///< Tag Control Information
 
     /// @brief Priority Code Point (3 bits, 0-7)
     [[nodiscard]] constexpr std::uint8_t pcp() const {
@@ -39,39 +39,30 @@ struct VlanTag {
     }
 
     /// @brief Drop Eligible Indicator (1 bit)
-    [[nodiscard]] constexpr bool dei() const {
-        return (tci & 0x1000) != 0;
-    }
+    [[nodiscard]] constexpr bool dei() const { return (tci & 0x1000) != 0; }
 
     /// @brief VLAN Identifier (12 bits, 0-4095)
-    [[nodiscard]] constexpr std::uint16_t vid() const {
-        return tci & 0x0FFF;
-    }
+    [[nodiscard]] constexpr std::uint16_t vid() const { return tci & 0x0FFF; }
 
     /// @brief Check if this is a valid VLAN tag
     [[nodiscard]] constexpr bool is_valid() const {
-        return tpid == static_cast<std::uint16_t>(EtherType::VLAN) ||
-               tpid == ETHERTYPE_QINQ;
+        return tpid == static_cast<std::uint16_t>(EtherType::VLAN) || tpid == ETHERTYPE_QINQ;
     }
 };
 
 /// @brief Decoded Ethernet header
 struct EthernetHeader : public IDecodedHeader {
-    MacAddress dst_mac;              ///< Destination MAC address
-    MacAddress src_mac;              ///< Source MAC address
-    std::optional<VlanTag> vlan;     ///< Optional VLAN tag (outer)
-    std::optional<VlanTag> vlan_inner; ///< Optional inner VLAN tag (QinQ)
-    std::uint16_t ethertype = 0;     ///< Ethertype/Length field
-    std::size_t header_len = 0;      ///< Total header length parsed
+    MacAddress dst_mac;                 ///< Destination MAC address
+    MacAddress src_mac;                 ///< Source MAC address
+    std::optional<VlanTag> vlan;        ///< Optional VLAN tag (outer)
+    std::optional<VlanTag> vlan_inner;  ///< Optional inner VLAN tag (QinQ)
+    std::uint16_t ethertype = 0;        ///< Ethertype/Length field
+    std::size_t header_len = 0;         ///< Total header length parsed
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "Ethernet";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "Ethernet"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return header_len;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return header_len; }
 
     [[nodiscard]] std::size_t payload_size() const override {
         return 0;  // Unknown from Ethernet header alone
@@ -86,9 +77,7 @@ struct EthernetHeader : public IDecodedHeader {
     [[nodiscard]] bool has_qinq() const { return vlan_inner.has_value(); }
 
     /// @brief Get VLAN ID (0 if no VLAN)
-    [[nodiscard]] std::uint16_t vlan_id() const {
-        return vlan ? vlan->vid() : 0;
-    }
+    [[nodiscard]] std::uint16_t vlan_id() const { return vlan ? vlan->vid() : 0; }
 
     /// @brief Check if ethertype indicates an IP protocol
     [[nodiscard]] bool is_ipv4() const {
@@ -119,8 +108,8 @@ public:
 
 private:
     /// @brief Parse VLAN tag at offset
-    [[nodiscard]] static std::optional<VlanTag> parse_vlan(
-        const DecodeContext& ctx, std::size_t offset);
+    [[nodiscard]] static std::optional<VlanTag> parse_vlan(const DecodeContext& ctx,
+                                                           std::size_t offset);
 };
 
 /// @brief Global Ethernet decoder instance

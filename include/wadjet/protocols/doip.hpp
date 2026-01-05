@@ -113,23 +113,17 @@ using GID = std::array<std::uint8_t, 6>;
 
 /// @brief Decoded DoIP header
 struct DoIPHeader : public IDecodedHeader {
-    std::uint8_t protocol_version = 0;        ///< Protocol version
-    std::uint8_t inverse_protocol_version = 0; ///< Inverse of protocol version
+    std::uint8_t protocol_version = 0;          ///< Protocol version
+    std::uint8_t inverse_protocol_version = 0;  ///< Inverse of protocol version
     PayloadType payload_type = PayloadType::GenericNack;
     std::uint32_t payload_length = 0;
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "DoIP";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "DoIP"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return HEADER_SIZE;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return HEADER_SIZE; }
 
-    [[nodiscard]] std::size_t payload_size() const override {
-        return payload_length;
-    }
+    [[nodiscard]] std::size_t payload_size() const override { return payload_length; }
 
     [[nodiscard]] std::string to_string() const override;
 
@@ -158,16 +152,16 @@ struct DoIPHeader : public IDecodedHeader {
 
 /// @brief Routing activation request payload
 struct RoutingActivationRequest {
-    std::uint16_t source_address = 0;    ///< External tester address
-    std::uint8_t activation_type = 0;    ///< Activation type
-    std::uint32_t reserved = 0;          ///< Reserved (ISO 13400-2)
-    std::optional<std::uint32_t> oem_specific; ///< OEM-specific data (if present)
+    std::uint16_t source_address = 0;           ///< External tester address
+    std::uint8_t activation_type = 0;           ///< Activation type
+    std::uint32_t reserved = 0;                 ///< Reserved (ISO 13400-2)
+    std::optional<std::uint32_t> oem_specific;  ///< OEM-specific data (if present)
 };
 
 /// @brief Routing activation response payload
 struct RoutingActivationResponse {
-    std::uint16_t logical_address = 0;   ///< Tester logical address
-    std::uint16_t entity_address = 0;    ///< DoIP entity logical address
+    std::uint16_t logical_address = 0;  ///< Tester logical address
+    std::uint16_t entity_address = 0;   ///< DoIP entity logical address
     RoutingActivationResponseCode response_code =
         RoutingActivationResponseCode::UnknownSourceAddress;
     std::uint32_t reserved = 0;
@@ -176,19 +170,19 @@ struct RoutingActivationResponse {
 
 /// @brief Diagnostic message payload
 struct DiagnosticMessagePayload {
-    std::uint16_t source_address = 0;    ///< Source logical address
-    std::uint16_t target_address = 0;    ///< Target logical address
-    std::span<const std::byte> user_data; ///< UDS/diagnostic data
+    std::uint16_t source_address = 0;      ///< Source logical address
+    std::uint16_t target_address = 0;      ///< Target logical address
+    std::span<const std::byte> user_data;  ///< UDS/diagnostic data
 };
 
 /// @brief Vehicle announcement/identification response
 struct VehicleIdentificationResponse {
-    VIN vin{};                           ///< Vehicle Identification Number
-    std::uint16_t logical_address = 0;   ///< Logical address of DoIP entity
-    EID eid{};                           ///< Entity ID (usually MAC)
-    GID gid{};                           ///< Group ID
-    std::uint8_t further_action = 0;     ///< Further action required
-    std::uint8_t sync_status = 0;        ///< VIN/GID sync status (optional)
+    VIN vin{};                          ///< Vehicle Identification Number
+    std::uint16_t logical_address = 0;  ///< Logical address of DoIP entity
+    EID eid{};                          ///< Entity ID (usually MAC)
+    GID gid{};                          ///< Group ID
+    std::uint8_t further_action = 0;    ///< Further action required
+    std::uint8_t sync_status = 0;       ///< VIN/GID sync status (optional)
 };
 
 /// @brief DoIP decoder
@@ -196,8 +190,8 @@ class DoIPDecoder : public DecoderBase<DoIPDecoder, DoIPHeader> {
 public:
     /// @brief Decoder options
     struct Options {
-        bool validate_version;         ///< Check version field validity
-        bool allow_invalid_version;   ///< Continue even if version invalid
+        bool validate_version;       ///< Check version field validity
+        bool allow_invalid_version;  ///< Continue even if version invalid
         Options() : validate_version(true), allow_invalid_version(false) {}
     };
 
@@ -214,20 +208,20 @@ public:
     [[nodiscard]] Result decode_impl(const DecodeContext& ctx) const;
 
     /// @brief Parse routing activation request from payload
-    [[nodiscard]] static std::optional<RoutingActivationRequest>
-        parse_routing_activation_request(std::span<const std::byte> payload);
+    [[nodiscard]] static std::optional<RoutingActivationRequest> parse_routing_activation_request(
+        std::span<const std::byte> payload);
 
     /// @brief Parse routing activation response from payload
-    [[nodiscard]] static std::optional<RoutingActivationResponse>
-        parse_routing_activation_response(std::span<const std::byte> payload);
+    [[nodiscard]] static std::optional<RoutingActivationResponse> parse_routing_activation_response(
+        std::span<const std::byte> payload);
 
     /// @brief Parse diagnostic message payload
-    [[nodiscard]] static std::optional<DiagnosticMessagePayload>
-        parse_diagnostic_message(std::span<const std::byte> payload);
+    [[nodiscard]] static std::optional<DiagnosticMessagePayload> parse_diagnostic_message(
+        std::span<const std::byte> payload);
 
     /// @brief Parse vehicle identification response
     [[nodiscard]] static std::optional<VehicleIdentificationResponse>
-        parse_vehicle_identification_response(std::span<const std::byte> payload);
+    parse_vehicle_identification_response(std::span<const std::byte> payload);
 
 private:
     Options options_;

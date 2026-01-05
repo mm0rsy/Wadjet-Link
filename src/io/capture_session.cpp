@@ -128,8 +128,7 @@ auto CaptureSession::create(const std::string& interface,
     sll.sll_protocol = htons(ETH_P_ALL);
     sll.sll_ifindex = if_index;
 
-    if (bind(session.impl_->socket_fd, reinterpret_cast<sockaddr*>(&sll),
-             sizeof(sll)) < 0) {
+    if (bind(session.impl_->socket_fd, reinterpret_cast<sockaddr*>(&sll), sizeof(sll)) < 0) {
         close(session.impl_->socket_fd);
         return Result<CaptureSession>::err(
             Error{errno, "Failed to bind to interface: " + interface});
@@ -140,8 +139,8 @@ auto CaptureSession::create(const std::string& interface,
         packet_mreq mreq{};
         mreq.mr_ifindex = if_index;
         mreq.mr_type = PACKET_MR_PROMISC;
-        if (setsockopt(session.impl_->socket_fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP,
-                       &mreq, sizeof(mreq)) < 0) {
+        if (setsockopt(session.impl_->socket_fd, SOL_PACKET, PACKET_ADD_MEMBERSHIP, &mreq,
+                       sizeof(mreq)) < 0) {
             // Non-fatal, just log
         }
     }
@@ -234,8 +233,7 @@ auto CaptureSession::create(const std::string& interface,
 
     return Result<CaptureSession>::ok(std::move(session));
 #else
-    return Result<CaptureSession>::err(
-        Error{-1, "AF_PACKET capture only supported on Linux"});
+    return Result<CaptureSession>::err(Error{-1, "AF_PACKET capture only supported on Linux"});
 #endif
 }
 
@@ -250,8 +248,8 @@ auto CaptureSession::set_filter(const FrameFilter& filter) -> Result<void> {
     kernel_filter.len = static_cast<unsigned short>(bpf_prog->bf_len);
     kernel_filter.filter = reinterpret_cast<sock_filter*>(bpf_prog->bf_insns);
 
-    if (setsockopt(impl_->socket_fd, SOL_SOCKET, SO_ATTACH_FILTER,
-                   &kernel_filter, sizeof(kernel_filter)) < 0) {
+    if (setsockopt(impl_->socket_fd, SOL_SOCKET, SO_ATTACH_FILTER, &kernel_filter,
+                   sizeof(kernel_filter)) < 0) {
         return Result<void>::err(Error{errno, "Failed to attach BPF filter"});
     }
 
@@ -503,8 +501,7 @@ auto CaptureSession::stats() const -> CaptureStats {
     if (impl_->socket_fd >= 0) {
         tpacket_stats kstats{};
         socklen_t len = sizeof(kstats);
-        if (getsockopt(impl_->socket_fd, SOL_PACKET, PACKET_STATISTICS,
-                       &kstats, &len) == 0) {
+        if (getsockopt(impl_->socket_fd, SOL_PACKET, PACKET_STATISTICS, &kstats, &len) == 0) {
             result.packets_dropped = kstats.tp_drops;
         }
     }

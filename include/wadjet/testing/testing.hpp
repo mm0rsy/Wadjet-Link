@@ -42,16 +42,16 @@
 #pragma once
 
 // GoogleTest/GoogleMock
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 // Wadjet testing components
-#include "wadjet/testing/matchers.hpp"
+#include "wadjet/testing/generators.hpp"
+#include "wadjet/testing/live_assert.hpp"
 #include "wadjet/testing/live_capture_fixture.hpp"
 #include "wadjet/testing/macros.hpp"
-#include "wadjet/testing/generators.hpp"
+#include "wadjet/testing/matchers.hpp"
 #include "wadjet/testing/record_replay.hpp"
-#include "wadjet/testing/live_assert.hpp"
 
 // Also include commonly needed Wadjet types
 #include "wadjet/core/types.hpp"

@@ -47,9 +47,7 @@ public:
         : data_(view.data().begin(), view.data().end()), timestamp_(view.timestamp()) {}
 
     /// @brief Get raw data as span
-    [[nodiscard]] ByteSpan data() const {
-        return ByteSpan(data_.data(), data_.size());
-    }
+    [[nodiscard]] ByteSpan data() const { return ByteSpan(data_.data(), data_.size()); }
 
     /// @brief Get mutable raw data
     [[nodiscard]] MutableByteSpan mutable_data() {
@@ -84,9 +82,7 @@ public:
     void clear() { data_.clear(); }
 
     /// @brief Append data to packet
-    void append(ByteSpan data) {
-        data_.insert(data_.end(), data.begin(), data.end());
-    }
+    void append(ByteSpan data) { data_.insert(data_.end(), data.begin(), data.end()); }
 
     /// @brief Append single byte
     void push_back(std::byte b) { data_.push_back(b); }

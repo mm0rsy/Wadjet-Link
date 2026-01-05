@@ -30,10 +30,10 @@ Duration parse_duration(const YAML::Node& node, Duration default_val = Duration{
     if (!node || node.IsNull()) {
         return default_val;
     }
-    
+
     if (node.IsScalar()) {
         std::string str = node.as<std::string>();
-        
+
         // Try parsing as number with unit suffix
         std::size_t value = 0;
         std::size_t i = 0;
@@ -41,13 +41,13 @@ Duration parse_duration(const YAML::Node& node, Duration default_val = Duration{
             value = value * 10 + static_cast<std::size_t>(str[i] - '0');
             ++i;
         }
-        
+
         std::string unit = str.substr(i);
         // Trim whitespace
         while (!unit.empty() && std::isspace(static_cast<unsigned char>(unit.front()))) {
             unit.erase(0, 1);
         }
-        
+
         if (unit.empty() || unit == "ms") {
             return Duration{static_cast<long long>(value)};
         } else if (unit == "s") {
@@ -55,29 +55,28 @@ Duration parse_duration(const YAML::Node& node, Duration default_val = Duration{
         } else if (unit == "us" || unit == "µs") {
             return Duration{static_cast<long long>(value / 1000)};
         }
-        
+
         // Fall back to integer milliseconds
         return Duration{static_cast<long long>(value)};
     }
-    
+
     return Duration{node.as<long long>()};
 }
 
 std::vector<std::uint8_t> parse_hex_bytes(const std::string& str) {
     std::vector<std::uint8_t> result;
     std::string hex;
-    
+
     for (char c : str) {
         if (std::isxdigit(static_cast<unsigned char>(c))) {
             hex += c;
             if (hex.size() == 2) {
-                result.push_back(static_cast<std::uint8_t>(
-                    std::stoul(hex, nullptr, 16)));
+                result.push_back(static_cast<std::uint8_t>(std::stoul(hex, nullptr, 16)));
                 hex.clear();
             }
         }
     }
-    
+
     return result;
 }
 
@@ -91,7 +90,7 @@ EthernetExpect parse_ethernet_expect(const YAML::Node& node) {
     expect.dst_mac = get_optional<std::string>(node, "dst_mac");
     expect.ethertype = get_optional<std::uint16_t>(node, "ethertype");
     expect.vlan_id = get_optional<std::uint16_t>(node, "vlan_id");
-    
+
     // Alternative names
     if (!expect.src_mac && node["source"]) {
         expect.src_mac = node["source"].as<std::string>();
@@ -105,7 +104,7 @@ EthernetExpect parse_ethernet_expect(const YAML::Node& node) {
     if (!expect.vlan_id && node["vlan"]) {
         expect.vlan_id = node["vlan"].as<std::uint16_t>();
     }
-    
+
     return expect;
 }
 
@@ -115,7 +114,7 @@ IPv4Expect parse_ipv4_expect(const YAML::Node& node) {
     expect.dst_ip = get_optional<std::string>(node, "dst_ip");
     expect.protocol = get_optional<std::uint8_t>(node, "protocol");
     expect.ttl = get_optional<std::uint8_t>(node, "ttl");
-    
+
     // Alternative names
     if (!expect.src_ip && node["source"]) {
         expect.src_ip = node["source"].as<std::string>();
@@ -123,7 +122,7 @@ IPv4Expect parse_ipv4_expect(const YAML::Node& node) {
     if (!expect.dst_ip && node["destination"]) {
         expect.dst_ip = node["destination"].as<std::string>();
     }
-    
+
     return expect;
 }
 
@@ -131,7 +130,7 @@ UDPExpect parse_udp_expect(const YAML::Node& node) {
     UDPExpect expect;
     expect.src_port = get_optional<std::uint16_t>(node, "src_port");
     expect.dst_port = get_optional<std::uint16_t>(node, "dst_port");
-    
+
     // Alternative names
     if (!expect.src_port && node["source"]) {
         expect.src_port = node["source"].as<std::uint16_t>();
@@ -142,7 +141,7 @@ UDPExpect parse_udp_expect(const YAML::Node& node) {
     if (!expect.dst_port && node["port"]) {
         expect.dst_port = node["port"].as<std::uint16_t>();
     }
-    
+
     return expect;
 }
 
@@ -154,7 +153,7 @@ TCPExpect parse_tcp_expect(const YAML::Node& node) {
     expect.ack = get_optional<bool>(node, "ack");
     expect.fin = get_optional<bool>(node, "fin");
     expect.rst = get_optional<bool>(node, "rst");
-    
+
     // Alternative names
     if (!expect.src_port && node["source"]) {
         expect.src_port = node["source"].as<std::uint16_t>();
@@ -165,16 +164,21 @@ TCPExpect parse_tcp_expect(const YAML::Node& node) {
     if (!expect.dst_port && node["port"]) {
         expect.dst_port = node["port"].as<std::uint16_t>();
     }
-    
+
     return expect;
 }
 
 SomeIpMessageTypeExpect parse_someip_message_type(const std::string& str) {
-    if (str == "request") return SomeIpMessageTypeExpect::Request;
-    if (str == "request_no_return") return SomeIpMessageTypeExpect::RequestNoReturn;
-    if (str == "notification") return SomeIpMessageTypeExpect::Notification;
-    if (str == "response") return SomeIpMessageTypeExpect::Response;
-    if (str == "error") return SomeIpMessageTypeExpect::Error;
+    if (str == "request")
+        return SomeIpMessageTypeExpect::Request;
+    if (str == "request_no_return")
+        return SomeIpMessageTypeExpect::RequestNoReturn;
+    if (str == "notification")
+        return SomeIpMessageTypeExpect::Notification;
+    if (str == "response")
+        return SomeIpMessageTypeExpect::Response;
+    if (str == "error")
+        return SomeIpMessageTypeExpect::Error;
     return SomeIpMessageTypeExpect::Any;
 }
 
@@ -185,7 +189,7 @@ SomeIpExpect parse_someip_expect(const YAML::Node& node) {
     expect.client_id = get_optional<std::uint16_t>(node, "client_id");
     expect.session_id = get_optional<std::uint16_t>(node, "session_id");
     expect.return_code = get_optional<std::uint8_t>(node, "return_code");
-    
+
     // Alternative names
     if (!expect.service_id && node["service"]) {
         expect.service_id = node["service"].as<std::uint16_t>();
@@ -196,23 +200,25 @@ SomeIpExpect parse_someip_expect(const YAML::Node& node) {
     if (!expect.method_id && node["event"]) {
         expect.method_id = node["event"].as<std::uint16_t>();
     }
-    
+
     if (node["message_type"]) {
-        expect.message_type = parse_someip_message_type(
-            node["message_type"].as<std::string>());
+        expect.message_type = parse_someip_message_type(node["message_type"].as<std::string>());
     } else if (node["type"]) {
-        expect.message_type = parse_someip_message_type(
-            node["type"].as<std::string>());
+        expect.message_type = parse_someip_message_type(node["type"].as<std::string>());
     }
-    
+
     return expect;
 }
 
 SdEntryTypeExpect parse_sd_entry_type(const std::string& str) {
-    if (str == "find" || str == "find_service") return SdEntryTypeExpect::FindService;
-    if (str == "offer" || str == "offer_service") return SdEntryTypeExpect::OfferService;
-    if (str == "subscribe") return SdEntryTypeExpect::Subscribe;
-    if (str == "subscribe_ack") return SdEntryTypeExpect::SubscribeAck;
+    if (str == "find" || str == "find_service")
+        return SdEntryTypeExpect::FindService;
+    if (str == "offer" || str == "offer_service")
+        return SdEntryTypeExpect::OfferService;
+    if (str == "subscribe")
+        return SdEntryTypeExpect::Subscribe;
+    if (str == "subscribe_ack")
+        return SdEntryTypeExpect::SubscribeAck;
     return SdEntryTypeExpect::Any;
 }
 
@@ -221,7 +227,7 @@ SomeIpSdExpect parse_someip_sd_expect(const YAML::Node& node) {
     expect.service_id = get_optional<std::uint16_t>(node, "service_id");
     expect.instance_id = get_optional<std::uint16_t>(node, "instance_id");
     expect.major_version = get_optional<std::uint8_t>(node, "major_version");
-    
+
     // Alternative names
     if (!expect.service_id && node["service"]) {
         expect.service_id = node["service"].as<std::uint16_t>();
@@ -229,24 +235,31 @@ SomeIpSdExpect parse_someip_sd_expect(const YAML::Node& node) {
     if (!expect.instance_id && node["instance"]) {
         expect.instance_id = node["instance"].as<std::uint16_t>();
     }
-    
+
     if (node["entry_type"]) {
         expect.entry_type = parse_sd_entry_type(node["entry_type"].as<std::string>());
     } else if (node["type"]) {
         expect.entry_type = parse_sd_entry_type(node["type"].as<std::string>());
     }
-    
+
     return expect;
 }
 
 DoIpPayloadTypeExpect parse_doip_payload_type(const std::string& str) {
-    if (str == "vehicle_identification_request") return DoIpPayloadTypeExpect::VehicleIdentificationRequest;
-    if (str == "vehicle_identification_response") return DoIpPayloadTypeExpect::VehicleIdentificationResponse;
-    if (str == "routing_activation_request") return DoIpPayloadTypeExpect::RoutingActivationRequest;
-    if (str == "routing_activation_response") return DoIpPayloadTypeExpect::RoutingActivationResponse;
-    if (str == "diagnostic_message" || str == "diagnostic") return DoIpPayloadTypeExpect::DiagnosticMessage;
-    if (str == "diagnostic_positive_ack" || str == "positive_ack") return DoIpPayloadTypeExpect::DiagnosticPositiveAck;
-    if (str == "diagnostic_negative_ack" || str == "negative_ack") return DoIpPayloadTypeExpect::DiagnosticNegativeAck;
+    if (str == "vehicle_identification_request")
+        return DoIpPayloadTypeExpect::VehicleIdentificationRequest;
+    if (str == "vehicle_identification_response")
+        return DoIpPayloadTypeExpect::VehicleIdentificationResponse;
+    if (str == "routing_activation_request")
+        return DoIpPayloadTypeExpect::RoutingActivationRequest;
+    if (str == "routing_activation_response")
+        return DoIpPayloadTypeExpect::RoutingActivationResponse;
+    if (str == "diagnostic_message" || str == "diagnostic")
+        return DoIpPayloadTypeExpect::DiagnosticMessage;
+    if (str == "diagnostic_positive_ack" || str == "positive_ack")
+        return DoIpPayloadTypeExpect::DiagnosticPositiveAck;
+    if (str == "diagnostic_negative_ack" || str == "negative_ack")
+        return DoIpPayloadTypeExpect::DiagnosticNegativeAck;
     return DoIpPayloadTypeExpect::Any;
 }
 
@@ -254,7 +267,7 @@ DoIpExpect parse_doip_expect(const YAML::Node& node) {
     DoIpExpect expect;
     expect.source_address = get_optional<std::uint16_t>(node, "source_address");
     expect.target_address = get_optional<std::uint16_t>(node, "target_address");
-    
+
     // Alternative names
     if (!expect.source_address && node["source"]) {
         expect.source_address = node["source"].as<std::uint16_t>();
@@ -262,7 +275,7 @@ DoIpExpect parse_doip_expect(const YAML::Node& node) {
     if (!expect.target_address && node["target"]) {
         expect.target_address = node["target"].as<std::uint16_t>();
     }
-    
+
     if (node["payload_type"]) {
         expect.payload_type = parse_doip_payload_type(node["payload_type"].as<std::string>());
     } else if (node["type"]) {
@@ -270,13 +283,13 @@ DoIpExpect parse_doip_expect(const YAML::Node& node) {
     } else if (node["message_type"]) {
         expect.payload_type = parse_doip_payload_type(node["message_type"].as<std::string>());
     }
-    
+
     return expect;
 }
 
 PayloadExpect parse_payload_expect(const YAML::Node& node) {
     PayloadExpect expect;
-    
+
     if (node["contains"]) {
         if (node["contains"].IsSequence()) {
             std::vector<std::uint8_t> bytes;
@@ -288,7 +301,7 @@ PayloadExpect parse_payload_expect(const YAML::Node& node) {
             expect.contains = parse_hex_bytes(node["contains"].as<std::string>());
         }
     }
-    
+
     if (node["equals"]) {
         if (node["equals"].IsSequence()) {
             std::vector<std::uint8_t> bytes;
@@ -300,10 +313,10 @@ PayloadExpect parse_payload_expect(const YAML::Node& node) {
             expect.equals = parse_hex_bytes(node["equals"].as<std::string>());
         }
     }
-    
+
     expect.min_size = get_optional<std::size_t>(node, "min_size");
     expect.max_size = get_optional<std::size_t>(node, "max_size");
-    
+
     return expect;
 }
 
@@ -318,7 +331,7 @@ CaptureConfig parse_capture_config(const YAML::Node& node) {
     config.pcap_file = get_optional<std::string>(node, "pcap_file");
     config.timeout = parse_duration(node["timeout"], Duration{5000});
     config.promiscuous = node["promiscuous"].as<bool>(true);
-    
+
     // Alternative names
     if (config.pcap_file->empty() && node["pcap"]) {
         config.pcap_file = node["pcap"].as<std::string>();
@@ -326,7 +339,7 @@ CaptureConfig parse_capture_config(const YAML::Node& node) {
     if (config.pcap_file->empty() && node["file"]) {
         config.pcap_file = node["file"].as<std::string>();
     }
-    
+
     return config;
 }
 
@@ -341,7 +354,7 @@ Step parse_send_step(const YAML::Node& node) {
     step.interface = node["interface"].as<std::string>("eth0");
     step.pcap_file = get_optional<std::string>(node, "pcap_file");
     step.delay = parse_duration(node["delay"], Duration{0});
-    
+
     if (node["raw"] || node["data"]) {
         const auto& data_node = node["raw"] ? node["raw"] : node["data"];
         if (data_node.IsSequence()) {
@@ -354,7 +367,7 @@ Step parse_send_step(const YAML::Node& node) {
             step.raw_data = parse_hex_bytes(data_node.as<std::string>());
         }
     }
-    
+
     return step;
 }
 
@@ -370,7 +383,7 @@ Step parse_wait_step(const YAML::Node& node) {
 
 Step parse_expect_step(const YAML::Node& node) {
     ExpectStep step;
-    
+
     // Parse protocol expectations
     if (node["ethernet"]) {
         step.ethernet = parse_ethernet_expect(node["ethernet"]);
@@ -388,8 +401,7 @@ Step parse_expect_step(const YAML::Node& node) {
         step.someip = parse_someip_expect(node["someip"]);
     }
     if (node["someip_sd"] || node["sd"]) {
-        step.someip_sd = parse_someip_sd_expect(
-            node["someip_sd"] ? node["someip_sd"] : node["sd"]);
+        step.someip_sd = parse_someip_sd_expect(node["someip_sd"] ? node["someip_sd"] : node["sd"]);
     }
     if (node["doip"]) {
         step.doip = parse_doip_expect(node["doip"]);
@@ -397,7 +409,7 @@ Step parse_expect_step(const YAML::Node& node) {
     if (node["payload"]) {
         step.payload = parse_payload_expect(node["payload"]);
     }
-    
+
     // Parse timing and count
     step.within = parse_duration(node["within"], Duration{1000});
     if (!node["within"] && node["within_ms"]) {
@@ -406,7 +418,7 @@ Step parse_expect_step(const YAML::Node& node) {
     if (!node["within"] && node["timeout"]) {
         step.within = parse_duration(node["timeout"], Duration{1000});
     }
-    
+
     if (node["count"]) {
         if (node["count"].IsScalar()) {
             auto expr = CountExpression::parse(node["count"].as<std::string>());
@@ -415,11 +427,11 @@ Step parse_expect_step(const YAML::Node& node) {
             }
         }
     }
-    
+
     // Parse metadata
     step.description = get_optional<std::string>(node, "description").value_or("");
     step.required = node["required"].as<bool>(true);
-    
+
     return step;
 }
 
@@ -450,7 +462,7 @@ Step parse_step(const YAML::Node& node) {
     if (node["log"]) {
         return parse_log_step(node["log"]);
     }
-    
+
     // Default: try to parse as expect step (for simpler syntax)
     return parse_expect_step(node);
 }
@@ -461,26 +473,26 @@ Step parse_step(const YAML::Node& node) {
 
 Scenario parse_scenario(const YAML::Node& root) {
     Scenario scenario;
-    
+
     scenario.name = root["name"].as<std::string>("Unnamed Scenario");
     scenario.description = get_optional<std::string>(root, "description").value_or("");
     scenario.version = root["version"].as<std::string>("1.0");
     scenario.timeout = parse_duration(root["timeout"], Duration{30000});
-    
+
     // Parse tags
     if (root["tags"]) {
         for (const auto& tag : root["tags"]) {
             scenario.tags.push_back(tag.as<std::string>());
         }
     }
-    
+
     // Parse steps
     if (root["steps"]) {
         for (const auto& step_node : root["steps"]) {
             scenario.steps.push_back(parse_step(step_node));
         }
     }
-    
+
     return scenario;
 }
 
@@ -497,30 +509,26 @@ public:
             YAML::Node root = YAML::Load(std::string(content));
             return ParseResult::ok(parse_scenario(root));
         } catch (const YAML::ParserException& e) {
-            return ParseResult::err(ParseError{
-                e.what(),
-                static_cast<std::size_t>(e.mark.line + 1),
-                static_cast<std::size_t>(e.mark.column + 1)
-            });
+            return ParseResult::err(ParseError{e.what(), static_cast<std::size_t>(e.mark.line + 1),
+                                               static_cast<std::size_t>(e.mark.column + 1)});
         } catch (const YAML::Exception& e) {
             return ParseResult::err(ParseError{e.what(), 0, 0});
         } catch (const std::exception& e) {
             return ParseResult::err(ParseError{e.what(), 0, 0});
         }
     }
-    
+
     [[nodiscard]] ParseResult parse_file(const std::filesystem::path& path) const override {
         std::ifstream file(path);
         if (!file) {
-            return ParseResult::err(ParseError{
-                "Failed to open file: " + path.string(), 0, 0});
+            return ParseResult::err(ParseError{"Failed to open file: " + path.string(), 0, 0});
         }
-        
+
         std::stringstream buffer;
         buffer << file.rdbuf();
         return parse(buffer.str());
     }
-    
+
     [[nodiscard]] std::vector<std::string> supported_extensions() const override {
         return {".yaml", ".yml"};
     }

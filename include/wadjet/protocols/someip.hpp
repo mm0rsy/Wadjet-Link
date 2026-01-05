@@ -27,9 +27,9 @@ enum class MessageType : std::uint8_t {
     Request = 0x00,
     RequestNoReturn = 0x01,
     Notification = 0x02,
-    RequestAck = 0x40,            ///< Request with acknowledgment
-    RequestNoReturnAck = 0x41,    ///< Request no return with acknowledgment
-    NotificationAck = 0x42,       ///< Notification with acknowledgment
+    RequestAck = 0x40,          ///< Request with acknowledgment
+    RequestNoReturnAck = 0x41,  ///< Request no return with acknowledgment
+    NotificationAck = 0x42,     ///< Notification with acknowledgment
     Response = 0x80,
     Error = 0x81,
     ResponseAck = 0xC0,
@@ -39,16 +39,26 @@ enum class MessageType : std::uint8_t {
 /// @brief Convert message type to string
 [[nodiscard]] constexpr std::string_view message_type_string(MessageType type) {
     switch (type) {
-        case MessageType::Request: return "Request";
-        case MessageType::RequestNoReturn: return "RequestNoReturn";
-        case MessageType::Notification: return "Notification";
-        case MessageType::RequestAck: return "RequestAck";
-        case MessageType::RequestNoReturnAck: return "RequestNoReturnAck";
-        case MessageType::NotificationAck: return "NotificationAck";
-        case MessageType::Response: return "Response";
-        case MessageType::Error: return "Error";
-        case MessageType::ResponseAck: return "ResponseAck";
-        case MessageType::ErrorAck: return "ErrorAck";
+        case MessageType::Request:
+            return "Request";
+        case MessageType::RequestNoReturn:
+            return "RequestNoReturn";
+        case MessageType::Notification:
+            return "Notification";
+        case MessageType::RequestAck:
+            return "RequestAck";
+        case MessageType::RequestNoReturnAck:
+            return "RequestNoReturnAck";
+        case MessageType::NotificationAck:
+            return "NotificationAck";
+        case MessageType::Response:
+            return "Response";
+        case MessageType::Error:
+            return "Error";
+        case MessageType::ResponseAck:
+            return "ResponseAck";
+        case MessageType::ErrorAck:
+            return "ErrorAck";
     }
     return "Unknown";
 }
@@ -74,17 +84,28 @@ enum class ReturnCode : std::uint8_t {
 /// @brief Convert return code to string
 [[nodiscard]] constexpr std::string_view return_code_string(ReturnCode code) {
     switch (code) {
-        case ReturnCode::Ok: return "OK";
-        case ReturnCode::NotOk: return "NOT_OK";
-        case ReturnCode::UnknownService: return "UNKNOWN_SERVICE";
-        case ReturnCode::UnknownMethod: return "UNKNOWN_METHOD";
-        case ReturnCode::NotReady: return "NOT_READY";
-        case ReturnCode::NotReachable: return "NOT_REACHABLE";
-        case ReturnCode::Timeout: return "TIMEOUT";
-        case ReturnCode::WrongProtocolVersion: return "WRONG_PROTOCOL_VERSION";
-        case ReturnCode::WrongInterfaceVersion: return "WRONG_INTERFACE_VERSION";
-        case ReturnCode::MalformedMessage: return "MALFORMED_MESSAGE";
-        case ReturnCode::WrongMessageType: return "WRONG_MESSAGE_TYPE";
+        case ReturnCode::Ok:
+            return "OK";
+        case ReturnCode::NotOk:
+            return "NOT_OK";
+        case ReturnCode::UnknownService:
+            return "UNKNOWN_SERVICE";
+        case ReturnCode::UnknownMethod:
+            return "UNKNOWN_METHOD";
+        case ReturnCode::NotReady:
+            return "NOT_READY";
+        case ReturnCode::NotReachable:
+            return "NOT_REACHABLE";
+        case ReturnCode::Timeout:
+            return "TIMEOUT";
+        case ReturnCode::WrongProtocolVersion:
+            return "WRONG_PROTOCOL_VERSION";
+        case ReturnCode::WrongInterfaceVersion:
+            return "WRONG_INTERFACE_VERSION";
+        case ReturnCode::MalformedMessage:
+            return "MALFORMED_MESSAGE";
+        case ReturnCode::WrongMessageType:
+            return "WRONG_MESSAGE_TYPE";
     }
     return "Unknown";
 }
@@ -92,28 +113,24 @@ enum class ReturnCode : std::uint8_t {
 /// @brief Decoded SOME/IP header
 struct SomeIpHeader : public IDecodedHeader {
     // Message ID (32 bits)
-    std::uint16_t service_id = 0;    ///< Service ID (16 bits)
-    std::uint16_t method_id = 0;     ///< Method ID / Event ID (16 bits)
+    std::uint16_t service_id = 0;  ///< Service ID (16 bits)
+    std::uint16_t method_id = 0;   ///< Method ID / Event ID (16 bits)
 
-    std::uint32_t length = 0;        ///< Length (including header from Request ID)
+    std::uint32_t length = 0;  ///< Length (including header from Request ID)
 
     // Request ID (32 bits)
-    std::uint16_t client_id = 0;     ///< Client ID (16 bits)
-    std::uint16_t session_id = 0;    ///< Session ID (16 bits)
+    std::uint16_t client_id = 0;   ///< Client ID (16 bits)
+    std::uint16_t session_id = 0;  ///< Session ID (16 bits)
 
-    std::uint8_t protocol_version = 0; ///< Protocol version
-    std::uint8_t interface_version = 0; ///< Interface version
+    std::uint8_t protocol_version = 0;   ///< Protocol version
+    std::uint8_t interface_version = 0;  ///< Interface version
     MessageType message_type = MessageType::Request;
     ReturnCode return_code = ReturnCode::Ok;
 
     // IDecodedHeader interface
-    [[nodiscard]] std::string_view protocol_name() const override {
-        return "SOME/IP";
-    }
+    [[nodiscard]] std::string_view protocol_name() const override { return "SOME/IP"; }
 
-    [[nodiscard]] std::size_t header_size() const override {
-        return HEADER_SIZE;
-    }
+    [[nodiscard]] std::size_t header_size() const override { return HEADER_SIZE; }
 
     [[nodiscard]] std::size_t payload_size() const override {
         // Length field includes 8 bytes (from Request ID onwards)
@@ -150,14 +167,12 @@ struct SomeIpHeader : public IDecodedHeader {
 
     /// @brief Check if this is a response
     [[nodiscard]] bool is_response() const {
-        return message_type == MessageType::Response ||
-               message_type == MessageType::ResponseAck;
+        return message_type == MessageType::Response || message_type == MessageType::ResponseAck;
     }
 
     /// @brief Check if this is an error
     [[nodiscard]] bool is_error() const {
-        return message_type == MessageType::Error ||
-               message_type == MessageType::ErrorAck;
+        return message_type == MessageType::Error || message_type == MessageType::ErrorAck;
     }
 
     /// @brief Check if this is a notification
@@ -167,9 +182,7 @@ struct SomeIpHeader : public IDecodedHeader {
     }
 
     /// @brief Check if method ID is an event (MSB set)
-    [[nodiscard]] bool is_event() const {
-        return (method_id & 0x8000) != 0;
-    }
+    [[nodiscard]] bool is_event() const { return (method_id & 0x8000) != 0; }
 };
 
 /// @brief SOME/IP decoder
@@ -178,7 +191,7 @@ public:
     /// @brief Decoder options
     struct Options {
         bool validate_protocol_version;  ///< Check protocol version is 1
-        bool allow_invalid_version;     ///< Continue even if version invalid
+        bool allow_invalid_version;      ///< Continue even if version invalid
         Options() : validate_protocol_version(true), allow_invalid_version(false) {}
     };
 

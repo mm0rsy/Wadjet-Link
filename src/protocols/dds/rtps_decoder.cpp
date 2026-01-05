@@ -25,16 +25,14 @@ namespace {
 
 /// @brief Read little-endian uint16 from buffer
 [[nodiscard]] inline std::uint16_t read_le16(const std::byte* data) {
-    return static_cast<std::uint16_t>(
-        static_cast<std::uint16_t>(data[0]) |
-        (static_cast<std::uint16_t>(data[1]) << 8));
+    return static_cast<std::uint16_t>(static_cast<std::uint16_t>(data[0]) |
+                                      (static_cast<std::uint16_t>(data[1]) << 8));
 }
 
 /// @brief Read big-endian uint16 from buffer
 [[nodiscard]] inline std::uint16_t read_be16(const std::byte* data) {
-    return static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[0]) << 8) |
-        static_cast<std::uint16_t>(data[1]));
+    return static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[0]) << 8) |
+                                      static_cast<std::uint16_t>(data[1]));
 }
 
 /// @brief Read uint16 with endianness
@@ -44,8 +42,7 @@ namespace {
 
 /// @brief Read little-endian uint32 from buffer
 [[nodiscard]] inline std::uint32_t read_le32(const std::byte* data) {
-    return static_cast<std::uint32_t>(data[0]) |
-           (static_cast<std::uint32_t>(data[1]) << 8) |
+    return static_cast<std::uint32_t>(data[0]) | (static_cast<std::uint32_t>(data[1]) << 8) |
            (static_cast<std::uint32_t>(data[2]) << 16) |
            (static_cast<std::uint32_t>(data[3]) << 24);
 }
@@ -54,8 +51,7 @@ namespace {
 [[nodiscard]] inline std::uint32_t read_be32(const std::byte* data) {
     return (static_cast<std::uint32_t>(data[0]) << 24) |
            (static_cast<std::uint32_t>(data[1]) << 16) |
-           (static_cast<std::uint32_t>(data[2]) << 8) |
-           static_cast<std::uint32_t>(data[3]);
+           (static_cast<std::uint32_t>(data[2]) << 8) | static_cast<std::uint32_t>(data[3]);
 }
 
 /// @brief Read uint32 with endianness
@@ -109,7 +105,8 @@ namespace {
 }
 
 /// @brief Read SequenceNumber (8 bytes)
-[[nodiscard]] inline SequenceNumber read_sequence_number(const std::byte* data, bool little_endian) {
+[[nodiscard]] inline SequenceNumber read_sequence_number(const std::byte* data,
+                                                         bool little_endian) {
     SequenceNumber sn;
     sn.high = read_i32(data, little_endian);
     sn.low = read_u32(data + 4, little_endian);
@@ -288,14 +285,14 @@ RtpsDecoder::ResultType RtpsDecoder::decode(std::span<const std::byte> data) con
     }
 
     RtpsHeader header;
-    
+
     // Bytes 4-5: Protocol version
     header.version = read_protocol_version(data.data() + 4);
 
     // Validate protocol version (must be 2.x)
     if (header.version.major != 2) {
-        result.error_ = DecodeError(DecodeErrorCode::InvalidVersion, 4, 
-                                   "Unsupported RTPS protocol version");
+        result.error_ =
+            DecodeError(DecodeErrorCode::InvalidVersion, 4, "Unsupported RTPS protocol version");
         return result;
     }
 
@@ -445,7 +442,8 @@ SubmessageBody RtpsDecoder::parse_submessage_body(SubmessageKind kind, Submessag
 
             // Count is after the sequence number set
             const auto num_words = (msg.reader_sn_state.num_bits + 31) / 32;
-            const auto count_offset = 8 + 12 + num_words * 4;  // reader/writer(8) + base+numbits(12) + bitmap
+            const auto count_offset =
+                8 + 12 + num_words * 4;  // reader/writer(8) + base+numbits(12) + bitmap
             if (data.size() >= count_offset + 4) {
                 msg.count = read_count(data.data() + count_offset, little_endian);
             }

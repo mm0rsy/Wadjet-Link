@@ -9,9 +9,9 @@
 ///
 /// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
 
-#include "wadjet/protocols/uds/uds_types.hpp"
 #include "wadjet/protocols/uds/uds_nrc.hpp"
 #include "wadjet/protocols/uds/uds_services.hpp"
+#include "wadjet/protocols/uds/uds_types.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -42,20 +42,14 @@ struct TimingParameters {
 
     /// @brief Default timing parameters
     static constexpr TimingParameters default_values() {
-        return TimingParameters{
-            std::chrono::milliseconds{50},
-            std::chrono::milliseconds{5000},
-            std::chrono::milliseconds{5000}
-        };
+        return TimingParameters{std::chrono::milliseconds{50}, std::chrono::milliseconds{5000},
+                                std::chrono::milliseconds{5000}};
     }
 
     /// @brief Programming session timing parameters (typically longer)
     static constexpr TimingParameters programming_values() {
-        return TimingParameters{
-            std::chrono::milliseconds{50},
-            std::chrono::milliseconds{5000},
-            std::chrono::milliseconds{5000}
-        };
+        return TimingParameters{std::chrono::milliseconds{50}, std::chrono::milliseconds{5000},
+                                std::chrono::milliseconds{5000}};
     }
 };
 
@@ -65,15 +59,16 @@ struct TimingParameters {
 
 /// @brief Security level state for a single security level
 struct SecurityLevelState {
-    std::uint8_t level{0};                      ///< Security level (1-33)
-    bool unlocked{false};                       ///< Whether this level is unlocked
-    std::uint8_t failed_attempts{0};            ///< Number of failed key attempts
-    std::optional<std::chrono::steady_clock::time_point> lockout_until; ///< Lockout expiry
-    std::vector<std::uint8_t> current_seed;     ///< Current seed (if seed requested)
+    std::uint8_t level{0};            ///< Security level (1-33)
+    bool unlocked{false};             ///< Whether this level is unlocked
+    std::uint8_t failed_attempts{0};  ///< Number of failed key attempts
+    std::optional<std::chrono::steady_clock::time_point> lockout_until;  ///< Lockout expiry
+    std::vector<std::uint8_t> current_seed;  ///< Current seed (if seed requested)
 
     /// @brief Check if currently locked out
     [[nodiscard]] bool is_locked_out() const {
-        if (!lockout_until) return false;
+        if (!lockout_until)
+            return false;
         return std::chrono::steady_clock::now() < *lockout_until;
     }
 
@@ -135,9 +130,9 @@ private:
 
 /// @brief UDS session state
 enum class SessionState {
-    Idle,           ///< No active session
-    Active,         ///< Session is active
-    TimedOut,       ///< Session timed out (S3 expired)
+    Idle,      ///< No active session
+    Active,    ///< Session is active
+    TimedOut,  ///< Session timed out (S3 expired)
 };
 
 /// @brief Events that can occur during a session
@@ -200,7 +195,8 @@ public:
     /// @param message The decoded service message
     /// @param is_request True if this is a request message
     /// @return True if message was processed successfully
-    bool process_decoded(const UdsHeader& header, const UdsServiceMessage& message, bool is_request);
+    bool process_decoded(const UdsHeader& header, const UdsServiceMessage& message,
+                         bool is_request);
 
     // =========================================================================
     // Session State Queries
@@ -323,7 +319,8 @@ public:
     /// @param data Raw UDS data
     /// @param is_request True if request message
     /// @return True if processed successfully
-    bool process_message(std::uint16_t ecu_address, std::span<const std::uint8_t> data, bool is_request);
+    bool process_message(std::uint16_t ecu_address, std::span<const std::uint8_t> data,
+                         bool is_request);
 
     /// @brief Get all active sessions
     [[nodiscard]] std::vector<std::uint16_t> active_sessions() const;
