@@ -86,7 +86,7 @@ TEST(MyFeature, DescriptiveTestName) {
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the Apache 2.0 License.
+By contributing, you agree that your contributions will be licensed under the Polyform Noncommercial 1.0.0 License.
 
 ## Questions?
 

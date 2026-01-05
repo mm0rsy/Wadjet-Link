@@ -294,7 +294,7 @@ All Wadjet C API functions follow these conventions:
 
 ## License
 
-Apache 2.0 — Same as Wadjet-Link
+Polyform Noncommercial 1.0.0 — Same as Wadjet-Link. For commercial licensing, contact the author.
 
 ---
 

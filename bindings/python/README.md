@@ -326,4 +326,4 @@ See the `examples/` directory for complete examples:
 
 ## License
 
-Apache 2.0 — See [LICENSE](../../LICENSE) for details.
+Polyform Noncommercial 1.0.0 — See [LICENSE](../../LICENSE) for details. For commercial licensing, contact the author.

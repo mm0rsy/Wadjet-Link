@@ -7,7 +7,7 @@ name = "wadjet"
 version = "0.1.0"
 description = "Python bindings for Wadjet-Link automotive Ethernet validation framework"
 readme = "README.md"
-license = {text = "Apache-2.0"}
+license = {text = "Polyform-Noncommercial-1.0.0"}
 authors = [
     {name = "Wadjet-Link Contributors"}
 ]
@@ -29,7 +29,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
+    "License :: Other/Proprietary License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3",

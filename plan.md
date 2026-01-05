@@ -13,7 +13,7 @@ Create an open-source Automotive Ethernet validation framework focused on:
 
 ## License
 
-**Apache 2.0** — Permissive license allowing commercial use, modification, and distribution.
+**Polyform Noncommercial 1.0.0** — Free for non-commercial use; commercial licensing available upon request.
 
 ## Non-Goals
 
