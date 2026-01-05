@@ -65,6 +65,10 @@ commands:
             - run:
                 name: Install Clang 17
                 command: |
+                  # Add LLVM APT repository for Clang 17
+                  wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+                  echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" | sudo tee /etc/apt/sources.list.d/llvm-17.list
+                  sudo apt-get update
                   sudo apt-get install -y clang-17 lld-17
 
   configure-cmake:
@@ -223,7 +227,12 @@ jobs:
       - checkout
       - run:
           name: Install clang-format
-          command: sudo apt-get update && sudo apt-get install -y clang-format-17
+          command: |
+            # Add LLVM APT repository for clang-format-17
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" | sudo tee /etc/apt/sources.list.d/llvm-17.list
+            sudo apt-get update
+            sudo apt-get install -y clang-format-17
       - run:
           name: Check code formatting
           command: |
@@ -241,7 +250,12 @@ jobs:
           compiler: "clang"
       - run:
           name: Install clang-tidy
-          command: sudo apt-get install -y clang-tidy-17
+          command: |
+            # Add LLVM APT repository for clang-tidy-17
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" | sudo tee /etc/apt/sources.list.d/llvm-17.list
+            sudo apt-get update
+            sudo apt-get install -y clang-tidy-17
       - run:
           name: Configure for analysis
           command: |
@@ -292,7 +306,7 @@ workflows:
           filters:
             branches:
               only:
-                - main
+                - master
     jobs:
       - build-gcc-debug
       - build-gcc-release
