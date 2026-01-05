@@ -2,11 +2,38 @@
 
 ### *Restoring the complete picture of the automotive stream.*
 
+<!-- Badges Row 1: Build & Status -->
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/mm0rsy/Wadjet-Link/tree/master.svg?style=shield)](https://dl.circleci.com/status-badge/redirect/gh/mm0rsy/Wadjet-Link/tree/master)
-[![Protocol: Automotive Ethernet](https://img.shields.io/badge/Protocol-100/1000Base--T1-orange)](https://standards.ieee.org/standard/802_3bw-2015.html)
-[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
 [![Build](https://img.shields.io/badge/build-CMake-green)](https://cmake.org/)
+[![Tests](https://img.shields.io/badge/tests-543%20passed-brightgreen)](tests/)
+[![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)](https://kernel.org/)
+
+<!-- Badges Row 2: Languages & Standards -->
+[![C++20](https://img.shields.io/badge/C%2B%2B-20-blue.svg)](https://isocpp.org/)
+[![GCC 13+](https://img.shields.io/badge/GCC-13%2B-yellow.svg)](https://gcc.gnu.org/)
+[![Clang 17+](https://img.shields.io/badge/Clang-17%2B-yellow.svg)](https://clang.llvm.org/)
+[![Code Style](https://img.shields.io/badge/code%20style-clang--format-blue)](https://clang.llvm.org/docs/ClangFormat.html)
+[![GoogleTest](https://img.shields.io/badge/testing-GoogleTest-red)](https://google.github.io/googletest/)
+
+<!-- Badges Row 3: Automotive Protocols -->
+[![Protocol: Automotive Ethernet](https://img.shields.io/badge/Protocol-100/1000Base--T1-orange)](https://standards.ieee.org/standard/802_3bw-2015.html)
+[![SOME/IP](https://img.shields.io/badge/AUTOSAR-SOME/IP-blueviolet)](https://www.autosar.org/)
+[![DoIP](https://img.shields.io/badge/ISO%2013400-DoIP-blueviolet)](https://www.iso.org/standard/74785.html)
+[![UDS](https://img.shields.io/badge/ISO%2014229-UDS-blueviolet)](https://www.iso.org/standard/72439.html)
+[![gPTP](https://img.shields.io/badge/IEEE%20802.1AS-gPTP-blueviolet)](https://standards.ieee.org/standard/802_1AS-2020.html)
+[![DDS/RTPS](https://img.shields.io/badge/OMG-DDS/RTPS-blueviolet)](https://www.omg.org/spec/DDSI-RTPS/)
+
+<!-- Badges Row 4: Language Bindings & Documentation -->
+[![Python Bindings](https://img.shields.io/badge/bindings-Python-3776AB?logo=python&logoColor=white)](bindings/python/)
+[![C Bindings](https://img.shields.io/badge/bindings-C99-A8B9CC?logo=c&logoColor=white)](bindings/c/)
+[![Rust Bindings](https://img.shields.io/badge/bindings-Rust-DEA584?logo=rust&logoColor=white)](bindings/rust/)
+[![Documentation](https://img.shields.io/badge/docs-Doxygen-2C4AA8)](docs/)
+
+<!-- Badges Row 5: Community -->
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/mm0rsy/Wadjet-Link/graphs/commit-activity)
+[![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red.svg)]()
 
 <p align="center">
   <img src="identity-photo.jpg" alt="Wadjet-Link Logo" width="300"/>
