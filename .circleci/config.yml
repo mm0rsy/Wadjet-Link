@@ -281,6 +281,9 @@ workflows:
 
   # Main CI workflow
   ci:
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - lint
       - build-gcc-debug:
@@ -304,13 +307,10 @@ workflows:
 
   # Nightly full test suite
   nightly:
-    triggers:
-      - schedule:
-          cron: "0 2 * * *"
-          filters:
-            branches:
-              only:
-                - master
+    when:
+      and:
+        - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+        - equal: [ "nightly", << pipeline.schedule.name >> ]
     jobs:
       - build-gcc-debug
       - build-gcc-release
