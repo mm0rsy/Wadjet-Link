@@ -1,0 +1,322 @@
+@startuml diagnostic_classes
+!theme plain
+title 𓆓 Wadjet-Link - Diagnostic Module Class Diagram
+
+skinparam backgroundColor white
+skinparam class {
+    BackgroundColor #E8F4FD
+    BorderColor #4488CC
+    ArrowColor #666666
+}
+
+package "wadjet::protocols::diagnostic" {
+    
+    ' ============================================
+    ' Core Types
+    ' ============================================
+    
+    class DiagnosticTiming {
+        +p2_server_max: milliseconds
+        +p2_star_server_max: milliseconds
+        +s3_server: milliseconds
+        --
+        {static} +defaults(): DiagnosticTiming
+        +within_p2(response_time): bool
+        +within_p2_star(response_time): bool
+    }
+    
+    class TransportInfo {
+        +source_address: LogicalAddress
+        +target_address: LogicalAddress
+        +timestamp: time_point
+    }
+    
+    enum MessageDirection {
+        Unknown
+        Request
+        Response
+    }
+    
+    class ECUInfo {
+        +logical_address: LogicalAddress
+        +vin: optional<string>
+        +hardware_version: optional<string>
+        +software_version: optional<string>
+        +first_seen: time_point
+        +last_seen: time_point
+    }
+    
+    ' ============================================
+    ' Diagnostic Events
+    ' ============================================
+    
+    enum DiagnosticEvent {
+        RoutingActivated
+        RoutingDeactivated
+        ConnectionLost
+        SessionStarted
+        SessionChanged
+        SessionTimeout
+        SessionEnded
+        SecurityUnlocked
+        SecurityLocked
+        SecurityLockout
+        RequestSent
+        ResponseReceived
+        ResponsePending
+        ResponseTimeout
+        NegativeResponse
+        DTCsRead
+        DTCsCleared
+        DataIdentifierRead
+        FlashStarted
+        FlashProgress
+        FlashCompleted
+        FlashFailed
+    }
+    
+    ' ============================================
+    ' Session State
+    ' ============================================
+    
+    class DiagnosticSessionState {
+        +routing_active: bool
+        +tester_address: LogicalAddress
+        +gateway_address: LogicalAddress
+        +session_type: SessionType
+        +session_active: bool
+        +session_start: time_point
+        +last_activity: time_point
+        +security_level: uint8_t
+        +timing: DiagnosticTiming
+        +requests_sent: uint64_t
+        +responses_received: uint64_t
+        +negative_responses: uint64_t
+        +timeouts: uint64_t
+        --
+        +is_programming(): bool
+        +is_extended(): bool
+        +is_security_unlocked(level): bool
+        +time_since_activity(): milliseconds
+        +is_potentially_timed_out(): bool
+    }
+    
+    ' ============================================
+    ' Request/Response Correlation
+    ' ============================================
+    
+    class RequestResponsePair {
+        +request: Request
+        +response: optional<Response>
+        --
+        +is_complete(): bool
+        +is_positive(): bool
+        +is_negative(): bool
+        +get_nrc(): optional<uint8_t>
+        +response_time(): optional<milliseconds>
+        +within_p2(timing): bool
+        +within_p2_star(timing): bool
+    }
+    
+    class "RequestResponsePair::Request" as Request {
+        +header: UdsHeader
+        +message: UdsServiceMessage
+        +transport: TransportInfo
+        +timestamp: time_point
+    }
+    
+    class "RequestResponsePair::Response" as Response {
+        +header: UdsHeader
+        +message: UdsServiceMessage
+        +transport: TransportInfo
+        +timestamp: time_point
+        +pending_count: uint32_t
+        --
+        +response_time(request_time): milliseconds
+    }
+    
+    class PendingRequest {
+        +request: Request
+        +pending_count: uint32_t
+        +suppress_positive_response: bool
+        --
+        +elapsed(): milliseconds
+        +is_timed_out(timing): bool
+    }
+    
+    enum CorrelationEvent {
+        RequestSent
+        ResponseReceived
+        ResponsePending
+        RequestTimeout
+        UnmatchedResponse
+        PositiveResponse
+        NegativeResponse
+    }
+    
+    class "RequestCorrelator::Statistics" as CorrelatorStats {
+        +requests_recorded: uint64_t
+        +responses_matched: uint64_t
+        +responses_unmatched: uint64_t
+        +pending_timeouts: uint64_t
+        +positive_responses: uint64_t
+        +negative_responses: uint64_t
+        +response_pending_count: uint64_t
+        --
+        +match_rate(): double
+    }
+    
+    class "RequestCorrelator::Options" as CorrelatorOptions {
+        +max_pending_per_address: size_t
+        +max_total_pending: size_t
+        +auto_timeout_check: bool
+        +timing: DiagnosticTiming
+        --
+        {static} +defaults(): Options
+    }
+    
+    class RequestCorrelator {
+        -options_: Options
+        -stats_: Statistics
+        -pending_requests_: map
+        -completed_: deque
+        -callbacks_: vector
+        --
+        +record_request(header, message, transport)
+        +process_response(header, message, transport): shared_ptr<Pair>
+        +pending_count(source, target): size_t
+        +total_pending(): size_t
+        +get_pending(source, target): vector<PendingRequest>
+        +get_completed(max_count): vector<shared_ptr<Pair>>
+        +check_timeouts(): size_t
+        +set_timing(timing)
+        +timing(): DiagnosticTiming
+        +on_event(callback)
+        +statistics(): Statistics
+        +reset()
+    }
+    
+    ' ============================================
+    ' Session Manager
+    ' ============================================
+    
+    class "DiagnosticSessionManager::Options" as ManagerOptions {
+        +enable_correlation: bool
+        +enable_timeout_detection: bool
+        +max_ecus: size_t
+        +default_timing: DiagnosticTiming
+        +correlator_options: CorrelatorOptions
+        --
+        {static} +defaults(): Options
+    }
+    
+    class "DiagnosticSessionManager::Statistics" as ManagerStats {
+        +doip_packets_processed: uint64_t
+        +diagnostic_messages: uint64_t
+        +routing_activations: uint64_t
+        +vehicle_identifications: uint64_t
+        +uds_requests: uint64_t
+        +uds_responses: uint64_t
+        +decode_errors: uint64_t
+    }
+    
+    class DiagnosticSessionManager {
+        -options_: Options
+        -stats_: Statistics
+        -correlator_: RequestCorrelator
+        -uds_decoder_: UdsDecoder
+        -doip_decoder_: DoIPDecoder
+        -sessions_: map<LogicalAddress, State>
+        -ecu_info_: map<LogicalAddress, ECUInfo>
+        -callbacks_: vector
+        --
+        +process_doip_packet(header, payload, ts): bool
+        +process_doip_raw(data, ts): bool
+        +process_uds_message(data, src, tgt, is_req, ts): bool
+        +get_session_state(ecu_address): State*
+        +get_tracked_ecus(): vector<LogicalAddress>
+        +is_tracking(ecu_address): bool
+        +correlator(): RequestCorrelator&
+        +get_completed_pairs(ecu, max): vector<shared_ptr<Pair>>
+        +get_ecu_info(address): ECUInfo*
+        +get_all_ecu_info(): vector<ECUInfo>
+        +set_timing(ecu, timing)
+        +get_timing(ecu): DiagnosticTiming
+        +check_timeouts(): size_t
+        +on_event(callback)
+        +reset()
+        +statistics(): Statistics
+    }
+    
+    ' ============================================
+    ' UDS over DoIP Decoder
+    ' ============================================
+    
+    class UdsOverDoipResult {
+        +doip_header: DoIPHeader
+        +source_address: LogicalAddress
+        +target_address: LogicalAddress
+        +uds_header: UdsHeader
+        +uds_message: UdsServiceMessage
+        +direction: MessageDirection
+        --
+        +as<T>(): T*
+        +is<T>(): bool
+        +is_positive_response(): bool
+        +is_negative_response(): bool
+        +service_id(): ServiceID
+    }
+    
+    class UdsOverDoipError {
+        +code: Code
+        +message: string
+        --
+        {static} +make(code, msg): UdsOverDoipError
+    }
+    
+    enum "UdsOverDoipError::Code" as ErrorCode {
+        DoipDecodeFailed
+        NotDiagnosticMessage
+        PayloadTooShort
+        UdsDecodeFailed
+        InvalidVersion
+    }
+    
+    class UdsOverDoipDecoder {
+        -doip_decoder_: DoIPDecoder
+        -uds_decoder_: UdsDecoder
+        --
+        +decode(data): Result<UdsOverDoipResult, Error>
+        +decode(header, payload): Result<UdsOverDoipResult, Error>
+        {static} +is_diagnostic_message(header): bool
+        {static} +looks_like_diagnostic_message(data): bool
+    }
+    
+    ' ============================================
+    ' Relationships
+    ' ============================================
+    
+    RequestResponsePair *-- Request
+    RequestResponsePair *-- Response
+    
+    RequestCorrelator *-- CorrelatorOptions
+    RequestCorrelator *-- CorrelatorStats
+    RequestCorrelator --> PendingRequest : tracks
+    RequestCorrelator --> RequestResponsePair : creates
+    RequestCorrelator --> CorrelationEvent : emits
+    
+    DiagnosticSessionManager *-- ManagerOptions
+    DiagnosticSessionManager *-- ManagerStats
+    DiagnosticSessionManager *-- RequestCorrelator
+    DiagnosticSessionManager --> DiagnosticSessionState : manages
+    DiagnosticSessionManager --> ECUInfo : tracks
+    DiagnosticSessionManager --> DiagnosticEvent : emits
+    
+    DiagnosticSessionState --> DiagnosticTiming
+    
+    UdsOverDoipDecoder --> UdsOverDoipResult : produces
+    UdsOverDoipDecoder --> UdsOverDoipError : reports
+    UdsOverDoipError --> ErrorCode
+}
+
+@enduml

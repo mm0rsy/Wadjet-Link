@@ -1,0 +1,261 @@
+@startuml diagnostic_rust_bindings
+!theme plain
+title 𓆓 Wadjet-Link - Diagnostic Rust Bindings Class Diagram
+
+skinparam backgroundColor white
+skinparam class {
+    BackgroundColor #F5E6D3
+    BorderColor #D35400
+    ArrowColor #666666
+}
+skinparam package {
+    BackgroundColor #FEF9E7
+    BorderColor #D35400
+}
+skinparam note {
+    BackgroundColor #FDEDEC
+    BorderColor #D35400
+}
+
+package "wadjet (Rust Safe Wrapper)" {
+    
+    note as N1
+        Safe Rust bindings for diagnostic module
+        - Automatic memory management (Drop)
+        - Builder pattern for options
+        - Type-safe enum conversions
+        - Callback support with closures
+    end note
+    
+    ' ============================================
+    ' Diagnostic Events
+    ' ============================================
+    
+    enum DiagnosticEvent <<enum>> {
+        RoutingActivated = 0
+        RoutingDeactivated = 1
+        ConnectionLost = 2
+        SessionStarted = 3
+        SessionChanged = 4
+        SessionTimeout = 5
+        SessionEnded = 6
+        SecurityUnlocked = 7
+        SecurityLocked = 8
+        SecurityLockout = 9
+        RequestSent = 10
+        ResponseReceived = 11
+        ResponsePending = 12
+        ResponseTimeout = 13
+        NegativeResponse = 14
+        DtcsRead = 15
+        DtcsCleared = 16
+        DataIdentifierRead = 17
+        FlashStarted = 18
+        FlashProgress = 19
+        FlashCompleted = 20
+        FlashFailed = 21
+        --
+        +name(): &'static str
+        +is_session_event(): bool
+        +is_security_event(): bool
+        +is_flash_event(): bool
+        {static} -from_c(value): Option<Self>
+    }
+    
+    ' ============================================
+    ' Session Type
+    ' ============================================
+    
+    enum SessionType <<enum>> {
+        Default = 0x01
+        Programming = 0x02
+        Extended = 0x03
+        SafetySystem = 0x04
+        Unknown = 0xFF
+        --
+        +name(): &'static str
+        {static} -from_c(value): Self
+    }
+    
+    ' ============================================
+    ' Session State
+    ' ============================================
+    
+    class DiagnosticSessionState <<struct>> {
+        +tester_address: u16
+        +gateway_address: u16
+        +session_type: SessionType
+        +session_active: bool
+        +routing_active: bool
+        +security_level: u8
+        +p2_server_max_ms: u32
+        +p2_star_server_max_ms: u32
+        +requests_sent: u64
+        +responses_received: u64
+        +negative_responses: u64
+        +timeouts: u64
+        --
+        +is_security_unlocked(level): bool
+        +is_programming(): bool
+        +is_extended(): bool
+        +response_rate(): f64
+        +negative_response_rate(): f64
+        {static} -from_c(c: &wadjet_sys::...): Self
+    }
+    
+    ' ============================================
+    ' Options (Builder Pattern)
+    ' ============================================
+    
+    class DiagnosticOptions <<struct>> {
+        +enable_correlation: bool
+        +enable_timeout_detection: bool
+        +max_ecus: usize
+        +p2_server_max_ms: u32
+        +p2_star_server_max_ms: u32
+        +s3_server_ms: u32
+        --
+        +new(): Self
+        +p2_timeout(ms): Self
+        +p2_star_timeout(ms): Self
+        +s3_timeout(ms): Self
+        +max_ecus(max): Self
+        +correlation(enable): Self
+        +timeout_detection(enable): Self
+        -to_c(): wadjet_sys::...
+    }
+    
+    ' ============================================
+    ' Correlation Statistics
+    ' ============================================
+    
+    class CorrelationStatistics <<struct>> {
+        +requests_recorded: u64
+        +responses_matched: u64
+        +responses_unmatched: u64
+        +timeouts: u64
+        --
+        +match_rate(): f64
+        +timeout_rate(): f64
+    }
+    
+    ' ============================================
+    ' Timing Parameters
+    ' ============================================
+    
+    class DiagnosticTiming <<struct>> {
+        +p2_server_max_ms: u32
+        +p2_star_server_max_ms: u32
+        +s3_server_ms: u32
+        +p3_client_ms: u32
+        --
+        {static} +programming(): Self
+        +within_p2(elapsed_ms): bool
+        +within_p2_star(elapsed_ms): bool
+    }
+    
+    ' ============================================
+    ' Session Manager (Main Entry Point)
+    ' ============================================
+    
+    class DiagnosticSessionManager <<struct>> {
+        -handle: wadjet_sys::wadjet_diagnostic_session_manager_t
+        -_callback_ctx: Option<Arc<CallbackContext>>
+        --
+        +new(options: DiagnosticOptions): Result<Self>
+        +with_defaults(): Result<Self>
+        +on_event<F>(callback: F)
+        +process(data: &[u8]): Result<()>
+        +get_session(ecu_address: u16): Option<DiagnosticSessionState>
+        +session_count(): usize
+        +statistics(): CorrelationStatistics
+        +check_timeouts(): usize
+        --
+        <<impl Drop>>
+        -drop(): cleanup FFI handle
+    }
+    
+    ' ============================================
+    ' Internal Types
+    ' ============================================
+    
+    class CallbackContext <<private>> {
+        -callback: Box<dyn Fn(Event, &State) + Send + Sync>
+    }
+    
+    ' ============================================
+    ' Relationships
+    ' ============================================
+    
+    DiagnosticSessionManager --> DiagnosticOptions : configured by
+    DiagnosticSessionManager --> DiagnosticSessionState : returns
+    DiagnosticSessionManager --> CorrelationStatistics : returns
+    DiagnosticSessionManager --> DiagnosticEvent : emits
+    DiagnosticSessionManager *-- CallbackContext : owns
+    
+    DiagnosticSessionState --> SessionType : contains
+    
+    DiagnosticOptions ..> DiagnosticTiming : timing defaults
+}
+
+package "wadjet-sys (FFI Bindings)" {
+    
+    note as N2
+        Auto-generated via bindgen
+        Raw FFI bindings to C ABI
+    end note
+    
+    class "wadjet_diagnostic_session_manager_t" <<opaque>> {
+        C opaque handle
+    }
+    
+    class "wadjet_diagnostic_event_t" <<enum>> {
+        WADJET_DIAG_EVENT_ROUTING_ACTIVATED
+        WADJET_DIAG_EVENT_...
+        (22 variants)
+    }
+    
+    class "wadjet_diagnostic_session_state_t" <<struct>> {
+        +tester_address: u16
+        +gateway_address: u16
+        +session_type: wadjet_uds_session_type_t
+        +session_active: bool
+        +routing_active: bool
+        +security_level: u8
+        +p2_server_max_ms: u32
+        +p2_star_server_max_ms: u32
+        +requests_sent: u64
+        +responses_received: u64
+        +negative_responses: u64
+        +timeouts: u64
+    }
+    
+    class "wadjet_diagnostic_options_t" <<struct>> {
+        +enable_correlation: bool
+        +enable_timeout_detection: bool
+        +max_ecus: size_t
+        +p2_server_max_ms: u32
+        +p2_star_server_max_ms: u32
+        +s3_server_ms: u32
+    }
+    
+    class "FFI Functions" <<extern "C">> {
+        wadjet_diagnostic_manager_create()
+        wadjet_diagnostic_manager_destroy()
+        wadjet_diagnostic_manager_on_event()
+        wadjet_diagnostic_manager_process()
+        wadjet_diagnostic_manager_get_session()
+        wadjet_diagnostic_manager_session_count()
+        wadjet_diagnostic_manager_statistics()
+        wadjet_diagnostic_manager_check_timeouts()
+    }
+}
+
+' Cross-package relationships
+DiagnosticSessionManager ..> "wadjet_diagnostic_session_manager_t" : wraps
+DiagnosticEvent ..> "wadjet_diagnostic_event_t" : converts from
+DiagnosticSessionState ..> "wadjet_diagnostic_session_state_t" : converts from
+DiagnosticOptions ..> "wadjet_diagnostic_options_t" : converts to
+DiagnosticSessionManager ..> "FFI Functions" : calls
+
+@enduml

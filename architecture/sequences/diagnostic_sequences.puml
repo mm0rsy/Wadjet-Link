@@ -1,0 +1,239 @@
+@startuml diagnostic_sequences
+!theme plain
+title 𓆓 Wadjet-Link - Diagnostic Module Sequence Diagrams
+
+skinparam backgroundColor white
+skinparam sequenceArrowColor #666666
+skinparam sequenceLifeLineBorderColor #4488CC
+
+' ============================================
+' Sequence 1: Process DoIP Diagnostic Message
+' ============================================
+
+newpage Process DoIP Diagnostic Message
+
+actor "Capture Layer" as Capture
+participant "DiagnosticSessionManager" as Manager
+participant "DoIPDecoder" as DoIP
+participant "UdsDecoder" as UDS
+participant "RequestCorrelator" as Correlator
+participant "DiagnosticSessionState" as State
+actor "Event Callback" as Callback
+
+Capture -> Manager : process_doip_raw(data, timestamp)
+activate Manager
+
+Manager -> DoIP : decode(data)
+activate DoIP
+DoIP --> Manager : DoIPHeader + payload
+deactivate DoIP
+
+alt Diagnostic Message (0x8001)
+    Manager -> UDS : decode(user_data)
+    activate UDS
+    UDS --> Manager : UdsHeader + UdsServiceMessage
+    deactivate UDS
+    
+    Manager -> Manager : determine_direction()
+    note right: Request if SID < 0x40\nResponse if SID >= 0x40
+    
+    alt Is Request
+        Manager -> Correlator : record_request(header, message, transport)
+        activate Correlator
+        Correlator --> Manager : void
+        deactivate Correlator
+        
+        Manager -> State : update(requests_sent++)
+    else Is Response
+        Manager -> Correlator : process_response(header, message, transport)
+        activate Correlator
+        Correlator --> Manager : shared_ptr<RequestResponsePair>
+        deactivate Correlator
+        
+        Manager -> State : update(responses_received++)
+    end
+    
+    Manager -> State : update_session_state(uds_header, uds_message)
+    activate State
+    
+    alt DiagnosticSessionControl Response
+        State -> State : session_type = new_session
+        State -> State : session_active = true
+        Manager -> Callback : on_event(SessionChanged, state)
+    else SecurityAccess Response (odd subfunction)
+        State -> State : security_level = subfunction/2 + 1
+        Manager -> Callback : on_event(SecurityUnlocked, state)
+    else Negative Response
+        State -> State : negative_responses++
+        Manager -> Callback : on_event(NegativeResponse, state)
+    end
+    
+    deactivate State
+end
+
+Manager --> Capture : true
+deactivate Manager
+
+' ============================================
+' Sequence 2: Request/Response Correlation
+' ============================================
+
+newpage Request/Response Correlation
+
+participant "Application" as App
+participant "RequestCorrelator" as RC
+participant "PendingRequest" as Pending
+participant "RequestResponsePair" as Pair
+
+== Record Request ==
+
+App -> RC : record_request(header, message, transport)
+activate RC
+
+RC -> Pending ** : create(request_info)
+RC -> RC : pending_requests_[{src,tgt}].push_back(pending)
+RC -> RC : stats_.requests_recorded++
+RC -> App : emit(CorrelationEvent::RequestSent)
+
+deactivate RC
+
+== Process Response ==
+
+App -> RC : process_response(header, message, transport)
+activate RC
+
+RC -> RC : find_pending_for_response()
+note right: Match by:\n- Service ID (response = request + 0x40)\n- Address pair (reversed)
+
+alt Found Matching Request
+    RC -> Pending : get request info
+    RC -> Pair ** : create(request, response)
+    RC -> RC : completed_.push_back(pair)
+    RC -> RC : stats_.responses_matched++
+    
+    alt Positive Response
+        RC -> App : emit(PositiveResponse)
+    else Negative Response (NRC != 0x78)
+        RC -> App : emit(NegativeResponse)
+    else ResponsePending (NRC == 0x78)
+        RC -> Pending : pending_count++
+        RC -> App : emit(ResponsePending)
+        RC --> App : nullptr
+    end
+    
+    RC --> App : shared_ptr<Pair>
+else No Matching Request
+    RC -> RC : stats_.responses_unmatched++
+    RC -> App : emit(UnmatchedResponse)
+    RC --> App : nullptr
+end
+
+deactivate RC
+
+' ============================================
+' Sequence 3: Timeout Detection
+' ============================================
+
+newpage Timeout Detection
+
+participant "Timer/Polling" as Timer
+participant "DiagnosticSessionManager" as DSM
+participant "RequestCorrelator" as Corr
+participant "PendingRequest" as Pend
+participant "Callback" as CB
+
+Timer -> DSM : check_timeouts()
+activate DSM
+
+DSM -> Corr : check_timeouts()
+activate Corr
+
+loop for each pending request
+    Corr -> Pend : is_timed_out(timing)
+    activate Pend
+    
+    alt pending_count > 0
+        Pend -> Pend : compare elapsed() vs p2_star_server_max
+    else pending_count == 0
+        Pend -> Pend : compare elapsed() vs p2_server_max
+    end
+    
+    Pend --> Corr : bool
+    deactivate Pend
+    
+    alt Is Timed Out
+        Corr -> Corr : remove from pending
+        Corr -> Corr : stats_.pending_timeouts++
+        Corr -> CB : emit(RequestTimeout)
+    end
+end
+
+Corr --> DSM : count of timed out
+deactivate Corr
+
+DSM -> DSM : emit(ResponseTimeout) for each ECU
+DSM --> Timer : total_timeouts
+deactivate DSM
+
+' ============================================
+' Sequence 4: UDS over DoIP Decoding
+' ============================================
+
+newpage UDS over DoIP Combined Decoding
+
+participant "Application" as App
+participant "UdsOverDoipDecoder" as Decoder
+participant "DoIPDecoder" as DoIP
+participant "UdsDecoder" as UDS
+participant "UdsOverDoipResult" as Result
+
+App -> Decoder : decode(raw_data)
+activate Decoder
+
+Decoder -> DoIP : decode(raw_data)
+activate DoIP
+DoIP --> Decoder : Result<DoIPHeader>
+deactivate DoIP
+
+alt DoIP Decode Failed
+    Decoder --> App : Error(DoipDecodeFailed)
+else DoIP Decode Success
+    Decoder -> Decoder : check payload_type
+    
+    alt payload_type != DiagnosticMessage
+        Decoder --> App : Error(NotDiagnosticMessage)
+    else payload_type == DiagnosticMessage (0x8001)
+        Decoder -> Decoder : extract source_address, target_address
+        Decoder -> Decoder : get user_data span
+        
+        alt user_data.size() < 1
+            Decoder --> App : Error(PayloadTooShort)
+        else user_data has data
+            Decoder -> UDS : decode(user_data)
+            activate UDS
+            UDS --> Decoder : Result<UdsHeader, UdsServiceMessage>
+            deactivate UDS
+            
+            alt UDS Decode Failed
+                Decoder --> App : Error(UdsDecodeFailed)
+            else UDS Decode Success
+                Decoder -> Decoder : determine_direction()
+                note right: Request: SID < 0x40\nResponse: SID >= 0x40
+                
+                Decoder -> Result ** : create()
+                Result -> Result : doip_header = header
+                Result -> Result : source_address = src
+                Result -> Result : target_address = tgt
+                Result -> Result : uds_header = uds_hdr
+                Result -> Result : uds_message = uds_msg
+                Result -> Result : direction = dir
+                
+                Decoder --> App : Ok(Result)
+            end
+        end
+    end
+end
+
+deactivate Decoder
+
+@enduml

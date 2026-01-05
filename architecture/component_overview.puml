@@ -57,6 +57,18 @@ package "Language Bindings" #E8FFE8 {
     component [C API\n(libwadjet_c)] as CBindings
     component [Python\n(pybind11)] as PyBindings
     component [Rust\n(wadjet-sys/wadjet)] as RustBindings
+    note bottom of RustBindings
+        wadjet-sys: FFI bindings (bindgen)
+        wadjet: Safe Rust wrappers
+        - capture, pcap, decode
+        - diagnostic module
+    end note
+}
+
+package "Diagnostic Module" #FDEDED {
+    component [DiagnosticSessionManager\nSession Tracking] as DiagSession
+    component [RequestCorrelator\nReq/Resp Matching] as Correlator
+    component [UdsOverDoipDecoder\nCombined Decoder] as UdsDoipDecoder
 }
 
 package "Scenario Module" #FDF8E8 {
@@ -119,13 +131,22 @@ Dispatcher --> gPTP : chains
 Dispatcher --> UDS : chains
 Dispatcher --> DDS : chains
 
+' Diagnostic module dependencies
+DiagSession --> UDS : decodes
+DiagSession --> DoIP : decodes
+DiagSession --> Correlator : uses
+UdsDoipDecoder --> DoIP : parses
+UdsDoipDecoder --> UDS : parses
+
 ' Bindings dependencies
 CBindings --> Dispatcher : wraps
 CBindings --> Capture : wraps
 CBindings --> PcapReader : wraps
 CBindings --> PcapWriter : wraps
+CBindings --> DiagSession : wraps
 PyBindings --> CBindings : uses
 RustBindings --> CBindings : FFI
+RustBindings --> DiagSession : wraps (diagnostic.rs)
 
 ' Scenario module dependencies
 YamlParser --> YamlCpp : uses
