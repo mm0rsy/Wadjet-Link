@@ -61,6 +61,14 @@ pub enum Error {
     #[error("Invalid format: {0}")]
     InvalidFormat(String),
 
+    /// Null pointer returned
+    #[error("Null pointer returned")]
+    NullPointer,
+
+    /// Resource not found
+    #[error("Resource not found")]
+    NotFound,
+
     /// Unknown error with code
     #[error("Unknown error (code {0}): {1}")]
     Unknown(i32, String),

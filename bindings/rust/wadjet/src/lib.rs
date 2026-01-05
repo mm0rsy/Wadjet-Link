@@ -74,6 +74,7 @@ mod pcap;
 mod decode;
 mod device;
 mod types;
+pub mod diagnostic;
 
 pub use error::{Error, Result};
 pub use capture::{CaptureSession, CaptureOptions, CaptureStatistics};
@@ -82,6 +83,10 @@ pub use pcap::{PcapReader, PcapWriter};
 pub use decode::{DecodeResult, Protocol};
 pub use device::DeviceInfo;
 pub use types::*;
+pub use diagnostic::{
+    DiagnosticEvent, DiagnosticOptions, DiagnosticSessionManager,
+    DiagnosticSessionState, DiagnosticTiming, CorrelationStatistics, SessionType,
+};
 
 use std::sync::atomic::{AtomicBool, Ordering};
 

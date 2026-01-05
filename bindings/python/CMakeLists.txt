@@ -47,6 +47,7 @@ pybind11_add_module(_wadjet
     src/pcap_bindings.cpp
     src/protocol_bindings.cpp
     src/decoder_bindings.cpp
+    src/diagnostic_bindings.cpp
 )
 
 target_link_libraries(_wadjet

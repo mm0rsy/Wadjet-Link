@@ -82,6 +82,25 @@ try:
         # Utilities
         bytes_to_hex,
         hex_to_bytes,
+        
+        # Diagnostic session management (UDS over DoIP)
+        DiagnosticSessionManager,
+        DiagnosticSessionManagerOptions,
+        DiagnosticSessionState,
+        DiagnosticTiming,
+        DiagnosticEvent,
+        diagnostic_event_string,
+        RequestCorrelator,
+        RequestCorrelatorOptions,
+        CorrelationStatistics,
+        RequestResponsePair,
+        PendingRequest,
+        TransportInfo,
+        MessageDirection,
+        UdsOverDoipDecoder,
+        UdsOverDoipResult,
+        UdsOverDoipError,
+        UdsOverDoipErrorCode,
     )
     _NATIVE_AVAILABLE = True
 except ImportError:

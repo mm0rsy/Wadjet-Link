@@ -1143,6 +1143,159 @@ wadjet_error_t wadjet_decode_result_payload(
     size_t* length);
 
 /* ============================================================================
+ * Diagnostic Session Manager API (UDS over DoIP)
+ * ============================================================================ */
+
+/** @brief Opaque handle to diagnostic session manager */
+typedef struct wadjet_diagnostic_session_manager* wadjet_diagnostic_session_manager_t;
+
+/**
+ * @brief Diagnostic events
+ */
+typedef enum {
+    WADJET_DIAG_EVENT_ROUTING_ACTIVATED = 0,
+    WADJET_DIAG_EVENT_ROUTING_DEACTIVATED = 1,
+    WADJET_DIAG_EVENT_CONNECTION_LOST = 2,
+    WADJET_DIAG_EVENT_SESSION_STARTED = 3,
+    WADJET_DIAG_EVENT_SESSION_CHANGED = 4,
+    WADJET_DIAG_EVENT_SESSION_TIMEOUT = 5,
+    WADJET_DIAG_EVENT_SESSION_ENDED = 6,
+    WADJET_DIAG_EVENT_SECURITY_UNLOCKED = 7,
+    WADJET_DIAG_EVENT_SECURITY_LOCKED = 8,
+    WADJET_DIAG_EVENT_SECURITY_LOCKOUT = 9,
+    WADJET_DIAG_EVENT_REQUEST_SENT = 10,
+    WADJET_DIAG_EVENT_RESPONSE_RECEIVED = 11,
+    WADJET_DIAG_EVENT_RESPONSE_PENDING = 12,
+    WADJET_DIAG_EVENT_RESPONSE_TIMEOUT = 13,
+    WADJET_DIAG_EVENT_NEGATIVE_RESPONSE = 14,
+    WADJET_DIAG_EVENT_DTCS_READ = 15,
+    WADJET_DIAG_EVENT_DTCS_CLEARED = 16,
+    WADJET_DIAG_EVENT_DATA_IDENTIFIER_READ = 17,
+    WADJET_DIAG_EVENT_FLASH_STARTED = 18,
+    WADJET_DIAG_EVENT_FLASH_PROGRESS = 19,
+    WADJET_DIAG_EVENT_FLASH_COMPLETED = 20,
+    WADJET_DIAG_EVENT_FLASH_FAILED = 21,
+} wadjet_diagnostic_event_t;
+
+/**
+ * @brief Diagnostic session state
+ */
+typedef struct {
+    uint16_t tester_address;                /**< Tester logical address */
+    uint16_t gateway_address;               /**< Gateway logical address */
+    wadjet_uds_session_type_t session_type; /**< Current UDS session type */
+    bool session_active;                    /**< Is session currently active */
+    bool routing_active;                    /**< Is routing activated */
+    uint8_t security_level;                 /**< Current security level (0 = locked) */
+    uint32_t p2_server_max_ms;              /**< P2 Server Max in milliseconds */
+    uint32_t p2_star_server_max_ms;         /**< P2* Server Max in milliseconds */
+    uint64_t requests_sent;                 /**< Total requests sent to this ECU */
+    uint64_t responses_received;            /**< Total responses received */
+    uint64_t negative_responses;            /**< Negative responses received */
+    uint64_t timeouts;                      /**< Timeout count */
+} wadjet_diagnostic_session_state_t;
+
+/**
+ * @brief Diagnostic session manager options
+ */
+typedef struct {
+    bool enable_correlation;        /**< Enable request/response correlation */
+    bool enable_timeout_detection;  /**< Enable automatic timeout detection */
+    size_t max_ecus;                /**< Maximum ECUs to track */
+    uint32_t p2_server_max_ms;      /**< Default P2 Server Max (ms) */
+    uint32_t p2_star_server_max_ms; /**< Default P2* Server Max (ms) */
+    uint32_t s3_server_ms;          /**< Default S3 Server timeout (ms) */
+} wadjet_diagnostic_options_t;
+
+/**
+ * @brief Callback for diagnostic events
+ * @param event Event type
+ * @param state Session state at time of event
+ * @param user_data User context pointer
+ */
+typedef void (*wadjet_diagnostic_event_callback_t)(wadjet_diagnostic_event_t event,
+                                                   const wadjet_diagnostic_session_state_t* state,
+                                                   void* user_data);
+
+/**
+ * @brief Get default diagnostic options
+ * @param options Output: default options
+ */
+void wadjet_diagnostic_options_default(wadjet_diagnostic_options_t* options);
+
+/**
+ * @brief Create diagnostic session manager
+ * @param options Configuration options (NULL for defaults)
+ * @param manager Output: manager handle
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_diagnostic_manager_create(const wadjet_diagnostic_options_t* options,
+                                                wadjet_diagnostic_session_manager_t* manager);
+
+/**
+ * @brief Destroy diagnostic session manager
+ * @param manager Manager handle
+ */
+void wadjet_diagnostic_manager_destroy(wadjet_diagnostic_session_manager_t manager);
+
+/**
+ * @brief Register event callback
+ * @param manager Manager handle
+ * @param callback Event callback function
+ * @param user_data User context passed to callback
+ */
+void wadjet_diagnostic_manager_on_event(wadjet_diagnostic_session_manager_t manager,
+                                        wadjet_diagnostic_event_callback_t callback,
+                                        void* user_data);
+
+/**
+ * @brief Process raw DoIP packet
+ * @param manager Manager handle
+ * @param data Raw DoIP packet data
+ * @param length Data length
+ * @return WADJET_OK if packet was processed
+ */
+wadjet_error_t wadjet_diagnostic_manager_process(wadjet_diagnostic_session_manager_t manager,
+                                                 const uint8_t* data, size_t length);
+
+/**
+ * @brief Get session state for an ECU
+ * @param manager Manager handle
+ * @param ecu_address ECU logical address
+ * @param state Output: session state
+ * @return WADJET_OK if session found, WADJET_ERR_NOT_FOUND otherwise
+ */
+wadjet_error_t wadjet_diagnostic_manager_get_session(wadjet_diagnostic_session_manager_t manager,
+                                                     uint16_t ecu_address,
+                                                     wadjet_diagnostic_session_state_t* state);
+
+/**
+ * @brief Get count of active sessions
+ * @param manager Manager handle
+ * @return Number of active ECU sessions
+ */
+size_t wadjet_diagnostic_manager_session_count(wadjet_diagnostic_session_manager_t manager);
+
+/**
+ * @brief Get correlation statistics
+ * @param manager Manager handle
+ * @param requests_recorded Output: total requests recorded
+ * @param responses_matched Output: responses successfully matched
+ * @param responses_unmatched Output: unmatched responses
+ * @param timeouts Output: requests that timed out
+ */
+void wadjet_diagnostic_manager_statistics(wadjet_diagnostic_session_manager_t manager,
+                                          uint64_t* requests_recorded, uint64_t* responses_matched,
+                                          uint64_t* responses_unmatched, uint64_t* timeouts);
+
+/**
+ * @brief Check for timed out requests
+ * @param manager Manager handle
+ * @return Number of requests that timed out
+ */
+size_t wadjet_diagnostic_manager_check_timeouts(wadjet_diagnostic_session_manager_t manager);
+
+/* ============================================================================
  * Device Enumeration API
  * ============================================================================ */
 

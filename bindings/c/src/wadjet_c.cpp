@@ -12,6 +12,7 @@
 #include <wadjet/net/packet.hpp>
 #include <wadjet/pcap/pcap_reader.hpp>
 #include <wadjet/pcap/pcap_writer.hpp>
+#include <wadjet/protocols/diagnostic.hpp>
 #include <wadjet/protocols/dispatcher.hpp>
 #include <wadjet/protocols/doip.hpp>
 #include <wadjet/protocols/ethernet.hpp>
@@ -100,6 +101,16 @@ struct wadjet_uds_decoder {
 struct wadjet_uds_session {
     protocols::uds::UdsSession session;
     explicit wadjet_uds_session(std::uint16_t addr) : session(addr) {}
+};
+
+struct wadjet_diagnostic_session_manager {
+    protocols::diagnostic::DiagnosticSessionManager manager;
+    wadjet_diagnostic_event_callback_t callback = nullptr;
+    void* user_data = nullptr;
+
+    explicit wadjet_diagnostic_session_manager(
+        protocols::diagnostic::DiagnosticSessionManager::Options opts)
+        : manager(std::move(opts)) {}
 };
 
 // ============================================================================
@@ -1295,6 +1306,178 @@ wadjet_error_t wadjet_decode_result_uds(wadjet_decode_result_t result,
     header->data_length = uds_header.service_data.size();
 
     return WADJET_OK;
+}
+
+// ============================================================================
+// Diagnostic Session Manager
+// ============================================================================
+
+void wadjet_diagnostic_options_default(wadjet_diagnostic_options_t* options) {
+    if (!options)
+        return;
+
+    auto defaults = protocols::diagnostic::DiagnosticSessionManager::Options::defaults();
+    options->enable_correlation = defaults.enable_correlation;
+    options->enable_timeout_detection = defaults.enable_timeout_detection;
+    options->max_ecus = defaults.max_ecus;
+    options->p2_server_max_ms =
+        static_cast<uint32_t>(defaults.default_timing.p2_server_max.count());
+    options->p2_star_server_max_ms =
+        static_cast<uint32_t>(defaults.default_timing.p2_star_server_max.count());
+    options->s3_server_ms = static_cast<uint32_t>(defaults.default_timing.s3_server.count());
+}
+
+wadjet_error_t wadjet_diagnostic_manager_create(const wadjet_diagnostic_options_t* options,
+                                                wadjet_diagnostic_session_manager_t* manager) {
+    if (!manager) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+        protocols::diagnostic::DiagnosticSessionManager::Options opts;
+
+        if (options) {
+            opts.enable_correlation = options->enable_correlation;
+            opts.enable_timeout_detection = options->enable_timeout_detection;
+            opts.max_ecus = options->max_ecus;
+            opts.default_timing.p2_server_max =
+                std::chrono::milliseconds(options->p2_server_max_ms);
+            opts.default_timing.p2_star_server_max =
+                std::chrono::milliseconds(options->p2_star_server_max_ms);
+            opts.default_timing.s3_server = std::chrono::milliseconds(options->s3_server_ms);
+        } else {
+            opts = protocols::diagnostic::DiagnosticSessionManager::Options::defaults();
+        }
+
+        *manager = new wadjet_diagnostic_session_manager(std::move(opts));
+        return WADJET_OK;
+    } catch (const std::exception& e) {
+        set_last_error(e.what());
+        return WADJET_ERR_OUT_OF_MEMORY;
+    }
+}
+
+void wadjet_diagnostic_manager_destroy(wadjet_diagnostic_session_manager_t manager) {
+    delete manager;
+}
+
+void wadjet_diagnostic_manager_on_event(wadjet_diagnostic_session_manager_t manager,
+                                        wadjet_diagnostic_event_callback_t callback,
+                                        void* user_data) {
+    if (!manager)
+        return;
+
+    manager->callback = callback;
+    manager->user_data = user_data;
+
+    if (callback) {
+        manager->manager.on_event(
+            [manager](protocols::diagnostic::DiagnosticEvent event,
+                      const protocols::diagnostic::DiagnosticSessionState& state,
+                      [[maybe_unused]] const protocols::diagnostic::RequestResponsePair* pair) {
+                if (manager->callback) {
+                    wadjet_diagnostic_session_state_t c_state;
+                    c_state.tester_address = state.tester_address;
+                    c_state.gateway_address = state.gateway_address;
+                    c_state.session_type = static_cast<wadjet_uds_session_type_t>(
+                        static_cast<int>(state.session_type));
+                    c_state.session_active = state.session_active;
+                    c_state.routing_active = state.routing_active;
+                    c_state.security_level = state.security_level;
+                    c_state.p2_server_max_ms =
+                        static_cast<uint32_t>(state.timing.p2_server_max.count());
+                    c_state.p2_star_server_max_ms =
+                        static_cast<uint32_t>(state.timing.p2_star_server_max.count());
+                    c_state.requests_sent = state.requests_sent;
+                    c_state.responses_received = state.responses_received;
+                    c_state.negative_responses = state.negative_responses;
+                    c_state.timeouts = state.timeouts;
+
+                    manager->callback(
+                        static_cast<wadjet_diagnostic_event_t>(static_cast<int>(event)), &c_state,
+                        manager->user_data);
+                }
+            });
+    }
+}
+
+wadjet_error_t wadjet_diagnostic_manager_process(wadjet_diagnostic_session_manager_t manager,
+                                                 const uint8_t* data, size_t length) {
+    if (!manager || !data) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    std::span<const std::byte> span(reinterpret_cast<const std::byte*>(data), length);
+
+    if (manager->manager.process_doip_raw(span)) {
+        return WADJET_OK;
+    }
+
+    return WADJET_ERR_DECODE;
+}
+
+wadjet_error_t wadjet_diagnostic_manager_get_session(wadjet_diagnostic_session_manager_t manager,
+                                                     uint16_t ecu_address,
+                                                     wadjet_diagnostic_session_state_t* state) {
+    if (!manager || !state) {
+        set_last_error("Invalid argument");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    auto* session = manager->manager.get_session_state(ecu_address);
+    if (!session) {
+        set_last_error("Session not found");
+        return WADJET_ERR_NOT_FOUND;
+    }
+
+    state->tester_address = session->tester_address;
+    state->gateway_address = session->gateway_address;
+    state->session_type =
+        static_cast<wadjet_uds_session_type_t>(static_cast<int>(session->session_type));
+    state->session_active = session->session_active;
+    state->routing_active = session->routing_active;
+    state->security_level = session->security_level;
+    state->p2_server_max_ms = static_cast<uint32_t>(session->timing.p2_server_max.count());
+    state->p2_star_server_max_ms =
+        static_cast<uint32_t>(session->timing.p2_star_server_max.count());
+    state->requests_sent = session->requests_sent;
+    state->responses_received = session->responses_received;
+    state->negative_responses = session->negative_responses;
+    state->timeouts = session->timeouts;
+
+    return WADJET_OK;
+}
+
+size_t wadjet_diagnostic_manager_session_count(wadjet_diagnostic_session_manager_t manager) {
+    if (!manager)
+        return 0;
+    return manager->manager.get_tracked_ecus().size();
+}
+
+void wadjet_diagnostic_manager_statistics(wadjet_diagnostic_session_manager_t manager,
+                                          uint64_t* requests_recorded, uint64_t* responses_matched,
+                                          uint64_t* responses_unmatched, uint64_t* timeouts) {
+    if (!manager)
+        return;
+
+    auto stats = manager->manager.correlator().statistics();
+
+    if (requests_recorded)
+        *requests_recorded = stats.requests_recorded;
+    if (responses_matched)
+        *responses_matched = stats.responses_matched;
+    if (responses_unmatched)
+        *responses_unmatched = stats.responses_unmatched;
+    if (timeouts)
+        *timeouts = stats.pending_timeouts;
+}
+
+size_t wadjet_diagnostic_manager_check_timeouts(wadjet_diagnostic_session_manager_t manager) {
+    if (!manager)
+        return 0;
+    return manager->manager.correlator().check_timeouts();
 }
 
 }  // extern "C"

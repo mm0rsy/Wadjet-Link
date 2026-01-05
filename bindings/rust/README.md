@@ -69,6 +69,54 @@ fn main() -> wadjet::Result<()> {
 }
 ```
 
+## Diagnostic Session Management (UDS over DoIP)
+
+```rust
+use wadjet::diagnostic::{DiagnosticSessionManager, DiagnosticOptions, DiagnosticEvent};
+
+fn main() -> wadjet::Result<()> {
+    // Create diagnostic manager with custom options
+    let options = DiagnosticOptions::default()
+        .p2_timeout(100)
+        .p2_star_timeout(5000)
+        .max_ecus(128);
+    
+    let mut manager = DiagnosticSessionManager::new(options)?;
+
+    // Register event callback
+    manager.on_event(|event, state| {
+        match event {
+            DiagnosticEvent::SessionStarted => {
+                println!("Session started: ECU 0x{:04X}", state.gateway_address);
+            }
+            DiagnosticEvent::SecurityUnlocked => {
+                println!("Security unlocked: level {}", state.security_level);
+            }
+            DiagnosticEvent::FlashStarted => {
+                println!("Flash download started for ECU 0x{:04X}", state.gateway_address);
+            }
+            _ => {}
+        }
+    });
+
+    // Process DoIP packets (from capture or file)
+    // manager.process(&doip_data)?;
+
+    // Check session state
+    if let Some(state) = manager.get_session(0x1234) {
+        println!("ECU 0x1234: {} session={}", 
+            if state.session_active { "active" } else { "inactive" },
+            state.session_type);
+    }
+
+    // Get correlation statistics
+    let stats = manager.statistics();
+    println!("Match rate: {:.1}%", stats.match_rate() * 100.0);
+
+    Ok(())
+}
+```
+
 ## License
 
 Polyform Noncommercial 1.0.0 — Same as Wadjet-Link. For commercial licensing, contact the author.

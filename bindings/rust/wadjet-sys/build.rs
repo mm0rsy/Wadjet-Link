@@ -43,6 +43,11 @@ fn main() {
         .rustified_enum("wadjet_someip_return_code_t")
         .rustified_enum("wadjet_doip_payload_type_t")
         .rustified_enum("wadjet_gptp_message_type_t")
+        .rustified_enum("wadjet_diagnostic_event_t")
+        .rustified_enum("wadjet_uds_session_type_t")
+        .rustified_enum("wadjet_uds_service_id_t")
+        .rustified_enum("wadjet_uds_reset_type_t")
+        .rustified_enum("wadjet_uds_nrc_t")
         // Generate documentation comments
         .generate_comments(true)
         // Block certain items that might cause issues

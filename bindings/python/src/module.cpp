@@ -19,6 +19,7 @@ void bind_capture(py::module_& m);
 void bind_pcap(py::module_& m);
 void bind_protocols(py::module_& m);
 void bind_decoders(py::module_& m);
+void bind_diagnostic(py::module_& m);
 
 PYBIND11_MODULE(_wadjet, m) {
     m.doc() = R"doc(
@@ -49,4 +50,5 @@ PYBIND11_MODULE(_wadjet, m) {
     bind_pcap(m);
     bind_protocols(m);
     bind_decoders(m);
+    bind_diagnostic(m);
 }
