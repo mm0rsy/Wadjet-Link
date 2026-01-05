@@ -354,7 +354,8 @@ public:
             return false;
 
         auto deadline = std::chrono::steady_clock::now() + duration;
-        auto timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+        [[maybe_unused]] auto timeout_ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 
         while (std::chrono::steady_clock::now() < deadline) {
             auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(

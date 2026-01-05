@@ -17,7 +17,7 @@ namespace {
 }
 
 /// @brief Read big-endian uint32 from buffer
-[[nodiscard]] inline std::uint32_t read_be32(const std::byte* data) {
+[[nodiscard, maybe_unused]] inline std::uint32_t read_be32(const std::byte* data) {
     return static_cast<std::uint32_t>(
         (static_cast<std::uint32_t>(data[0]) << 24) | (static_cast<std::uint32_t>(data[1]) << 16) |
         (static_cast<std::uint32_t>(data[2]) << 8) | static_cast<std::uint32_t>(data[3]));

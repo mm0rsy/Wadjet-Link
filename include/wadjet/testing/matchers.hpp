@@ -226,6 +226,9 @@ public:
         }
 
         const auto* eth = result.get_layer<protocols::ethernet::EthernetHeader>();
+        if (eth == nullptr) {
+            return false;  // Defensive check for GCC null-dereference warning
+        }
         bool has_vlan = eth->has_vlan();
         if (listener->IsInterested()) {
             *listener << (has_vlan ? "has VLAN tag" : "does not have VLAN tag");

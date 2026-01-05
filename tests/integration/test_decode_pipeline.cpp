@@ -208,11 +208,13 @@ TEST_F(DecodePipelineTest, DecodeEthernetIPv4UdpSomeIP) {
     // Verify Ethernet layer
     ASSERT_TRUE(result.has_layer<ethernet::EthernetHeader>());
     auto* eth = result.get_layer<ethernet::EthernetHeader>();
+    ASSERT_NE(eth, nullptr);
     EXPECT_EQ(eth->ethertype, 0x0800);
 
     // Verify IPv4 layer
     ASSERT_TRUE(result.has_layer<ipv4::IPv4Header>());
     auto* ip = result.get_layer<ipv4::IPv4Header>();
+    ASSERT_NE(ip, nullptr);
     EXPECT_EQ(ip->src_ip.to_string(), "192.168.1.10");
     EXPECT_EQ(ip->dst_ip.to_string(), "192.168.1.20");
     EXPECT_EQ(ip->protocol, 17);  // UDP
@@ -220,12 +222,14 @@ TEST_F(DecodePipelineTest, DecodeEthernetIPv4UdpSomeIP) {
     // Verify UDP layer
     ASSERT_TRUE(result.has_layer<udp::UdpHeader>());
     auto* udp_hdr = result.get_layer<udp::UdpHeader>();
+    ASSERT_NE(udp_hdr, nullptr);
     EXPECT_EQ(udp_hdr->src_port, 30490);
     EXPECT_EQ(udp_hdr->dst_port, 30490);
 
     // Verify SOME/IP layer
     ASSERT_TRUE(result.has_layer<someip::SomeIpHeader>());
     auto* someip_hdr = result.get_layer<someip::SomeIpHeader>();
+    ASSERT_NE(someip_hdr, nullptr);
     EXPECT_EQ(someip_hdr->service_id, 0x1234);
     EXPECT_EQ(someip_hdr->method_id, 0x8001);
 }
@@ -392,5 +396,6 @@ TEST_F(DecodePipelineTest, DecodeMultiplePacketsConsistently) {
     EXPECT_TRUE(r3.has_layer<someip::SomeIpHeader>());
 
     auto* someip_hdr = r3.get_layer<someip::SomeIpHeader>();
+    ASSERT_NE(someip_hdr, nullptr);
     EXPECT_EQ(someip_hdr->service_id, 0xABCD);
 }

@@ -77,7 +77,8 @@ namespace {
 }
 
 /// @brief Read uint64 with endianness
-[[nodiscard]] inline std::uint64_t read_u64(const std::byte* data, bool little_endian) {
+[[nodiscard, maybe_unused]] inline std::uint64_t read_u64(const std::byte* data,
+                                                          bool little_endian) {
     return little_endian ? read_le64(data) : read_be64(data);
 }
 
@@ -181,7 +182,7 @@ namespace {
 }
 
 /// @brief Convert SubmessageKind to string
-[[nodiscard]] inline std::string_view submessage_kind_string(SubmessageKind kind) {
+[[nodiscard, maybe_unused]] inline std::string_view submessage_kind_string(SubmessageKind kind) {
     switch (kind) {
         case SubmessageKind::PAD:
             return "PAD";
@@ -215,7 +216,7 @@ namespace {
 }
 
 /// @brief Convert ParameterId to string
-[[nodiscard]] inline std::string_view parameter_id_string(ParameterId id) {
+[[nodiscard, maybe_unused]] inline std::string_view parameter_id_string(ParameterId id) {
     switch (id) {
         case ParameterId::PID_PAD:
             return "PID_PAD";

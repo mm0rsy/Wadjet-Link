@@ -527,7 +527,7 @@ struct DTC {
                 prefix = '?';
         }
 
-        std::uint16_t code = ((high_byte & 0x3F) << 8) | middle_byte;
+        std::uint16_t code = static_cast<std::uint16_t>(((high_byte & 0x3F) << 8) | middle_byte);
         std::snprintf(buf, sizeof(buf), "%c%04X", prefix, code);
         return buf;
     }
@@ -604,7 +604,8 @@ struct AddressAndLengthFormatIdentifier {
 
     /// @brief Convert to byte
     [[nodiscard]] std::uint8_t to_byte() const {
-        return ((memory_size_length & 0x0F) << 4) | (memory_address_length & 0x0F);
+        return static_cast<std::uint8_t>(((memory_size_length & 0x0F) << 4) |
+                                         (memory_address_length & 0x0F));
     }
 };
 
@@ -625,7 +626,8 @@ struct DataFormatIdentifier {
 
     /// @brief Convert to byte
     [[nodiscard]] std::uint8_t to_byte() const {
-        return ((compression_method & 0x0F) << 4) | (encrypting_method & 0x0F);
+        return static_cast<std::uint8_t>(((compression_method & 0x0F) << 4) |
+                                         (encrypting_method & 0x0F));
     }
 
     /// @brief Check if no compression is used

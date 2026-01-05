@@ -12,8 +12,9 @@ namespace wadjet {
 
 /// @brief Read a 16-bit value in network byte order (big-endian)
 [[nodiscard]] inline constexpr std::uint16_t read_be16(const std::byte* data) {
-    return (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[0])) << 8) |
-           static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[1]));
+    return static_cast<std::uint16_t>(
+        (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[0])) << 8) |
+        static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[1])));
 }
 
 /// @brief Read a 32-bit value in network byte order (big-endian)
@@ -52,8 +53,9 @@ inline constexpr void write_be64(std::byte* data, std::uint64_t value) {
 
 /// @brief Read a 16-bit value in little-endian order
 [[nodiscard]] inline constexpr std::uint16_t read_le16(const std::byte* data) {
-    return static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[0])) |
-           (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[1])) << 8);
+    return static_cast<std::uint16_t>(
+        static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[0])) |
+        (static_cast<std::uint16_t>(static_cast<std::uint8_t>(data[1])) << 8));
 }
 
 /// @brief Read a 32-bit value in little-endian order

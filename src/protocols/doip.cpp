@@ -5,7 +5,7 @@
 
 #include "wadjet/core/byte_order.hpp"
 
-#include <format>
+#include <sstream>
 
 namespace wadjet::protocols::doip {
 
@@ -49,9 +49,12 @@ std::string_view payload_type_string(PayloadType type) {
 }
 
 std::string DoIPHeader::to_string() const {
-    return std::format("DoIP [version={:#04x}, type={} ({:#06x}), payload_length={}]",
-                       protocol_version, payload_type_string(payload_type),
-                       static_cast<std::uint16_t>(payload_type), payload_length);
+    std::ostringstream oss;
+    oss << "DoIP [version=0x" << std::hex << static_cast<int>(protocol_version)
+        << ", type=" << payload_type_string(payload_type) << " (0x" << std::hex
+        << static_cast<std::uint16_t>(payload_type) << "), payload_length=" << std::dec
+        << payload_length << "]";
+    return oss.str();
 }
 
 DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
@@ -100,8 +103,8 @@ std::optional<RoutingActivationRequest> DoIPDecoder::parse_routing_activation_re
     RoutingActivationRequest req;
     const auto* data = payload.data();
 
-    req.source_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
+    req.source_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[0]) << 8) |
+                                                    static_cast<std::uint16_t>(data[1]));
 
     req.activation_type = static_cast<std::uint8_t>(data[2]);
 
@@ -130,11 +133,11 @@ std::optional<RoutingActivationResponse> DoIPDecoder::parse_routing_activation_r
     RoutingActivationResponse resp;
     const auto* data = payload.data();
 
-    resp.logical_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
+    resp.logical_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[0]) << 8) |
+                                                      static_cast<std::uint16_t>(data[1]));
 
-    resp.entity_address =
-        (static_cast<std::uint16_t>(data[2]) << 8) | static_cast<std::uint16_t>(data[3]);
+    resp.entity_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[2]) << 8) |
+                                                     static_cast<std::uint16_t>(data[3]));
 
     resp.response_code = static_cast<RoutingActivationResponseCode>(data[4]);
 
@@ -163,11 +166,11 @@ std::optional<DiagnosticMessagePayload> DoIPDecoder::parse_diagnostic_message(
     DiagnosticMessagePayload msg;
     const auto* data = payload.data();
 
-    msg.source_address =
-        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]);
+    msg.source_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[0]) << 8) |
+                                                    static_cast<std::uint16_t>(data[1]));
 
-    msg.target_address =
-        (static_cast<std::uint16_t>(data[2]) << 8) | static_cast<std::uint16_t>(data[3]);
+    msg.target_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[2]) << 8) |
+                                                    static_cast<std::uint16_t>(data[3]));
 
     // User data (UDS payload)
     if (payload.size() > 4) {
@@ -194,8 +197,8 @@ std::optional<VehicleIdentificationResponse> DoIPDecoder::parse_vehicle_identifi
     }
 
     // Logical address
-    resp.logical_address =
-        (static_cast<std::uint16_t>(data[17]) << 8) | static_cast<std::uint16_t>(data[18]);
+    resp.logical_address = static_cast<std::uint16_t>((static_cast<std::uint16_t>(data[17]) << 8) |
+                                                      static_cast<std::uint16_t>(data[18]));
 
     // EID (6 bytes)
     for (std::size_t i = 0; i < 6; ++i) {

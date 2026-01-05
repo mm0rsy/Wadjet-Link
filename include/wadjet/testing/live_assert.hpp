@@ -37,6 +37,7 @@
 
 #include "wadjet/io/capture_session.hpp"
 #include "wadjet/net/packet.hpp"
+#include "wadjet/pcap/pcap_writer.hpp"
 #include "wadjet/protocols/dispatcher.hpp"
 
 #include <gmock/gmock.h>
@@ -44,6 +45,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <filesystem>
 #include <functional>
 #include <memory>
 #include <mutex>

@@ -39,7 +39,7 @@ namespace {
 }
 
 /// @brief Read big-endian int32 from buffer
-[[nodiscard]] inline std::int32_t read_be32_signed(const std::byte* data) {
+[[nodiscard, maybe_unused]] inline std::int32_t read_be32_signed(const std::byte* data) {
     return static_cast<std::int32_t>(read_be32(data));
 }
 

@@ -176,7 +176,7 @@ public:
             frame.push_back(0x81);
             frame.push_back(0x00);
             // TCI (PCP + DEI + VID)
-            std::uint16_t tci = (vlan_pcp_ << 13) | (vlan_id_ & 0x0FFF);
+            std::uint16_t tci = static_cast<std::uint16_t>((vlan_pcp_ << 13) | (vlan_id_ & 0x0FFF));
             frame.push_back(static_cast<std::uint8_t>(tci >> 8));
             frame.push_back(static_cast<std::uint8_t>(tci & 0xFF));
         }
