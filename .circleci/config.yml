@@ -228,16 +228,16 @@ jobs:
       - run:
           name: Install clang-format
           command: |
-            # Add LLVM APT repository for clang-format-17
+            # Add LLVM APT repository for clang-format-18
             wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-17 main" | sudo tee /etc/apt/sources.list.d/llvm-17.list
+            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
             sudo apt-get update
-            sudo apt-get install -y clang-format-17
+            sudo apt-get install -y clang-format-18
       - run:
           name: Check code formatting
           command: |
             find include src tests -name '*.cpp' -o -name '*.hpp' | \
-              xargs clang-format-17 --dry-run --Werror
+              xargs clang-format-18 --dry-run --Werror
 
   # --------------------------------------------------------------------------
   # Static Analysis
