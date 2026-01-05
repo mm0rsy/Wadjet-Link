@@ -54,3 +54,22 @@ if(TARGET GTest::gtest AND TARGET GTest::gmock)
     include(GoogleTest)
     gtest_discover_tests(pcap_regression)
 endif()
+
+# ============================================================================
+# Diagnostic Examples (using DiagnosticSessionManager)
+# ============================================================================
+
+# Diagnostic Analyzer - Comprehensive session analysis
+add_executable(diagnostic_analyzer diagnostic/diagnostic_analyzer.cpp)
+target_link_libraries(diagnostic_analyzer PRIVATE wadjet)
+target_compile_features(diagnostic_analyzer PRIVATE cxx_std_20)
+
+# Flash Validator - ECU flash sequence validation
+add_executable(flash_validator diagnostic/flash_validator.cpp)
+target_link_libraries(flash_validator PRIVATE wadjet)
+target_compile_features(flash_validator PRIVATE cxx_std_20)
+
+# DTC Analyzer - Diagnostic Trouble Code analysis
+add_executable(dtc_analyzer diagnostic/dtc_analyzer.cpp)
+target_link_libraries(dtc_analyzer PRIVATE wadjet)
+target_compile_features(dtc_analyzer PRIVATE cxx_std_20)

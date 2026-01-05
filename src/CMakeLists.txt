@@ -60,6 +60,13 @@ add_library(wadjet
     # UDS protocol
     protocols/uds_decoder.cpp
     protocols/uds_session.cpp
+    
+    # Diagnostic integration (UDS over DoIP)
+    protocols/diagnostic/diagnostic_session.cpp
+    protocols/diagnostic/dtc_manager.cpp
+    protocols/diagnostic/flash_sequence.cpp
+    protocols/diagnostic/request_correlator.cpp
+    protocols/diagnostic/uds_doip_decoder.cpp
 )
 
 # Add scenario module sources if dependencies are available

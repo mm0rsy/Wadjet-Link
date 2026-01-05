@@ -40,6 +40,9 @@ add_executable(wadjet_tests
     protocols/test_uds.cpp
     protocols/test_uds_regression.cpp
     protocols/test_dds.cpp
+    protocols/test_uds_doip_integration.cpp
+    protocols/test_flash_sequence.cpp
+    protocols/test_dtc_manager.cpp
 )
 
 target_link_libraries(wadjet_tests
@@ -48,6 +51,7 @@ target_link_libraries(wadjet_tests
         wadjet_warnings
         wadjet_sanitizers
         GTest::gtest_main
+        GTest::gmock
 )
 
 include(GoogleTest)
