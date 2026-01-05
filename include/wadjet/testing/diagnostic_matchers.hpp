@@ -48,8 +48,7 @@ MATCHER_P(HasNRC, expected_nrc, "has NRC " + std::string(nrc_string(expected_nrc
 }
 
 /// @brief Matches if response arrived within specified time
-MATCHER_P(ArrivesWithin, max_time, 
-          "arrives within " + std::to_string(max_time.count()) + "ms") {
+MATCHER_P(ArrivesWithin, max_time, "arrives within " + std::to_string(max_time.count()) + "ms") {
     if (!arg.is_complete()) {
         return false;
     }
@@ -73,21 +72,18 @@ MATCHER(HadPendingResponse, "had pending response") {
 }
 
 /// @brief Matches if pending count equals expected
-MATCHER_P(HasPendingCount, expected, 
-          "has pending count " + std::to_string(expected)) {
-    return arg.is_complete() && 
-           arg.response->pending_count == static_cast<std::uint32_t>(expected);
+MATCHER_P(HasPendingCount, expected, "has pending count " + std::to_string(expected)) {
+    return arg.is_complete() && arg.response->pending_count == static_cast<std::uint32_t>(expected);
 }
 
 /// @brief Matches request service ID
-MATCHER_P(HasRequestService, service, 
+MATCHER_P(HasRequestService, service,
           "has request service " + std::string(service_id_string(service))) {
     return arg.request.header.service_id == service;
 }
 
 /// @brief Matches if request was sent to specific address
-MATCHER_P(SentToAddress, address, 
-          "sent to address 0x" + std::to_string(address)) {
+MATCHER_P(SentToAddress, address, "sent to address 0x" + std::to_string(address)) {
     return arg.request.transport.target_address == address;
 }
 
@@ -106,8 +102,7 @@ MATCHER(IsRoutingActive, "routing is active") {
 }
 
 /// @brief Matches session type
-MATCHER_P(HasSessionType, type, 
-          "has session type " + std::to_string(static_cast<int>(type))) {
+MATCHER_P(HasSessionType, type, "has session type " + std::to_string(static_cast<int>(type))) {
     return arg.session_type == type;
 }
 
@@ -122,8 +117,7 @@ MATCHER(IsInExtendedSession, "is in extended session") {
 }
 
 /// @brief Matches security level
-MATCHER_P(HasSecurityLevel, level, 
-          "has security level " + std::to_string(level)) {
+MATCHER_P(HasSecurityLevel, level, "has security level " + std::to_string(level)) {
     return arg.security_level >= level;
 }
 
@@ -142,20 +136,18 @@ MATCHER(IsPotentiallyTimedOut, "is potentially timed out") {
 // =============================================================================
 
 /// @brief Matches if timing P2 is within spec
-MATCHER_P(HasP2Within, max_p2, 
-          "has P2 within " + std::to_string(max_p2.count()) + "ms") {
+MATCHER_P(HasP2Within, max_p2, "has P2 within " + std::to_string(max_p2.count()) + "ms") {
     return arg.timing.p2_server_max <= max_p2;
 }
 
 /// @brief Matches if timing P2* is within spec
-MATCHER_P(HasP2StarWithin, max_p2_star, 
+MATCHER_P(HasP2StarWithin, max_p2_star,
           "has P2* within " + std::to_string(max_p2_star.count()) + "ms") {
     return arg.timing.p2_star_server_max <= max_p2_star;
 }
 
 /// @brief Matches if S3 timeout is configured
-MATCHER_P(HasS3Timeout, s3_timeout, 
-          "has S3 timeout " + std::to_string(s3_timeout.count()) + "ms") {
+MATCHER_P(HasS3Timeout, s3_timeout, "has S3 timeout " + std::to_string(s3_timeout.count()) + "ms") {
     return arg.timing.s3_server == s3_timeout;
 }
 
@@ -164,8 +156,7 @@ MATCHER_P(HasS3Timeout, s3_timeout,
 // =============================================================================
 
 /// @brief Matches service ID
-MATCHER_P(HasServiceId, sid, 
-          "has service ID " + std::string(service_id_string(sid))) {
+MATCHER_P(HasServiceId, sid, "has service ID " + std::string(service_id_string(sid))) {
     return arg.service_id == sid;
 }
 
@@ -175,8 +166,7 @@ MATCHER(HasSubFunction, "has sub-function") {
 }
 
 /// @brief Matches sub-function value
-MATCHER_P(HasSubFunctionValue, value, 
-          "has sub-function value 0x" + std::to_string(value)) {
+MATCHER_P(HasSubFunctionValue, value, "has sub-function value 0x" + std::to_string(value)) {
     return arg.sub_function.has_value() && *arg.sub_function == value;
 }
 
@@ -190,8 +180,7 @@ MATCHER(SuppressesPositiveResponse, "suppresses positive response") {
 // =============================================================================
 
 /// @brief Matches if match rate is above threshold
-MATCHER_P(HasMatchRateAbove, threshold, 
-          "has match rate above " + std::to_string(threshold)) {
+MATCHER_P(HasMatchRateAbove, threshold, "has match rate above " + std::to_string(threshold)) {
     return arg.match_rate() > threshold;
 }
 
@@ -210,58 +199,56 @@ MATCHER(HasNoNegativeResponses, "has no negative responses") {
 // =============================================================================
 
 /// @brief Assert diagnostic session is in expected state
-#define ASSERT_DIAGNOSTIC_SESSION(session_state, expected_type) \
-    do { \
+#define ASSERT_DIAGNOSTIC_SESSION(session_state, expected_type)              \
+    do {                                                                     \
         ASSERT_TRUE((session_state).session_active) << "Session not active"; \
-        ASSERT_EQ((session_state).session_type, expected_type) \
-            << "Expected session type " << static_cast<int>(expected_type); \
+        ASSERT_EQ((session_state).session_type, expected_type)               \
+            << "Expected session type " << static_cast<int>(expected_type);  \
     } while (0)
 
 /// @brief Assert security access is at expected level
-#define ASSERT_SECURITY_ACCESS(session_state, expected_level) \
-    do { \
-        ASSERT_GE((session_state).security_level, expected_level) \
+#define ASSERT_SECURITY_ACCESS(session_state, expected_level)                        \
+    do {                                                                             \
+        ASSERT_GE((session_state).security_level, expected_level)                    \
             << "Security level " << static_cast<int>((session_state).security_level) \
-            << " is less than expected " << static_cast<int>(expected_level); \
+            << " is less than expected " << static_cast<int>(expected_level);        \
     } while (0)
 
 /// @brief Assert response timing is valid
-#define ASSERT_RESPONSE_TIMING(pair, timing) \
-    do { \
-        ASSERT_TRUE((pair).is_complete()) << "Response not received"; \
-        auto rt = (pair).response_time(); \
-        ASSERT_TRUE(rt.has_value()) << "Response time not available"; \
-        if ((pair).response->pending_count > 0) { \
-            ASSERT_LE(*rt, (timing).p2_star_server_max) \
+#define ASSERT_RESPONSE_TIMING(pair, timing)                                    \
+    do {                                                                        \
+        ASSERT_TRUE((pair).is_complete()) << "Response not received";           \
+        auto rt = (pair).response_time();                                       \
+        ASSERT_TRUE(rt.has_value()) << "Response time not available";           \
+        if ((pair).response->pending_count > 0) {                               \
+            ASSERT_LE(*rt, (timing).p2_star_server_max)                         \
                 << "Response time " << rt->count() << "ms exceeds P2* timeout"; \
-        } else { \
-            ASSERT_LE(*rt, (timing).p2_server_max) \
-                << "Response time " << rt->count() << "ms exceeds P2 timeout"; \
-        } \
+        } else {                                                                \
+            ASSERT_LE(*rt, (timing).p2_server_max)                              \
+                << "Response time " << rt->count() << "ms exceeds P2 timeout";  \
+        }                                                                       \
     } while (0)
 
 /// @brief Assert no diagnostic errors
-#define ASSERT_NO_DIAGNOSTIC_ERRORS(stats) \
-    do { \
-        ASSERT_EQ((stats).negative_responses, 0) \
+#define ASSERT_NO_DIAGNOSTIC_ERRORS(stats)                                           \
+    do {                                                                             \
+        ASSERT_EQ((stats).negative_responses, 0)                                     \
             << "Expected no negative responses, got " << (stats).negative_responses; \
-        ASSERT_EQ((stats).pending_timeouts, 0) \
-            << "Expected no timeouts, got " << (stats).pending_timeouts; \
+        ASSERT_EQ((stats).pending_timeouts, 0)                                       \
+            << "Expected no timeouts, got " << (stats).pending_timeouts;             \
     } while (0)
 
 /// @brief Expect response within specific timeout
-#define EXPECT_RESPONSE_WITHIN(pair, timeout) \
-    EXPECT_THAT(pair, ArrivesWithin(timeout))
+#define EXPECT_RESPONSE_WITHIN(pair, timeout) EXPECT_THAT(pair, ArrivesWithin(timeout))
 
 /// @brief Expect positive response
-#define EXPECT_POSITIVE_RESPONSE(pair) \
-    EXPECT_THAT(pair, IsPositiveResponse())
+#define EXPECT_POSITIVE_RESPONSE(pair) EXPECT_THAT(pair, IsPositiveResponse())
 
 /// @brief Expect negative response with specific NRC
-#define EXPECT_NEGATIVE_RESPONSE_NRC(pair, nrc) \
-    do { \
+#define EXPECT_NEGATIVE_RESPONSE_NRC(pair, nrc)  \
+    do {                                         \
         EXPECT_THAT(pair, IsNegativeResponse()); \
-        EXPECT_THAT(pair, HasNRC(nrc)); \
+        EXPECT_THAT(pair, HasNRC(nrc));          \
     } while (0)
 
 }  // namespace wadjet::testing::diagnostic
