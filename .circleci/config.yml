@@ -56,6 +56,10 @@ commands:
             - run:
                 name: Install GCC 13
                 command: |
+                  # Add Ubuntu Toolchain PPA for GCC 13
+                  sudo apt-get install -y software-properties-common
+                  sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+                  sudo apt-get update
                   sudo apt-get install -y gcc-13 g++-13
 
       - when:
