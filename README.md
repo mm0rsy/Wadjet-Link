@@ -4,7 +4,7 @@
 
 <!-- Badges Row 1: Build & Status -->
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![CI](https://img.shields.io/badge/CI-CircleCI-343434?logo=circleci&logoColor=white)](https://circleci.com/gh/mm0rsy/Wadjet-Link)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/mm0rsy/Wadjet-Link/tree/master.svg?style=svg&circle-token=CCIPRJ_12f3CCDYbr4TwibEFsu8eq_01f56ae88b7c7dccf6d57ebc96e19b62b5f72c6b)](https://dl.circleci.com/status-badge/redirect/gh/mm0rsy/Wadjet-Link/tree/master)
 [![Build](https://img.shields.io/badge/build-CMake-green)](https://cmake.org/)
 [![Tests](https://img.shields.io/badge/tests-543%20passed-brightgreen)](tests/)
 [![Platform](https://img.shields.io/badge/platform-Linux-lightgrey)](https://kernel.org/)
