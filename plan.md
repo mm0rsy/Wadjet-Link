@@ -2589,10 +2589,11 @@ MVP is complete when:
 | 16 | ODX/PDX Diagnostic Database | 🔴 High | ⏳ Not Started |
 | 17 | Signal-Level Decoding | 🔴 High | ⏳ Not Started |
 | 18 | IPv6 Protocol Support | 🟡 Medium | ⏳ Not Started |
-| 19 | Docker & CI/CD Integration | 🟡 Medium | ⏳ Not Started |
+| 19 | Production Packaging & Distribution | 🔴 High | ⏳ Not Started |
 | 20 | A2L/HEX File Support | 🟢 Low | ⏳ Not Started |
 | 21 | PreProduction Quality Gate | 🔴 High | ⏳ Not Started |
 | 22 | ISO 26262 Tool Qualification | 🔴 High | ⏳ Not Started |
+| 23 | Advanced Operations & Security | 🔴 High | ⏳ Not Started |
 
 ---
 
@@ -3678,23 +3679,91 @@ EXPECT_THAT(packet, IsICMPv6EchoRequest());
 
 ---
 
-### Milestone 19 — Docker & CI/CD Integration
+### Milestone 19 — Production Packaging & Distribution
 
-**Goal:** Provide official Docker images and enhanced CI/CD integration
+**Goal:** Provide native installers, Docker images, and platform support matrix for production deployment
 
 **Status:** ⏳ Not Started
 
-**Priority:** 🟡 Medium — Improves adoption and team workflows
+**Priority:** 🔴 High — Required for production adoption
 
 **Overview:**
 
-Containerization enables:
-- Consistent build/test environment
-- Easy CI/CD integration
-- Cross-team sharing without installation
-- Reproducible test results
+Production-grade packaging enables:
+- Native OS installation (no manual compilation)
+- Consistent deployment across environments
+- Enterprise IT/OPS approval
+- Version management and upgrades
+- Docker for CI/CD and containerized workflows
+
+**Platform Support Matrix:**
+
+> 📋 Define explicit supported platforms and hardware configurations
+
+| Platform | Versions | Kernel | NIC Support | Status |
+|----------|----------|--------|-------------|--------|
+| Ubuntu | 22.04 LTS, 24.04 LTS | 5.15+ | Intel, Broadcom, Realtek | Primary |
+| Debian | 11 (Bullseye), 12 (Bookworm) | 5.10+ | Intel, Broadcom, Realtek | Primary |
+| RHEL/Rocky | 8.x, 9.x | 4.18+ | Intel, Mellanox | Secondary |
+| Arch Linux | Rolling | Latest | Intel, Realtek | Community |
+| Fedora | 38+, 39+ | 6.x+ | Intel, Broadcom | Community |
+
+**NIC Requirements:**
+
+- [ ] Document required kernel driver support
+- [ ] Document required hardware offload features
+  - RX/TX checksum offload
+  - Hardware timestamping (for gPTP)
+  - VLAN tag offloading
+  - RSS (Receive Side Scaling)
+- [ ] Document performance impact of offload settings
+- [ ] Provide NIC configuration scripts
 
 **Implementation:**
+
+**Phase 1: Native Package Building**
+
+Debian/Ubuntu Packaging:
+- [ ] `packaging/debian/` — Debian packaging files
+  - `control` — Package metadata and dependencies
+  - `rules` — Build rules
+  - `changelog` — Version history
+  - `copyright` — License information
+  - `wadjet-link.install` — File installation map
+  - `wadjet-link.service` — systemd service file
+- [ ] Build .deb packages in CI
+- [ ] Test installation on Ubuntu 22.04 and 24.04
+- [ ] Test installation on Debian 11 and 12
+- [ ] APT repository setup (optional)
+
+RPM Packaging:
+- [ ] `packaging/rpm/wadjet-link.spec` — RPM spec file
+- [ ] Build .rpm packages in CI
+- [ ] Test on RHEL 8/9, Rocky Linux 8/9
+- [ ] Test on Fedora 38+
+- [ ] YUM/DNF repository setup (optional)
+
+Arch Linux:
+- [ ] `packaging/arch/PKGBUILD` — Arch package definition
+- [ ] Submit to AUR (Arch User Repository)
+
+Snap Packaging:
+- [ ] `packaging/snap/snapcraft.yaml` — Snap package definition
+  - Base: core22 (Ubuntu 22.04)
+  - Confinement: classic (requires system-level network access)
+  - Plugs: network, network-bind, network-control, network-observe
+  - Parts: wadjet-link build from source
+- [ ] Build snap packages in CI
+- [ ] Test installation via `snap install wadjet-link`
+- [ ] Test on Ubuntu 22.04, 24.04, Fedora, Arch (snapd installed)
+- [ ] Submit to Snap Store (optional)
+- [ ] Auto-update configuration
+
+Homebrew (macOS/Linux):
+- [ ] `packaging/homebrew/wadjet-link.rb` — Homebrew formula
+- [ ] Submit to homebrew-core or create tap
+
+**Phase 2: Docker Images**
 
 Docker Images:
 - [ ] `docker/Dockerfile` — Main development image
@@ -3945,15 +4014,178 @@ The following items must be completed **in sequence**:
 - [ ] Diagrams versioned with code
 - [ ] Diagrams referenced from documentation
 
-**Phase 10: Performance Validation**
+**Phase 10: Performance Validation & SLOs**
+
+> 🎯 **Hard Performance Targets** — These are non-negotiable for a professional automotive Ethernet testing tools
+
+**Service Level Objectives (SLOs):**
+
+| Metric | Target | Measurement Method |
+|--------|--------|--------------------|
+| **Max Throughput (1 Gbps link)** | ≥ 950 Mbps sustained | iperf + live capture |
+| **Max Throughput (10 Gbps link)** | ≥ 9 Gbps sustained | Multi-threaded capture |
+| **Max Packet Rate** | ≥ 1M packets/s | Small packet flood |
+| **Packet Loss Rate** | < 0.01% at line rate | Dropped packet counters |
+| **Live Assertion Latency** | < 100 µs per assertion | Benchmark harness |
+| **PCAP Write Latency** | < 1 ms per packet | I/O profiling |
+| **Memory Footprint (baseline)** | < 50 MB RSS | Valgrind massif |
+| **Memory Growth Rate** | < 10 MB/hour | Long-running capture |
+| **Decode Latency (SOME/IP)** | < 10 µs per packet | Protocol benchmark |
+| **Max PCAP File Size** | ≥ 100 GB without crash | Stress test |
+
+**Performance Validation Checklist:**
 
 - [ ] Benchmark suite complete
+  - [ ] Throughput benchmark (1 Gbps)
+  - [ ] Throughput benchmark (10 Gbps)
+  - [ ] Packet rate benchmark
+  - [ ] Latency benchmark (assertion)
+  - [ ] Memory benchmark (footprint + growth)
+  - [ ] Decode latency benchmark (all protocols)
+  - [ ] PCAP write benchmark
+  - [ ] Large file handling test
 - [ ] Baseline performance documented
+  - [ ] Results published in `docs/performance.md`
+  - [ ] Comparison with libpcap baseline
+  - [ ] Comparison with tcpdump/Wireshark (where applicable)
 - [ ] No performance regressions
+  - [ ] CI gate fails if performance drops > 10%
+  - [ ] Benchmark results tracked across commits
 - [ ] Memory footprint documented
-- [ ] Latency requirements met
-- [ ] Throughput requirements met
+  - [ ] Baseline RSS documented
+  - [ ] Memory leak detection (Valgrind, ASan)
+  - [ ] Long-running capture (24h+) memory stability
+- [ ] Latency requirements met (see SLOs above)
+- [ ] Throughput requirements met (see SLOs above)
 - [ ] Profiling results reviewed
+  - [ ] CPU profiling (perf, Instruments)
+  - [ ] I/O profiling (iotop, strace)
+  - [ ] Hotspot analysis
+  - [ ] Optimization opportunities documented
+
+**Phase 10b: Internal Telemetry & Diagnostics**
+
+> 📊 **Operational Visibility** — Monitor tool health, not just packet data
+
+**Telemetry Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                  Wadjet Internal Telemetry                      │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   Metrics Collectors                     │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────┐    │   │
+│  │  │  Capture    │ │  Decoder    │ │  System         │    │   │
+│  │  │  Health     │ │  Health     │ │  Health         │    │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  Metrics Registry                        │   │
+│  │  (Thread-safe counters, gauges, histograms)             │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│              ┌───────────────┴───────────────┐                  │
+│              ▼                               ▼                  │
+│  ┌─────────────────────┐        ┌─────────────────────┐         │
+│  │   Structured Logs   │        │  Metrics Export     │         │
+│  │   (JSON/syslog)     │        │  (Prometheus/JSON)  │         │
+│  └─────────────────────┘        └─────────────────────┘         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Capture Health Metrics:**
+
+- [ ] `wadjet::metrics::CaptureMetrics` class
+  - Packets captured (counter)
+  - Packets dropped (counter)
+  - Bytes captured (counter)
+  - Capture errors (counter)
+  - Ring buffer utilization (gauge, %)
+  - Capture rate (gauge, packets/s)
+  - Capture uptime (gauge, seconds)
+
+**Decoder Health Metrics:**
+
+- [ ] `wadjet::metrics::DecoderMetrics` class
+  - Packets decoded (counter, per protocol)
+  - Decode errors (counter, per protocol)
+  - Decode latency (histogram, µs)
+  - Unknown protocols (counter)
+  - Malformed packets (counter, per protocol)
+
+**System Health Metrics:**
+
+- [ ] `wadjet::metrics::SystemMetrics` class
+  - RSS memory (gauge, bytes)
+  - CPU usage (gauge, %)
+  - File descriptor count (gauge)
+  - Thread count (gauge)
+  - Disk I/O (counter, bytes written)
+
+**Self-Diagnostic Mode:**
+
+- [ ] `wadjet-diag` utility
+  - System check:
+    - Kernel version
+    - AF_PACKET support
+    - CAP_NET_RAW capability
+    - Available interfaces
+    - NIC capabilities
+  - Health report:
+    - Current capture stats
+    - Decoder error summary
+    - Resource usage
+    - Configuration validation
+  - Output formats:
+    - Human-readable
+    - JSON (for automation)
+    - Markdown (for issue reports)
+
+**Structured Logging:**
+
+- [ ] `wadjet::logging::Logger` enhancements
+  - JSON log output option
+  - Syslog integration
+  - Log levels per component
+  - Contextual logging (capture session ID, etc.)
+  - Rate limiting for verbose logs
+
+**Metrics Export:**
+
+- [ ] Prometheus exporter (optional)
+  - HTTP endpoint: `/metrics`
+  - Standard Prometheus format
+  - All metrics exposed
+- [ ] JSON metrics dump
+  - `wadjet-metrics` command
+  - Periodic JSON export to file
+  - CI/CD integration
+
+**Implementation:**
+
+- [ ] `include/wadjet/metrics/metrics.hpp` — Metrics framework
+- [ ] `include/wadjet/metrics/registry.hpp` — Metrics registry
+- [ ] `src/metrics/capture_metrics.cpp`
+- [ ] `src/metrics/decoder_metrics.cpp`
+- [ ] `src/metrics/system_metrics.cpp`
+- [ ] `tools/wadjet-diag.cpp` — Diagnostic utility
+- [ ] `tools/wadjet-metrics.cpp` — Metrics dump utility
+
+**Testing:**
+
+- [ ] Metrics collection tests
+- [ ] Metrics export tests
+- [ ] Self-diagnostic validation
+- [ ] Performance impact of metrics (< 1% overhead)
+
+**Documentation:**
+
+- [ ] `docs/metrics.md` — Metrics reference
+- [ ] `docs/diagnostics.md` — Diagnostic guide
+- [ ] Grafana dashboard examples
 
 **Phase 11: CI/CD & Release**
 
@@ -4321,7 +4553,7 @@ docs/iso26262/
 
 - [ ] Protocol decoding validated against:
   - [ ] Wireshark (reference tool)
-  - [ ] Vector CANoe/CANalyzer (if available)
+  - [ ] industry-standard automotive testing tools (if available)
   - [ ] Known-good capture files with expected values
 - [ ] Timing validated against:
   - [ ] Hardware timestamping verification
@@ -4355,3 +4587,347 @@ docs/iso26262/
 - ISO 26262-8:2018 Clause 12 "Qualification of hardware tools" (if applicable)
 - IEC 61508-3 "Software requirements" (for process evaluation)
 - ISO/PAS 8926 "Tool qualification" (additional guidance)
+
+---
+
+### Milestone 23 — Advanced Operations & Security
+
+**Goal:** Add cybersecurity protocol support, user-defined protocol plugins, and distributed architecture capabilities
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required for modern automotive architectures
+
+**Dependencies:**
+
+- ⏳ Milestone 13: Protocol Completeness (foundation)
+- ⏳ Milestone 19: Production Packaging (deployment)
+
+**Overview:**
+
+Modern automotive networks (2024+) increasingly use encryption and proprietary protocols. This milestone addresses three critical gaps that prevent Wadjet-Link from being used in production vehicles:
+
+1. **AUTOSAR SecOC** — Encrypted SOME/IP messages are opaque without SecOC support
+2. **TLS/DTLS for DoIP** — ISO 13400-2:2019 requires TLS for secure diagnostics
+3. **User-Defined Protocols** — OEM-proprietary protocols require scripting without C++ recompilation
+4. **Remote Probe Mode** — Edge deployment (vehicle-side capture, cloud-side analysis)
+
+---
+
+**Phase 1: AUTOSAR SecOC Support**
+
+> 🔒 **Secure Onboard Communication** — Decrypt and verify authenticated SOME/IP messages
+
+**Overview:**
+
+SecOC (AUTOSAR R20-11) adds authentication and freshness to SOME/IP messages. Without SecOC support, Wadjet sees only encrypted payloads.
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/secoc/secoc.hpp` — Main header
+- [ ] `include/wadjet/protocols/secoc/secoc_types.hpp`
+  - SecOCHeader (Freshness Value, Authenticator)
+  - SecOCConfig (Key IDs, algorithms)
+  - FreshnessValueManager
+- [ ] `include/wadjet/protocols/secoc/crypto.hpp`
+  - CMAC-AES calculation
+  - HMAC-SHA256 calculation
+  - Freshness verification
+
+Decoder Implementation:
+- [ ] `src/protocols/secoc_decoder.cpp`
+  - Identify SecOC-protected messages
+  - Extract Freshness Value and Authenticator
+  - Verify authentication (if keys available)
+  - Decrypt payload (if keys available)
+
+Key Management:
+- [ ] `include/wadjet/secoc/key_store.hpp`
+  - Load keys from config file
+  - Key rotation support
+  - HSM integration (optional)
+- [ ] Key file format (encrypted JSON)
+  - Key ID → Key material mapping
+  - Algorithm configuration
+  - Freshness value tracking
+
+**Dependencies:**
+
+- OpenSSL or BoringSSL (for crypto)
+- Key material from OEM (for actual decryption)
+
+**Testing:**
+
+- [ ] SecOC header parsing tests
+- [ ] CMAC verification tests (test vectors)
+- [ ] Freshness value tests
+- [ ] Integration with SOME/IP decoder
+
+**Limitations:**
+
+> ⚠️ **Key Material:** Actual decryption requires OEM-provided keys. Wadjet can parse SecOC structure without keys.
+
+---
+
+**Phase 2: TLS/DTLS Support for DoIP**
+
+> 🔐 **Secure Diagnostics** — Decrypt TLS-protected DoIP sessions
+
+**Overview:**
+
+ISO 13400-2:2019 mandates TLS for secure diagnostic sessions. Without TLS support, encrypted DoIP traffic is unreadable.
+
+**Implementation:**
+
+TLS Integration:
+- [ ] `include/wadjet/protocols/doip/doip_tls.hpp`
+  - TLS handshake detection
+  - Session key extraction (requires SSLKEYLOGFILE)
+  - Decrypted payload reassembly
+- [ ] `src/protocols/doip/doip_tls_decoder.cpp`
+  - Parse TLS records
+  - Decrypt using session keys
+  - Pass decrypted payload to DoIP decoder
+
+Key Extraction:
+- [ ] Support for SSLKEYLOGFILE format
+  - CLIENT_RANDOM + Master Secret
+  - Used by Wireshark for TLS decryption
+- [ ] Load pre-master secrets from file
+- [ ] Optional: MITM proxy mode (for testing only)
+
+**Dependencies:**
+
+- OpenSSL (for TLS parsing)
+- SSLKEYLOGFILE from client/server (for decryption)
+
+**Testing:**
+
+- [ ] TLS handshake parsing tests
+- [ ] Decryption with known keys
+- [ ] DoIP over TLS integration test
+
+**Limitations:**
+
+> ⚠️ **Perfect Forward Secrecy:** ECDHE cipher suites require session key logging. Cannot decrypt without keys.
+
+---
+
+**Phase 3: User-Defined Protocol Plugins (Scripting)**
+
+> 🔌 **Scriptable Decoders** — Define proprietary protocols without C++ recompilation
+
+**Overview:**
+
+Industry-leading automotive tools support scriptable protocol analysis. Wadjet needs a way for users to add proprietary protocol decoders without touching C++.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                 Plugin Architecture                             │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              User-Defined Decoder (Python/Lua)           │   │
+│  │  def decode(packet):                                     │   │
+│  │      header = struct.unpack('>HHI', packet[:8])          │   │
+│  │      return {'msg_id': header[0], ...}                   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Plugin Manager (C++)                        │   │
+│  │  - Load Python/Lua scripts                               │   │
+│  │  - Sandbox execution                                     │   │
+│  │  - Performance monitoring                                │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Protocol Dispatcher                         │   │
+│  │  (routes to native or plugin decoder)                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Plugin Framework:
+- [ ] `include/wadjet/plugins/plugin_manager.hpp`
+  - Load .py or .lua files from `~/.wadjet/plugins/`
+  - Sandbox execution (resource limits)
+  - Error handling
+  - Hot reload
+- [ ] `include/wadjet/plugins/decoder_plugin.hpp`
+  - Base interface for plugin decoders
+  - decode() method
+  - Metadata (name, author, version)
+
+Python Plugin Support:
+- [ ] `src/plugins/python_plugin.cpp`
+  - Embed Python interpreter
+  - Call Python decode() function
+  - Convert results to C++ DecodeResult
+- [ ] Example plugin: `examples/plugins/my_protocol.py`
+  ```python
+  def decode(packet_bytes):
+      # User-defined parsing logic
+      return {
+          'protocol': 'MyProtocol',
+          'fields': {...}
+      }
+  ```
+
+Lua Plugin Support (optional):
+- [ ] `src/plugins/lua_plugin.cpp`
+  - Embed Lua interpreter
+  - Call Lua decode() function
+
+**Plugin Discovery:**
+
+- [ ] Auto-discover plugins in:
+  - `~/.wadjet/plugins/`
+  - `/usr/share/wadjet/plugins/`
+  - `./plugins/` (project-local)
+- [ ] `wadjet-plugins` command
+  - List installed plugins
+  - Enable/disable plugins
+  - Validate plugin syntax
+
+**Performance Considerations:**
+
+- [ ] Native decoders always preferred
+- [ ] Plugin overhead measured (< 100 µs per packet)
+- [ ] Warning if plugin is too slow
+
+**Testing:**
+
+- [ ] Plugin loading tests
+- [ ] Python plugin decode tests
+- [ ] Error handling (bad plugin code)
+- [ ] Performance benchmarks
+
+**Documentation:**
+
+- [ ] `docs/plugins.md` — Plugin development guide
+- [ ] Python plugin API reference
+- [ ] Example plugins
+
+---
+
+**Phase 4: Remote Probe Mode (Distributed Architecture)**
+
+> 🌐 **Edge Deployment** — Capture on the vehicle, analyze on the cloud
+
+**Overview:**
+
+Wadjet's Linux-first design enables edge deployment (Raspberry Pi, NVIDIA Jetson in the vehicle). Remote Probe Mode allows capture on one machine, analysis on another.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                 Distributed Architecture                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────┐        ┌──────────────────────┐   │
+│  │    Vehicle (Edge)        │        │   Developer Laptop   │   │
+│  │  ┌────────────────────┐  │        │  ┌────────────────┐  │   │
+│  │  │ wadjet-probe       │  │  gRPC  │  │ wadjet-viewer  │  │   │
+│  │  │ - Capture packets  │──┼────────┼─▶│ - Decode       │  │   │
+│  │  │ - Filter           │  │  TLS   │  │ - Analyze      │  │   │
+│  │  │ - Compress         │  │        │  │ - Visualize    │  │   │
+│  │  └────────────────────┘  │        │  └────────────────┘  │   │
+│  └──────────────────────────┘        └──────────────────────┘   │
+│          (Headless)                        (Interactive)        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Probe Mode (Capture Agent):
+- [ ] `tools/wadjet-probe.cpp` — Headless capture daemon
+  - Capture packets (no decoding)
+  - Apply BPF filter
+  - Compress packets (zstd)
+  - Stream via gRPC
+  - Store to local PCAP (fallback)
+  - Minimal resource usage
+
+Viewer Mode (Analysis Client):
+- [ ] `tools/wadjet-viewer.cpp` — Remote analysis client
+  - Connect to probe via gRPC
+  - Receive packet stream
+  - Decode locally
+  - Display results
+  - Optional: Web UI integration (M14)
+
+gRPC Protocol:
+- [ ] `proto/wadjet_remote.proto`
+  - CaptureRequest (filter, duration)
+  - PacketStream (streaming packets)
+  - ControlCommands (start/stop/status)
+- [ ] TLS for secure communication
+- [ ] Authentication (API keys)
+
+**Deployment Scenarios:**
+
+1. **Vehicle Testing:**
+   - Probe on in-vehicle Raspberry Pi
+   - Viewer on engineer's laptop
+   - Real-time analysis over Wi-Fi
+
+2. **CI/CD Integration:**
+   - Probe on test bench
+   - Viewer in CI pipeline
+   - Automated test execution
+
+3. **Fleet Monitoring:**
+   - Probes on multiple vehicles
+   - Central analysis server
+   - Continuous monitoring
+
+**Configuration:**
+
+- [ ] Probe config: `/etc/wadjet/probe.conf`
+  - Capture interface
+  - Compression level
+  - gRPC endpoint
+  - Storage limits
+- [ ] Viewer config: `~/.config/wadjet/viewer.conf`
+  - Probe endpoints
+  - Reconnection policy
+
+**Testing:**
+
+- [ ] gRPC communication tests
+- [ ] Probe-viewer integration test
+- [ ] Network resilience tests (packet loss, reconnect)
+- [ ] Performance: latency impact of streaming
+
+**Documentation:**
+
+- [ ] `docs/remote_probe.md` — Remote probe guide
+- [ ] Deployment examples
+- [ ] Security best practices
+
+---
+
+**Exit Criteria:**
+
+1. SecOC: Can parse SecOC headers and verify MACs (with test keys)
+2. TLS: Can decrypt TLS-protected DoIP (with SSLKEYLOGFILE)
+3. Plugins: Can load and execute Python plugins without C++ recompilation
+4. Remote Probe: Can capture on one machine, analyze on another via gRPC
+5. All features documented and tested
+6. No more than 5% performance overhead from new features
+
+**Test Count Target:** 60+ tests
+
+**References:**
+
+- AUTOSAR SecOC Specification R20-11
+- ISO 13400-2:2019 (DoIP with TLS)
+- RFC 8446 (TLS 1.3)
+- gRPC documentation
