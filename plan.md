@@ -4016,7 +4016,7 @@ The following items must be completed **in sequence**:
 
 **Phase 10: Performance Validation & SLOs**
 
-> 🎯 **Hard Performance Targets** — These are non-negotiable for a professional automotive Ethernet testing tools
+> 🎯 **Hard Performance Targets** — These are non-negotiable for professional automotive Ethernet testing tools
 
 **Service Level Objectives (SLOs):**
 
@@ -4553,7 +4553,7 @@ docs/iso26262/
 
 - [ ] Protocol decoding validated against:
   - [ ] Wireshark (reference tool)
-  - [ ] industry-standard automotive testing tools (if available)
+  - [ ] Industry-standard automotive testing tools (if available)
   - [ ] Known-good capture files with expected values
 - [ ] Timing validated against:
   - [ ] Hardware timestamping verification
