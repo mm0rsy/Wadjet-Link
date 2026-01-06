@@ -191,11 +191,13 @@ public:
 
 ## Milestones
 
-### Milestone 0 — Bootstrapping ✅
+### Milestone 0 — Bootstrapping
 
 **Goal:** Repository foundation and developer experience
 
-**Status:** Completed
+**Status:** ✅ Complete
+
+**Priority:** 🔴 High — Foundation for all other work
 
 **Deliverables:**
 
@@ -213,11 +215,13 @@ public:
 
 ---
 
-### Milestone 1 — Core Packet I/O ✅
+### Milestone 1 — Core Packet I/O
 
 **Goal:** Capture + replay + filter frames deterministically
 
-**Status:** Completed
+**Status:** ✅ Complete
+
+**Priority:** 🔴 High — Core I/O functionality
 
 **Implementation:**
 
@@ -245,11 +249,13 @@ public:
 
 ---
 
-### Milestone 2 — Protocol Decoders ✅
+### Milestone 2 — Protocol Decoders
 
 **Goal:** Pluggable decoding architecture
 
-**Status:** Completed
+**Status:** ✅ Complete
+
+**Priority:** 🔴 High — Protocol support
 
 **Implementation:**
 
@@ -284,11 +290,13 @@ public:
 
 ---
 
-### Milestone 3 — Live Testing Engine (GoogleTest Integration) ✅
+### Milestone 3 — Live Testing Engine (GoogleTest Integration)
 
 **Goal:** Run GoogleTest cases on live captured traffic — **the core differentiator**
 
-**Status:** Completed
+**Status:** ✅ Complete
+
+**Priority:** 🔴 High — Core testing engine
 
 **Features:**
 
@@ -379,13 +387,15 @@ EXPECT_DOIP_ROUTING_ACTIVATION(stream, timeout);
 
 ---
 
-### Milestone 4 — Automation & Test Scenario Language ✅
+### Milestone 4 — Automation & Test Scenario Language
 
 **Goal:** YAML/JSON-driven test scenarios
 
-**Status:** Completed
+**Status:** ✅ Complete
 
-**Example Scenario:**
+**Priority:** 🔴 High — Declarative test automation
+
+**Example Scenario:****
 
 ```yaml
 name: SOMEIP Service Discovery Test
@@ -482,13 +492,15 @@ wadjet-run examples/ --tags smoke,fast
 
 ---
 
-### Milestone 5 — Python Bindings ✅
+### Milestone 5 — Python Bindings
 
 **Goal:** Fast adoption, Jupyter analysis, pytest integration
 
-**Status:** Completed
+**Status:** ✅ Complete
 
-**Implementation:**
+**Priority:** 🔴 High — Python ecosystem integration
+
+**Implementation:****
 
 C++ Binding Layer (pybind11):
 - [x] `module.cpp` — Main PYBIND11_MODULE with version info
@@ -545,13 +557,15 @@ with wadjet.LiveCapture("eth0", filter="udp port 30490") as cap:
 
 ---
 
-### Milestone 6 — Documentation & Examples ✅
+### Milestone 6 — Documentation & Examples
 
 **Goal:** Comprehensive documentation and practical examples
 
-**Status:** Completed
+**Status:** ✅ Complete
 
-**Deliverables:**
+**Priority:** 🔴 High — Developer enablement
+
+**Deliverables:****
 
 Doxygen Configuration:
 - [x] Enhanced Doxyfile with modern settings
@@ -621,13 +635,15 @@ Build System:
 
 ---
 
-### Milestone 7 — Rust FFI (Optional Expansion) ✅
+### Milestone 7 — Rust FFI (Optional Expansion)
 
 **Goal:** Provide Rust bindings for Wadjet-Link via C ABI layer
 
-**Status:** Completed
+**Status:** ✅ Complete
 
-**Implementation:**
+**Priority:** 🟡 Medium — Rust ecosystem support
+
+**Implementation:****
 
 C ABI Layer:
 - [x] `bindings/c/include/wadjet_c.h` — Complete C header (~600 lines)
@@ -718,13 +734,15 @@ fn main() -> wadjet::Result<()> {
 
 **Status:** ✅ Complete
 
+**Priority:** 🔴 High — Time synchronization for TSN
+
 **Overview:**
 
 gPTP (IEEE 802.1AS) is the timing and synchronization standard for automotive Ethernet, enabling precise clock synchronization across ECUs. It's essential for time-sensitive networking (TSN) and coordinated vehicle functions.
 
 **Architecture:**
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    gPTP Protocol Stack                          │
 ├─────────────────────────────────────────────────────────────────┤
@@ -881,13 +899,15 @@ All core functionality implemented and tested:
 
 **Status:** ✅ Complete
 
+**Priority:** 🔴 High — Automotive diagnostics support
+
 **Overview:**
 
 UDS (ISO 14229) is the standard diagnostic protocol for automotive ECUs. UDS over IP enables diagnostic communication over Ethernet, typically transported via DoIP or directly over TCP/UDP.
 
 **Architecture:**
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                    UDS Protocol Stack                           │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1088,13 +1108,15 @@ EXPECT_THAT(packet, HasUdsResponsePending());
 
 **Status:** ✅ Complete
 
+**Priority:** 🟡 Medium — Advanced middleware support
+
 **Overview:**
 
 DDS (Data Distribution Service) is an OMG standard for real-time publish-subscribe communication. It's increasingly used in autonomous vehicles for sensor fusion, perception, and control systems (e.g., ROS2 uses DDS).
 
 **Architecture:**
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                      DDS Protocol Stack                         │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1278,167 +1300,13 @@ All Milestone 10 functionality fully implemented:
 
 ---
 
-### Milestone 11 — TSN Awareness (IEEE 802.1Qbv)
-
-**Goal:** Implement Time-Sensitive Networking awareness for deterministic Ethernet
-
-**Status:** Not Started
-
-**Overview:**
-
-TSN (Time-Sensitive Networking) is a set of IEEE 802.1 standards enabling deterministic, low-latency communication over Ethernet. 802.1Qbv (Time-Aware Shaper) is critical for automotive real-time applications.
-
-**Architecture:**
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    TSN Analysis Stack                           │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │               TSN Standards Coverage                     │   │
-│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
-│  │  │ 802.1AS │ │ 802.1Qbv│ │ 802.1Qbu│ │ 802.1CB         │ │   │
-│  │  │ (gPTP)  │ │ (TAS)   │ │ (Preempt│ │ (Redundancy)    │ │   │
-│  │  │         │ │         │ │ ion)    │ │                 │ │   │
-│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                  TSN Analyzer                            │   │
-│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
-│  │  │ Schedule        │  │ Latency Measurement         │    │   │
-│  │  │ Validation      │  │ - End-to-end delay          │    │   │
-│  │  │ - Gate timing   │  │ - Jitter analysis           │    │   │
-│  │  │ - Priority map  │  │ - Deadline violations       │    │   │
-│  │  └─────────────────┘  └─────────────────────────────┘    │   │
-│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
-│  │  │ Traffic Class   │  │ Preemption Analysis         │    │   │
-│  │  │ Analysis        │  │ - Express/Preemptable       │    │   │
-│  │  │ - PCP mapping   │  │ - Fragment handling         │    │   │
-│  │  └─────────────────┘  └─────────────────────────────┘    │   │
-│  └──────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│              ┌───────────────────────────┐                      │
-│              │    VLAN Priority Parser   │                      │
-│              │    (802.1Q PCP field)     │                      │
-│              └───────────────────────────┘                      │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-**Implementation:**
-
-Protocol Structures:
-- [ ] `include/wadjet/protocols/tsn/tsn.hpp` — Main header
-- [ ] `include/wadjet/protocols/tsn/vlan_priority.hpp` — Priority handling
-  - PriorityCodePoint (PCP) extraction
-  - Traffic class mapping
-  - Drop Eligible Indicator (DEI)
-- [ ] `include/wadjet/protocols/tsn/schedule.hpp` — TAS schedule
-  - GateControlEntry
-  - GateControlList
-  - CycleTime representation
-  - TimeAwareOffset
-- [ ] `include/wadjet/protocols/tsn/stream.hpp` — Stream identification
-  - StreamID (MAC + VLAN ID)
-  - StreamHandle
-  - Talker/Listener specification
-- [ ] `include/wadjet/protocols/tsn/frer.hpp` — Frame Replication (802.1CB)
-  - R-TAG parsing
-  - Sequence number tracking
-  - Redundancy elimination
-
-Analysis Components:
-- [ ] `src/protocols/tsn/tsn_analyzer.cpp` — TSN analysis
-  - Per-priority statistics
-  - Latency measurement
-  - Jitter calculation
-  - Schedule compliance checking
-- [ ] `src/protocols/tsn/latency_tracker.cpp` — Latency tracking
-  - End-to-end delay measurement
-  - Timestamped packet correlation
-  - Histogram generation
-- [ ] `src/protocols/tsn/preemption_analyzer.cpp` — 802.1Qbu analysis
-  - Express vs preemptable classification
-  - mPacket reassembly
-  - Preemption event detection
-- [ ] `src/protocols/tsn/redundancy_tracker.cpp` — 802.1CB analysis
-  - R-TAG sequence tracking
-  - Duplicate detection
-  - Replication path analysis
-
-Integration:
-- [ ] Enhance VLAN decoder with TSN awareness
-- [ ] Add TSN analysis to scenario expectations
-- [ ] Python bindings for TSN analysis
-- [ ] Rust bindings for TSN
-- [ ] C ABI layer updates
-
-**Testing:**
-
-Unit Tests (`tests/protocols/test_tsn.cpp`):
-- [ ] PCP extraction and mapping
-- [ ] Schedule parsing
-- [ ] Stream identification
-- [ ] R-TAG parsing
-- [ ] Latency calculation
-- [ ] Preemption detection
-
-Integration Tests (`tests/integration/test_tsn_integration.cpp`):
-- [ ] Full TSN traffic analysis
-- [ ] Multi-priority traffic mix
-- [ ] gPTP + TSN correlation
-- [ ] Redundancy path validation
-
-Regression Tests:
-- [ ] `pcap_samples/tsn/` — Real TSN captures
-- [ ] Multi-priority traffic patterns
-- [ ] Preemption scenarios
-- [ ] FRER redundancy captures
-
-**Documentation:**
-
-- [ ] `docs/protocols/tsn.md` — TSN reference
-  - IEEE 802.1 TSN standards overview
-  - Priority mapping tables
-  - Schedule format documentation
-  - Latency analysis methodology
-- [ ] API documentation (Doxygen)
-- [ ] Update `docs/architecture.md` with TSN
-
-**Use Cases & Examples:**
-
-- [ ] `examples/tsn_analyzer.cpp` — TSN traffic analyzer
-  - Priority distribution charts
-  - Latency histograms
-  - Jitter statistics
-  - Schedule compliance report
-- [ ] `examples/tsn_validator.cpp` — TSN compliance checker
-  - Timing constraint validation
-  - Priority mapping verification
-  - Bandwidth utilization analysis
-- [ ] `examples/scenarios/tsn_latency_test.yaml` — Latency test
-- [ ] Python example: `examples/python/tsn_analysis.py`
-
-**Matchers & Assertions:**
-
-```cpp
-// New matchers for testing
-EXPECT_THAT(packet, HasVlanPriority(7));
-EXPECT_THAT(packet, IsExpressTraffic());
-EXPECT_THAT(packet, IsPreemptableTraffic());
-EXPECT_THAT(packet, HasStreamId(stream_id));
-EXPECT_THAT(packet, HasLatencyBelow(100us));
-```
-
----
-
-### Milestone 12 — UDS over DoIP Integration
+### Milestone 11 — UDS over DoIP Integration
 
 **Goal:** Implement complete UDS-over-DoIP diagnostic stack with session management
 
 **Status:** ✅ Complete
+
+**Priority:** 🔴 High — Complete diagnostic stack
 
 **Overview:**
 
@@ -1446,7 +1314,7 @@ UDS over DoIP combines ISO 14229 (UDS) with ISO 13400 (DoIP) for complete Ethern
 
 **Architecture:**
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                 UDS over DoIP Stack                             │
 ├─────────────────────────────────────────────────────────────────┤
@@ -1853,11 +1721,664 @@ Tests:
 
 ---
 
-### Milestone 13 — Web-Based Report Viewer
+### Milestone 12 — TSN Awareness (IEEE 802.1Qbv)
+
+**Goal:** Implement Time-Sensitive Networking awareness for deterministic Ethernet
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🟡 Medium — Deterministic networking support
+
+**Overview:**
+
+TSN (Time-Sensitive Networking) is a set of IEEE 802.1 standards enabling deterministic, low-latency communication over Ethernet. 802.1Qbv (Time-Aware Shaper) is critical for automotive real-time applications.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    TSN Analysis Stack                           │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │               TSN Standards Coverage                     │   │
+│  │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────────────┐ │   │
+│  │  │ 802.1AS │ │ 802.1Qbv│ │ 802.1Qbu│ │ 802.1CB         │ │   │
+│  │  │ (gPTP)  │ │ (TAS)   │ │ (Preempt│ │ (Redundancy)    │ │   │
+│  │  │         │ │         │ │ ion)    │ │                 │ │   │
+│  │  └─────────┘ └─────────┘ └─────────┘ └─────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  TSN Analyzer                            │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Schedule        │  │ Latency Measurement         │    │   │
+│  │  │ Validation      │  │ - End-to-end delay          │    │   │
+│  │  │ - Gate timing   │  │ - Jitter analysis           │    │   │
+│  │  │ - Priority map  │  │ - Deadline violations       │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Traffic Class   │  │ Preemption Analysis         │    │   │
+│  │  │ Analysis        │  │ - Express/Preemptable       │    │   │
+│  │  │ - PCP mapping   │  │ - Fragment handling         │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│              ┌───────────────────────────┐                      │
+│              │    VLAN Priority Parser   │                      │
+│              │    (802.1Q PCP field)     │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Protocol Structures:
+- [ ] `include/wadjet/protocols/tsn/tsn.hpp` — Main header
+- [ ] `include/wadjet/protocols/tsn/vlan_priority.hpp` — Priority handling
+  - PriorityCodePoint (PCP) extraction
+  - Traffic class mapping
+  - Drop Eligible Indicator (DEI)
+- [ ] `include/wadjet/protocols/tsn/schedule.hpp` — TAS schedule
+  - GateControlEntry
+  - GateControlList
+  - CycleTime representation
+  - TimeAwareOffset
+- [ ] `include/wadjet/protocols/tsn/stream.hpp` — Stream identification
+  - StreamID (MAC + VLAN ID)
+  - StreamHandle
+  - Talker/Listener specification
+- [ ] `include/wadjet/protocols/tsn/frer.hpp` — Frame Replication (802.1CB)
+  - R-TAG parsing
+  - Sequence number tracking
+  - Redundancy elimination
+
+Analysis Components:
+- [ ] `src/protocols/tsn/tsn_analyzer.cpp` — TSN analysis
+  - Per-priority statistics
+  - Latency measurement
+  - Jitter calculation
+  - Schedule compliance checking
+- [ ] `src/protocols/tsn/latency_tracker.cpp` — Latency tracking
+  - End-to-end delay measurement
+  - Timestamped packet correlation
+  - Histogram generation
+- [ ] `src/protocols/tsn/preemption_analyzer.cpp` — 802.1Qbu analysis
+  - Express vs preemptable classification
+  - mPacket reassembly
+  - Preemption event detection
+- [ ] `src/protocols/tsn/redundancy_tracker.cpp` — 802.1CB analysis
+  - R-TAG sequence tracking
+  - Duplicate detection
+  - Replication path analysis
+
+Integration:
+- [ ] Enhance VLAN decoder with TSN awareness
+- [ ] Add TSN analysis to scenario expectations
+- [ ] Python bindings for TSN analysis
+- [ ] Rust bindings for TSN
+- [ ] C ABI layer updates
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_tsn.cpp`):
+- [ ] PCP extraction and mapping
+- [ ] Schedule parsing
+- [ ] Stream identification
+- [ ] R-TAG parsing
+- [ ] Latency calculation
+- [ ] Preemption detection
+
+Integration Tests (`tests/integration/test_tsn_integration.cpp`):
+- [ ] Full TSN traffic analysis
+- [ ] Multi-priority traffic mix
+- [ ] gPTP + TSN correlation
+- [ ] Redundancy path validation
+
+Regression Tests:
+- [ ] `pcap_samples/tsn/` — Real TSN captures
+- [ ] Multi-priority traffic patterns
+- [ ] Preemption scenarios
+- [ ] FRER redundancy captures
+
+**Documentation:**
+
+- [ ] `docs/protocols/tsn.md` — TSN reference
+  - IEEE 802.1 TSN standards overview
+  - Priority mapping tables
+  - Schedule format documentation
+  - Latency analysis methodology
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with TSN
+
+**Use Cases & Examples:**
+
+- [ ] `examples/tsn_analyzer.cpp` — TSN traffic analyzer
+  - Priority distribution charts
+  - Latency histograms
+  - Jitter statistics
+  - Schedule compliance report
+- [ ] `examples/tsn_validator.cpp` — TSN compliance checker
+  - Timing constraint validation
+  - Priority mapping verification
+  - Bandwidth utilization analysis
+- [ ] `examples/scenarios/tsn_latency_test.yaml` — Latency test
+- [ ] Python example: `examples/python/tsn_analysis.py`
+
+**Matchers & Assertions:**
+
+```cpp
+// New matchers for testing
+EXPECT_THAT(packet, HasVlanPriority(7));
+EXPECT_THAT(packet, IsExpressTraffic());
+EXPECT_THAT(packet, IsPreemptableTraffic());
+EXPECT_THAT(packet, HasStreamId(stream_id));
+EXPECT_THAT(packet, HasLatencyBelow(100us));
+```
+
+---
+
+### Milestone 13 — Protocol Completeness
+
+**Goal:** Complete all protocol implementations to 100% specification compliance with no missing features
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required for production-grade tool
+
+> ⚠️ **NEXT MILESTONE TO IMPLEMENT** — This is the immediate next step in the roadmap.
+
+**Dependencies:**
+
+- ✅ Milestone 0-10: All protocol decoders implemented (Ethernet, IPv4, TCP, UDP, SOME/IP, DoIP, gPTP, UDS, DDS)
+- ✅ Milestone 11: UDS over DoIP integration complete
+- ⏳ None — This milestone has no blockers and can begin immediately
+
+**Estimated Effort:** 4-6 weeks (can be parallelized across phases)
+
+**Overview:**
+
+This milestone addresses gaps in currently "complete" protocol implementations. Each protocol must fully comply with its specification with no missing features.
+
+**Recommended Implementation Order:**
+
+| Order | Phase | Protocols | Rationale |
+|-------|-------|-----------|----------|
+| 1 | Phase 1-2 | TCP + UDP | Critical gaps, foundation for all upper protocols |
+| 2 | Phase 3-4 | IPv4 + Ethernet | Layer 2-3 completeness |
+| 3 | Phase 5-6 | SOME/IP + SOME/IP-SD | Automotive middleware |
+| 4 | Phase 7-9 | DoIP + gPTP + UDS | Diagnostic & timing |
+| 5 | Phase 10 | DDS/RTPS | Most complex, do last |
+
+> 💡 **TIP:** Phases 1-4 (TCP, UDP, IPv4, Ethernet) can be done in parallel as they have no interdependencies.
+
+**Current Protocol Status:**
+
+| Protocol | Current State | Gap Level |
+|----------|--------------|----------|
+| Ethernet/VLAN | Good | Minor |
+| IPv4 | Good | Minor |
+| TCP | Partial | **Critical** |
+| UDP | Partial | Moderate |
+| SOME/IP | Good | Minor |
+| SOME/IP-SD | Good | Moderate |
+| DoIP | Good | Moderate |
+| gPTP | Good | Minor |
+| UDS | Good | Minor |
+| DDS/RTPS | Partial | **Critical** |
+
+**Getting Started Checklist:**
+
+> 🚀 Complete these setup tasks before starting any phase implementation.
+
+- [ ] **Review existing decoder implementations**
+  - [ ] Read `src/protocols/tcp/tcp_decoder.cpp` — understand current TCP structure
+  - [ ] Read `src/protocols/udp/udp_decoder.cpp` — understand current UDP structure
+  - [ ] Read `src/protocols/dds/rtps_decoder.cpp` — understand DDS/RTPS structure
+  - [ ] Review test patterns in `tests/protocols/`
+
+- [ ] **Gather reference materials**
+  - [ ] Download RFC 793 (TCP), RFC 768 (UDP), RFC 791 (IPv4)
+  - [ ] Download AUTOSAR SOME/IP specification
+  - [ ] Download ISO 13400-2 (DoIP), ISO 14229 (UDS)
+  - [ ] Download IEEE 802.1AS (gPTP)
+  - [ ] Download OMG RTPS 2.5 specification
+
+- [ ] **Set up validation environment**
+  - [ ] Install Wireshark with all dissectors enabled
+  - [ ] Prepare test PCAP files for each protocol
+  - [ ] Set up packet generator for testing (scapy or similar)
+
+- [ ] **Create tracking issue**
+  - [ ] Create GitHub issue for Milestone 13
+  - [ ] Create sub-issues for each phase
+  - [ ] Set up project board for progress tracking
+
+**Implementation Checklist:**
+
+---
+
+**Phase 1: TCP Completeness (RFC 793 + Extensions)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/tcp/tcp.hpp`
+> - `src/protocols/tcp/tcp_decoder.cpp`
+> - `tests/protocols/test_tcp.cpp`
+>
+> ⏱️ **Estimated effort:** 3-5 days
+
+- [ ] **Checksum Validation**
+  - [ ] IPv4 pseudo-header calculation
+  - [ ] IPv6 pseudo-header calculation
+  - [ ] Checksum verification on decode
+  - [ ] Checksum offload detection (hardware offload indicator)
+
+- [ ] **SACK Block Parsing (RFC 2018)**
+  - [ ] Parse SACK option into structured blocks
+  - [ ] Left edge / right edge extraction
+  - [ ] Multiple SACK blocks support
+
+- [ ] **Additional TCP Options**
+  - [ ] MD5 Signature (RFC 2385) — for BGP
+  - [ ] TCP-AO Authentication (RFC 5925)
+  - [ ] TCP Fast Open cookie (RFC 7413)
+  - [ ] Multipath TCP (RFC 8684) — optional
+  - [ ] User Timeout Option (RFC 5482)
+
+- [ ] **TCP State Tracking** (optional for passive analysis)
+  - [ ] Connection state machine (CLOSED → LISTEN → SYN_SENT → etc.)
+  - [ ] State per flow (4-tuple)
+  - [ ] Connection establishment detection
+  - [ ] Connection termination detection
+  - [ ] RST handling
+
+- [ ] **TCP Stream Reassembly** (optional)
+  - [ ] Sequence number tracking
+  - [ ] Out-of-order segment buffering
+  - [ ] Retransmission detection
+  - [ ] Reassembled stream extraction
+
+---
+
+**Phase 2: UDP Completeness (RFC 768)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/udp/udp.hpp`
+> - `src/protocols/udp/udp_decoder.cpp`
+> - `tests/protocols/test_udp.cpp`
+>
+> ⏱️ **Estimated effort:** 1-2 days
+
+- [ ] **Checksum Validation**
+  - [ ] IPv4 pseudo-header calculation
+  - [ ] IPv6 pseudo-header calculation
+  - [ ] Checksum verification on decode
+  - [ ] Zero checksum handling (IPv4 optional, IPv6 illegal)
+  - [ ] Checksum offload detection
+
+- [ ] **UDP-Lite Support (RFC 3828)** — optional
+  - [ ] Partial checksum coverage
+  - [ ] Coverage field handling
+
+---
+
+**Phase 3: IPv4 Completeness (RFC 791)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/ipv4/ipv4.hpp`
+> - `src/protocols/ipv4/ipv4_decoder.cpp`
+> - `tests/protocols/test_ipv4.cpp`
+>
+> ⏱️ **Estimated effort:** 3-4 days
+>
+> 🚨 **Note:** Fragment reassembly requires careful memory management. Consider timeout handling for incomplete fragments.
+
+- [ ] **Typed Options Parsing**
+  - [ ] End of Option List (Type 0)
+  - [ ] No Operation (Type 1)
+  - [ ] Loose Source Route (LSRR, Type 131)
+  - [ ] Strict Source Route (SSRR, Type 137)
+  - [ ] Record Route (Type 7)
+  - [ ] Timestamp (Type 68)
+  - [ ] Router Alert (RFC 2113)
+
+- [ ] **Fragment Reassembly**
+  - [ ] Fragment identification (ID + src + dst + protocol)
+  - [ ] Fragment offset handling
+  - [ ] MF flag tracking
+  - [ ] Reassembly buffer management
+  - [ ] Timeout handling for incomplete reassembly
+  - [ ] Overlapping fragment handling
+
+- [ ] **Additional Validation**
+  - [ ] Total length vs actual length check
+  - [ ] Header length validation
+  - [ ] Address class detection (A/B/C/D/E)
+  - [ ] Multicast/broadcast detection
+
+---
+
+**Phase 4: Ethernet Completeness (IEEE 802.3)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/ethernet/ethernet.hpp`
+> - `src/protocols/ethernet/ethernet_decoder.cpp`
+> - `tests/protocols/test_ethernet.cpp`
+>
+> ⏱️ **Estimated effort:** 2-3 days
+>
+> 💡 **Note:** LLC/SNAP frames are rare in automotive but required for completeness. FCS is usually stripped by NIC.
+
+- [ ] **LLC/SNAP Headers (IEEE 802.2)**
+  - [ ] Length field detection (< 1536 = LLC frame)
+  - [ ] DSAP/SSAP parsing
+  - [ ] Control field parsing
+  - [ ] SNAP OUI + protocol ID
+
+- [ ] **Additional EtherTypes**
+  - [ ] ARP (0x0806) — currently may exist
+  - [ ] LLDP (0x88CC)
+  - [ ] MPLS Unicast (0x8847)
+  - [ ] MPLS Multicast (0x8848)
+  - [ ] PPPoE Discovery (0x8863)
+  - [ ] PPPoE Session (0x8864)
+  - [ ] MACsec (0x88E5)
+  - [ ] 1588 PTP (0x88F7) — currently gPTP
+  - [ ] FCoE (0x8906)
+
+- [ ] **Frame Validation**
+  - [ ] Minimum frame size (64 bytes with padding)
+  - [ ] Padding detection and removal
+  - [ ] FCS validation (if available, usually stripped)
+
+- [ ] **Additional VLAN TPIDs**
+  - [ ] 0x9100 (legacy QinQ)
+  - [ ] 0x9200 (legacy QinQ)
+  - [ ] Configurable TPID list
+
+---
+
+**Phase 5: SOME/IP Completeness (AUTOSAR)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/someip/someip.hpp`
+> - `src/protocols/someip/someip_decoder.cpp`
+> - `tests/protocols/test_someip.cpp`
+>
+> ⏱️ **Estimated effort:** 3-4 days
+>
+> 🚨 **Critical:** SOME/IP-TP is used for messages > 1400 bytes. This is common in production for large method responses.
+
+- [ ] **SOME/IP-TP (Transport Protocol)**
+  - [ ] TP header parsing (offset, more flag)
+  - [ ] Segment reassembly
+  - [ ] Segment ordering
+  - [ ] Timeout handling
+  - [ ] Maximum message size handling
+
+- [ ] **Additional Return Codes**
+  - [ ] E2E return codes (0x0B-0x1F)
+  - [ ] Application-specific codes (0x40-0x5E)
+
+- [ ] **Magic Cookie Support**
+  - [ ] Client ID 0x0000 / Session ID 0x0000 detection
+  - [ ] Dead connection detection
+
+- [ ] **Serialization Helpers** (optional)
+  - [ ] Basic type serialization
+  - [ ] Length-delimited fields
+  - [ ] TLV encoding
+
+---
+
+**Phase 6: SOME/IP-SD Completeness (AUTOSAR)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/someip/someip_sd.hpp`
+> - `src/protocols/someip/someip_sd_decoder.cpp`
+> - `tests/protocols/test_someip_sd.cpp`
+>
+> ⏱️ **Estimated effort:** 2-3 days
+>
+> 💡 **Note:** Index resolution links SD entries to their options. This is needed for proper service/eventgroup analysis.
+
+- [ ] **IPv6 Endpoint Option Parsing**
+  - [ ] 128-bit address extraction
+  - [ ] L4 protocol and port
+
+- [ ] **Option Parsing Enhancement**
+  - [ ] Configuration option string parsing
+  - [ ] Load balancing priority/weight parsing
+  - [ ] Multicast option address extraction
+
+- [ ] **Index Resolution**
+  - [ ] Resolve first_option_index / second_option_index
+  - [ ] Link entries to their options
+
+- [ ] **State Tracking** (optional)
+  - [ ] Service offer tracking
+  - [ ] Subscription state tracking
+  - [ ] TTL expiration detection
+
+---
+
+**Phase 7: DoIP Completeness (ISO 13400-2)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/doip/doip.hpp`
+> - `src/protocols/doip/doip_decoder.cpp`
+> - `tests/protocols/test_doip.cpp`
+>
+> ⏱️ **Estimated effort:** 2-3 days
+>
+> 💡 **Note:** State machine is optional but useful for diagnostic session analysis and timeout detection.
+
+- [ ] **Entity Type Distinction**
+  - [ ] Gateway vs Node entity type
+  - [ ] Entity role in routing
+
+- [ ] **Response Structures**
+  - [ ] Power Mode Information Response parsing
+  - [ ] Entity Status Response parsing (max sockets, currently open)
+  - [ ] Diagnostic Power Mode Response
+
+- [ ] **Activation Types Enum**
+  - [ ] Default (0x00)
+  - [ ] WWH-OBD (0x01)
+  - [ ] Central Security (0x02+)
+  - [ ] Manufacturer-specific (0xE0-0xFE)
+
+- [ ] **State Machine** (optional for analysis)
+  - [ ] Socket connection state
+  - [ ] Routing activation state
+  - [ ] Alive check state
+  - [ ] Timeout handling
+
+- [ ] **Transport Awareness**
+  - [ ] TCP vs UDP payload type restrictions
+  - [ ] Port usage (13400 data, 13400 discovery)
+
+---
+
+**Phase 8: gPTP Completeness (IEEE 802.1AS)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/gptp/gptp.hpp`
+> - `src/protocols/gptp/gptp_decoder.cpp`
+> - `tests/protocols/test_gptp.cpp`
+>
+> ⏱️ **Estimated effort:** 3-4 days
+>
+> 🚨 **Note:** Sync algorithm and BMCA are computationally intensive. Consider separate analysis module rather than inline in decoder.
+
+- [ ] **Synchronization Algorithm**
+  - [ ] Clock offset calculation
+  - [ ] Rate ratio accumulation
+  - [ ] Synchronized time computation
+  - [ ] Correction field application
+
+- [ ] **Best Master Clock Algorithm (BMCA)**
+  - [ ] Announce message comparison
+  - [ ] Priority1/Priority2/ClockClass/ClockAccuracy/Variance ordering
+  - [ ] Grandmaster selection
+  - [ ] Timeout-based GM failover
+
+- [ ] **Path Delay Accumulation**
+  - [ ] Mean path delay from multiple measurements
+  - [ ] Cumulative path delay through bridges
+  - [ ] Asymmetry correction
+
+- [ ] **Additional TLVs**
+  - [ ] AS Capability TLV (gPTP domain support)
+  - [ ] Message Interval Request TLV
+  - [ ] Cumulative Rate Ratio TLV
+
+- [ ] **Domain Support**
+  - [ ] Multiple gPTP domains
+  - [ ] Domain number filtering
+
+---
+
+**Phase 9: UDS Completeness (ISO 14229-1)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/uds/uds.hpp`
+> - `src/protocols/uds/uds_decoder.cpp`
+> - `tests/protocols/test_uds.cpp`
+>
+> ⏱️ **Estimated effort:** 3-4 days
+>
+> 💡 **Note:** ReadDTCInformation has 28 sub-functions — each with different response structure. Use a table-driven approach.
+
+- [ ] **ReadDTCInformation Sub-functions**
+  - [ ] All 28 sub-functions enumerated
+  - [ ] Report structure for each sub-function
+  - [ ] Status mask handling
+  - [ ] DTC severity mask handling
+
+- [ ] **Additional Services Implementation**
+  - [ ] DynamicallyDefineDataIdentifier (0x2C) — full
+  - [ ] ResponseOnEvent (0x86) — full
+  - [ ] LinkControl (0x87) — full
+  - [ ] AccessTimingParameter (0x83) — full
+  - [ ] SecuredDataTransmission (0x84) — structure
+  - [ ] RequestFileTransfer (0x38) — structure
+
+- [ ] **Session/Security State Machine**
+  - [ ] Session transitions
+  - [ ] Security level requirements per service
+  - [ ] S3 timer handling
+  - [ ] P2/P2* timing validation
+
+---
+
+**Phase 10: DDS/RTPS Completeness (OMG RTPS 2.5)**
+
+> 📍 **Files to modify:**
+> - `include/wadjet/protocols/dds/rtps.hpp`
+> - `src/protocols/dds/rtps_decoder.cpp`
+> - `tests/protocols/test_dds.cpp`
+>
+> ⏱️ **Estimated effort:** 5-7 days (most complex phase)
+>
+> 🚨 **Critical:** CDR serialization is essential for payload decoding. Without it, DDS payloads are opaque blobs.
+>
+> 💡 **Recommendation:** Consider using eProsima Fast-CDR as reference implementation for validation.
+
+- [ ] **CDR Serialization**
+  - [ ] Basic types (int8-64, uint8-64, float, double)
+  - [ ] Strings (bounded and unbounded)
+  - [ ] Sequences and arrays
+  - [ ] Enumerations
+  - [ ] Structs/Unions
+  - [ ] Endianness handling
+
+- [ ] **Inline QoS Parsing**
+  - [ ] Parameter list parsing
+  - [ ] Key hash extraction
+  - [ ] Status info
+  - [ ] Coherent set
+  - [ ] Directed write
+
+- [ ] **Parameter List Completion**
+  - [ ] All PID values defined
+  - [ ] Complex parameter parsing (locators, QoS)
+  - [ ] Vendor-specific parameters
+
+- [ ] **Discovery Enhancement**
+  - [ ] SPDP participant data parsing
+  - [ ] SEDP endpoint data parsing
+  - [ ] Liveliness tracking
+  - [ ] Lease duration handling
+
+- [ ] **Fragmentation Reassembly**
+  - [ ] DATA_FRAG reassembly
+  - [ ] Fragment number tracking
+  - [ ] Last fragment detection
+  - [ ] Timeout handling
+
+- [ ] **Security (DDS-Security)** — optional
+  - [ ] Secure submessage types
+  - [ ] Crypto token handling
+  - [ ] Authentication handshake
+
+---
+
+**Testing Requirements:**
+
+| Phase | Test Type | Target |
+|-------|----------|--------|
+| TCP | Unit tests for checksum, options | 30+ tests |
+| UDP | Unit tests for checksum | 10+ tests |
+| IPv4 | Unit tests for options, fragments | 25+ tests |
+| Ethernet | Unit tests for LLC/SNAP | 15+ tests |
+| SOME/IP | Unit tests for TP | 20+ tests |
+| SOME/IP-SD | Unit tests for options | 15+ tests |
+| DoIP | Unit tests for responses | 20+ tests |
+| gPTP | Unit tests for sync algorithm | 25+ tests |
+| UDS | Unit tests for services | 30+ tests |
+| DDS | Unit tests for CDR, QoS | 40+ tests |
+
+**Total Additional Tests:** 230+ tests
+
+**Validation:**
+
+- [ ] Cross-validate with Wireshark dissectors
+- [ ] Cross-validate with reference implementations
+- [ ] Fuzz testing for all new parsing code
+- [ ] Real-world capture file validation
+
+**Documentation:**
+
+- [ ] Update protocol documentation for each enhancement
+- [ ] Add specification references for each feature
+- [ ] Document limitations and unsupported features
+- [ ] Update architecture diagrams
+
+**Exit Criteria:**
+
+Each protocol must have:
+1. 100% of specification-mandated features implemented
+2. Validation against reference tools
+3. Comprehensive test coverage
+4. Updated documentation
+
+---
+
+
+---
+
+
+---
+
+### Milestone 14 — Web-Based Report Viewer
 
 **Goal:** Implement interactive web-based visualization for test reports and packet analysis
 
-**Status:** Not Started
+**Status:** ⏳ Not Started
+
+**Priority:** 🟢 Low — Nice-to-have visualization
 
 **Overview:**
 
@@ -1865,7 +2386,7 @@ A modern web interface for visualizing test results, packet captures, and protoc
 
 **Architecture:**
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                 Web Report Viewer Architecture                  │
 ├─────────────────────────────────────────────────────────────────┤
@@ -2055,14 +2576,23 @@ MVP is complete when:
 
 ## Post-MVP Roadmap
 
-| Milestone | Description | Priority |
-|-----------|-------------|----------|
-| 8 | gPTP (IEEE 802.1AS) decoder | High |
-| 9 | UDS over IP decoder | High |
-| 10 | DDS protocol support | Medium |
-| 11 | TSN awareness (802.1Qbv) | Medium |
-| 12 | UDS over DoIP integration | High |
-| 13 | Web-based report viewer | Low |
+| Milestone | Description | Priority | Status |
+|-----------|-------------|----------|--------|
+| 8 | gPTP (IEEE 802.1AS) decoder | 🔴 High | ✅ Complete |
+| 9 | UDS over IP decoder | 🔴 High | ✅ Complete |
+| 10 | DDS protocol support | 🟡 Medium | ✅ Complete |
+| 11 | UDS over DoIP integration | 🔴 High | ✅ Complete |
+| 12 | TSN awareness (802.1Qbv) | 🟡 Medium | ⏳ Not Started |
+| **13** | **Protocol Completeness** | 🔴 High | ⏳ **NEXT** |
+| 14 | Web-based report viewer | 🟢 Low | ⏳ Not Started |
+| 15 | ARXML Parser (AUTOSAR) | 🔴 High | ⏳ Not Started |
+| 16 | ODX/PDX Diagnostic Database | 🔴 High | ⏳ Not Started |
+| 17 | Signal-Level Decoding | 🔴 High | ⏳ Not Started |
+| 18 | IPv6 Protocol Support | 🟡 Medium | ⏳ Not Started |
+| 19 | Docker & CI/CD Integration | 🟡 Medium | ⏳ Not Started |
+| 20 | A2L/HEX File Support | 🟢 Low | ⏳ Not Started |
+| 21 | PreProduction Quality Gate | 🔴 High | ⏳ Not Started |
+| 22 | ISO 26262 Tool Qualification | 🔴 High | ⏳ Not Started |
 
 ---
 
@@ -2070,3 +2600,1758 @@ MVP is complete when:
 
 - [x] Rust FFI bindings (Milestone 7)
 - [x] Packet injection (TX capability via ReplaySession)
+
+---
+
+### Milestone 15 — ARXML Parser (AUTOSAR System Description)
+
+**Goal:** Parse AUTOSAR ARXML files to extract network configuration, ECU definitions, and signal/message mappings
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required for signal-level decoding (Milestone 16)
+
+**Overview:**
+
+ARXML (AUTOSAR XML) is the standard format for describing automotive system architecture, including:
+- ECU configurations and network topology
+- Communication matrices (frames, PDUs, signals)
+- Service interfaces (SOME/IP, DDS)
+- Diagnostic configurations
+
+This milestone provides the foundation for understanding what's on the network without manual configuration.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    ARXML Parser Architecture                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   ARXML File Types                       │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ System      │ │ ECU         │ │ Communication       │ │   │
+│  │  │ Description │ │ Extract     │ │ Cluster             │ │   │
+│  │  │ (.arxml)    │ │ (.arxml)    │ │ (.arxml)            │ │   │
+│  │  └──────┬──────┘ └──────┬──────┘ └──────────┬──────────┘ │   │
+│  │         │               │                   │            │   │
+│  │         └───────────────┼───────────────────┘            │   │
+│  └──────────────────────────┼───────────────────────────────┘   │
+│                             ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   ARXML Parser Engine                    │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ XML Parser      │  │ Schema Validator            │    │   │
+│  │  │ (pugixml)       │  │ (AUTOSAR 4.x/Classic)       │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Reference       │  │ Package Navigator           │    │   │
+│  │  │ Resolver        │  │ (AR-PACKAGE paths)          │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                             │                                   │
+│                             ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  Extracted Data Model                    │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ ECU         │ │ Frames &    │ │ Signals &           │ │   │
+│  │  │ Instances   │ │ PDUs        │ │ Coding Types        │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ Service     │ │ Ethernet    │ │ Diagnostic          │ │   │
+│  │  │ Interfaces  │ │ Clusters    │ │ Addresses           │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                             │                                   │
+│                             ▼                                   │
+│              ┌───────────────────────────┐                      │
+│              │   In-Memory Database      │                      │
+│              │   (ArxmlDatabase class)   │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Core Headers:
+- [ ] `include/wadjet/arxml/arxml.hpp` — Main include header
+- [ ] `include/wadjet/arxml/arxml_types.hpp` — Core type definitions
+  - ArxmlVersion enum (AR4_0, AR4_1, AR4_2, AR4_3, AR4_4, AR19_11, AR20_11, AR21_11, AR_CLASSIC)
+  - ArPackagePath — Hierarchical path representation
+  - ArRef<T> — Reference wrapper with lazy resolution
+  - ArShortName — Short name with language variants
+- [ ] `include/wadjet/arxml/arxml_parser.hpp` — Parser interface
+  - ArxmlParser class
+  - ParseOptions (validation level, schema path, merge mode)
+  - ParseResult with errors/warnings
+- [ ] `include/wadjet/arxml/arxml_database.hpp` — In-memory database
+  - ArxmlDatabase class — Central storage
+  - Query API (by path, by type, by reference)
+  - Merge multiple ARXML files
+  - Export to JSON for debugging
+
+ECU & Network Model:
+- [ ] `include/wadjet/arxml/ecu.hpp` — ECU definitions
+  - EcuInstance — ECU with addresses and endpoints
+  - EcuPartition — Software partitions
+  - ComController — Communication controller
+  - EthernetCommunicationController — Ethernet-specific
+- [ ] `include/wadjet/arxml/network.hpp` — Network topology
+  - EthernetCluster — Ethernet network definition
+  - EthernetPhysicalChannel — Physical channel
+  - VlanConfig — VLAN configuration
+  - SwitchPort — Switch port mapping
+- [ ] `include/wadjet/arxml/endpoints.hpp` — Communication endpoints
+  - SocketAddress — IP + port
+  - TcpTpConfig / UdpTpConfig — Transport config
+  - SoAdSocketConnectionGroup
+  - ServiceInstanceConfig
+
+Communication Model:
+- [ ] `include/wadjet/arxml/frames.hpp` — Frame definitions
+  - EthernetFrame — Ethernet frame definition
+  - ISignalIPdu — Signal I-PDU
+  - ISignalIPduGroup — PDU group
+  - PduTriggering — PDU triggering config
+  - FramePort / PduPort mappings
+- [ ] `include/wadjet/arxml/signals.hpp` — Signal definitions
+  - ISignal — Signal definition
+  - ISignalGroup — Signal group
+  - SystemSignal — System-level signal
+  - SignalMapping — Signal to PDU mapping
+  - ByteOrder, BitPosition, BitLength
+- [ ] `include/wadjet/arxml/coding.hpp` — Data coding
+  - CompuMethod — Computation method
+  - CompuScale — Scale with formula
+  - CompuConst — Constant mapping
+  - DataConstraint — Value constraints
+  - Unit — Physical unit
+
+Service Interface Model (SOME/IP):
+- [ ] `include/wadjet/arxml/service_interface.hpp` — Service definitions
+  - ServiceInterface — SOME/IP service interface
+  - ServiceInterfaceMethod — Method definition
+  - ServiceInterfaceEvent — Event definition
+  - ServiceInterfaceField — Field (getter/setter/notifier)
+  - ArgumentDataPrototype — Method arguments
+- [ ] `include/wadjet/arxml/someip_config.hpp` — SOME/IP configuration
+  - SomeipServiceInstanceConfig
+  - SomeipEventConfig
+  - SomeipMethodConfig
+  - SomeipSdConfig — Service Discovery config
+  - SomeipTransformationProps
+
+Diagnostic Model:
+- [ ] `include/wadjet/arxml/diagnostic.hpp` — Diagnostic configuration
+  - DiagnosticAddress — ECU diagnostic address
+  - DiagnosticConnection — Tester-ECU connection
+  - DiagnosticServiceInstance
+  - DiagnosticProtocol (DoIP config)
+  - DiagnosticSession / SecurityLevel
+
+Source Files:
+- [ ] `src/arxml/arxml_parser.cpp` — Main parser implementation
+  - XML parsing with pugixml
+  - AUTOSAR namespace handling
+  - Reference resolution (DEST, DEFINITION-REF)
+  - Multi-file merging
+- [ ] `src/arxml/arxml_database.cpp` — Database implementation
+  - Indexed storage by path and type
+  - Cross-reference resolution
+  - Query optimization
+- [ ] `src/arxml/ecu_parser.cpp` — ECU extraction
+- [ ] `src/arxml/network_parser.cpp` — Network topology extraction
+- [ ] `src/arxml/frame_parser.cpp` — Frame/PDU extraction
+- [ ] `src/arxml/signal_parser.cpp` — Signal extraction
+- [ ] `src/arxml/service_parser.cpp` — Service interface extraction
+- [ ] `src/arxml/diagnostic_parser.cpp` — Diagnostic config extraction
+
+Integration:
+- [ ] `include/wadjet/arxml/protocol_mapping.hpp` — Protocol decoder integration
+  - Map ARXML service IDs to SOME/IP decoder
+  - Map diagnostic addresses to DoIP decoder
+  - Map signals to Ethernet frames
+- [ ] Python bindings (`bindings/python/src/arxml_bindings.cpp`)
+  - ArxmlParser, ArxmlDatabase classes
+  - All model types exposed
+  - Query API
+- [ ] Rust bindings (`bindings/rust/wadjet/src/arxml.rs`)
+  - Safe wrappers for ARXML types
+  - Iterator support for collections
+- [ ] C ABI layer (`bindings/c/include/wadjet_arxml.h`)
+  - Opaque handles for database
+  - Query functions
+
+**Dependencies:**
+
+| Library | Purpose | Integration |
+|---------|---------|-------------|
+| pugixml | XML parsing | Header-only, add to deps |
+| (optional) libxml2 | XSD validation | System package |
+
+**Testing:**
+
+Unit Tests (`tests/arxml/test_arxml_parser.cpp`):
+- [ ] Parse minimal ARXML file
+- [ ] Parse multi-file project
+- [ ] Reference resolution
+- [ ] Handle missing references gracefully
+- [ ] AUTOSAR version detection
+- [ ] Namespace handling
+- [ ] Unicode short names
+
+Unit Tests (`tests/arxml/test_arxml_types.cpp`):
+- [ ] ArPackagePath manipulation
+- [ ] ArRef resolution
+- [ ] CompuMethod conversion
+- [ ] Signal bit extraction
+
+Unit Tests (`tests/arxml/test_arxml_database.cpp`):
+- [ ] Query by path
+- [ ] Query by type
+- [ ] Merge multiple files
+- [ ] Export to JSON
+
+Integration Tests (`tests/integration/test_arxml_integration.cpp`):
+- [ ] Load real AUTOSAR project
+- [ ] Extract all ECUs and addresses
+- [ ] Map signals to frames
+- [ ] Service interface resolution
+
+Regression Tests:
+- [ ] `arxml_samples/` — Sample ARXML files
+  - `minimal_system.arxml` — Minimal valid ARXML
+  - `someip_service.arxml` — SOME/IP service definition
+  - `ethernet_cluster.arxml` — Ethernet network
+  - `diagnostic_config.arxml` — Diagnostic addresses
+  - `multi_file/` — Multi-file project
+
+**Documentation:**
+
+- [ ] `docs/arxml.md` — ARXML parser guide
+  - Supported AUTOSAR versions
+  - File loading and merging
+  - Query API reference
+  - Signal extraction workflow
+- [ ] `docs/protocols/arxml_mapping.md` — Protocol mapping
+  - ARXML to SOME/IP mapping
+  - ARXML to DoIP mapping
+  - Signal decoding workflow
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with ARXML layer
+- [ ] Update `README.md` with ARXML support
+
+**Use Cases & Examples:**
+
+- [ ] `examples/arxml_loader.cpp` — Load ARXML project
+  - Parse system description
+  - List all ECUs
+  - List all services
+  - Export to JSON
+- [ ] `examples/arxml_signal_map.cpp` — Signal mapping
+  - Load ARXML
+  - Map signals to frames
+  - Decode packet with signal values
+- [ ] `examples/python/arxml_analysis.py` — Python example
+- [ ] `examples/scenarios/arxml_someip_test.yaml` — ARXML-based scenario
+
+**CLI Integration:**
+
+```bash
+# Load ARXML and list ECUs
+wadjet-run --arxml system.arxml --list-ecus
+
+# Capture with ARXML context
+wadjet-run scenario.yaml --arxml project/ -i eth0
+
+# Export ARXML to JSON
+wadjet-arxml export system.arxml -o system.json
+```
+
+**Test Count Target:** 40+ tests
+
+---
+
+### Milestone 16 — ODX/PDX Diagnostic Database Support
+
+**Goal:** Parse ODX (Open Diagnostic data eXchange) files for diagnostic session intelligence
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required for meaningful UDS traffic analysis
+
+**Overview:**
+
+ODX (ISO 22901-1) is the standard format for diagnostic data description, including:
+- Diagnostic services and parameters
+- Data Identifier (DID) definitions with encoding
+- Diagnostic Trouble Code (DTC) definitions
+- ECU variants and flash configurations
+- Communication parameters
+
+This milestone enables intelligent UDS/DoIP traffic analysis by knowing what each service/DID/DTC means.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    ODX Parser Architecture                      │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   ODX File Types                         │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ ODX-D       │ │ ODX-C       │ │ ODX-F               │ │   │
+│  │  │ (Diag Data) │ │ (Comm Params)│ │ (Flash Data)       │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ ODX-V       │ │ ODX-CS      │ │ ODX-M               │ │   │
+│  │  │ (Vehicle)   │ │ (CompuSpec) │ │ (ECU Memory)        │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                             │                                   │
+│                             ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   ODX Parser Engine                      │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ XML/PDX Parser  │  │ Comparam Resolver           │    │   │
+│  │  │ (ODX 2.0-2.2)   │  │ (Inherit/Override)          │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ Variant         │  │ Data Type Interpreter       │    │   │
+│  │  │ Resolver        │  │ (LEADING-LENGTH, etc.)      │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                             │                                   │
+│                             ▼                                   │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  Diagnostic Data Model                   │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ DIAG-COMM   │ │ DTC         │ │ DID                 │ │   │
+│  │  │ (Services)  │ │ Definitions │ │ Definitions         │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ Routines    │ │ IO Controls │ │ Security Access     │ │   │
+│  │  │             │ │             │ │ Configs             │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                             │                                   │
+│                             ▼                                   │
+│              ┌───────────────────────────┐                      │
+│              │   OdxDatabase class       │                      │
+│              │   (Queryable storage)     │                      │
+│              └───────────────────────────┘                      │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Core Headers:
+- [ ] `include/wadjet/odx/odx.hpp` — Main include header
+- [ ] `include/wadjet/odx/odx_types.hpp` — Core type definitions
+  - OdxVersion enum (ODX_2_0_0, ODX_2_1_0, ODX_2_2_0)
+  - OdxCategory enum (PROTOCOL, FUNCTION, FLASH, etc.)
+  - OdxId — Unique identifier with short-name
+  - OdxRef<T> — Reference with resolution
+  - PhysicalDimension, Unit
+- [ ] `include/wadjet/odx/odx_parser.hpp` — Parser interface
+  - OdxParser class
+  - PdxParser class (for container files)
+  - ParseOptions (variant selection, inheritance)
+  - ParseResult with errors/warnings
+- [ ] `include/wadjet/odx/odx_database.hpp` — In-memory database
+  - OdxDatabase class
+  - ECU variant selection
+  - Service lookup by SID
+  - DID lookup by identifier
+  - DTC lookup by code
+
+Diagnostic Layer (DIAG-LAYER-CONTAINER):
+- [ ] `include/wadjet/odx/diag_layer.hpp` — Diagnostic layer
+  - DiagLayer — Base layer (PROTOCOL, FUNCTIONAL-GROUP, BASE-VARIANT, ECU-VARIANT)
+  - DiagLayerContainer — Layer hierarchy
+  - ParentRef — Inheritance reference
+  - ImportRef — Import reference
+- [ ] `include/wadjet/odx/diag_comm.hpp` — Diagnostic communication
+  - DiagComm — Diagnostic service definition
+  - DiagCommType enum (REQUEST, POS-RESPONSE, NEG-RESPONSE)
+  - SingleEcuJob, MultiEcuJob
+  - DiagCommRef, DiagCommSnref
+- [ ] `include/wadjet/odx/request_response.hpp` — Request/Response structure
+  - Request — Request message structure
+  - PosResponse — Positive response structure
+  - NegResponse — Negative response structure
+  - Param — Parameter definition
+  - ParamType enum (VALUE, RESERVED, MATCHING-REQUEST-PARAM, etc.)
+
+Data Types:
+- [ ] `include/wadjet/odx/data_types.hpp` — ODX data types
+  - DiagCodedType — Coded representation
+  - StandardLengthType, LeadingLengthInfoType, MinMaxLengthType
+  - ParamLengthInfoType (dynamic length)
+  - PhysicalType — Physical representation
+  - InternalType — Internal values
+- [ ] `include/wadjet/odx/compu_method.hpp` — Computation methods
+  - CompuMethod — Base computation
+  - CompuInternalToPhys — Internal to physical
+  - CompuPhysToInternal — Physical to internal
+  - CompuCategory enum (IDENTICAL, LINEAR, SCALE-LINEAR, TAB-INTP, TEXTTABLE)
+  - CompuScale, CompuConst, CompuRationalCoeffs
+- [ ] `include/wadjet/odx/dop.hpp` — Data Object Property
+  - DataObjectProp (DOP) — Data encoding
+  - DopBase — Base class
+  - Structure — Complex structure
+  - EndOfPduField — End marker
+  - DynamicLengthField
+  - Mux — Multiplexer
+
+DID/DTC Definitions:
+- [ ] `include/wadjet/odx/did.hpp` — Data Identifier definitions
+  - Did — DID definition
+  - DidRef — DID reference
+  - DidGroup — Grouped DIDs
+  - DidServiceInfo — Service binding
+- [ ] `include/wadjet/odx/dtc.hpp` — Diagnostic Trouble Code definitions
+  - Dtc — DTC definition
+  - DtcGroup — DTC group
+  - DtcStatusMask — Status byte definition
+  - DtcSeverity enum
+  - EnvironmentData — Freeze frame data
+  - ExtendedDataRecord — Extended data
+
+Service Definitions:
+- [ ] `include/wadjet/odx/services.hpp` — Standard UDS services
+  - SessionService — DiagnosticSessionControl
+  - SecurityService — SecurityAccess
+  - DidReadService — ReadDataByIdentifier
+  - DidWriteService — WriteDataByIdentifier
+  - RoutineService — RoutineControl
+  - DtcService — ReadDTCInformation
+  - DownloadService — RequestDownload/TransferData
+- [ ] `include/wadjet/odx/routine.hpp` — Routine definitions
+  - Routine — Routine definition
+  - RoutineType enum (START, STOP, REQUEST-RESULTS)
+  - RoutineResult — Result structure
+  - RoutineParam — Input/output parameters
+- [ ] `include/wadjet/odx/io_control.hpp` — IO Control
+  - IoControl — IO control definition
+  - IoControlType enum (RETURN, FREEZE, RESET, SHORT-TERM)
+  - ControlMask — Control enable mask
+
+Communication Parameters (COMPARAM):
+- [ ] `include/wadjet/odx/comparam.hpp` — Communication parameters
+  - Comparam — Parameter definition
+  - ComparamSpec — Parameter specification
+  - ComparamSubset — Parameter subset
+  - ProtocolStack — Protocol stack definition
+  - Timing parameters (P2, P2*, S3, etc.)
+
+Source Files:
+- [ ] `src/odx/odx_parser.cpp` — Main parser implementation
+- [ ] `src/odx/pdx_parser.cpp` — PDX container parser
+- [ ] `src/odx/odx_database.cpp` — Database implementation
+- [ ] `src/odx/diag_layer_parser.cpp` — Layer parsing
+- [ ] `src/odx/diag_comm_parser.cpp` — Service parsing
+- [ ] `src/odx/data_type_parser.cpp` — Data type parsing
+- [ ] `src/odx/compu_method_parser.cpp` — Computation method parsing
+- [ ] `src/odx/did_parser.cpp` — DID parsing
+- [ ] `src/odx/dtc_parser.cpp` — DTC parsing
+- [ ] `src/odx/param_decoder.cpp` — Parameter decoding
+
+Integration with UDS Decoder:
+- [ ] `include/wadjet/odx/uds_integration.hpp` — UDS decoder integration
+  - OdxEnhancedUdsDecoder — ODX-aware UDS decoder
+  - Auto-decode DID values
+  - Auto-decode DTC meanings
+  - Parameter name resolution
+  - Engineering value conversion
+
+Integration:
+- [ ] Python bindings (`bindings/python/src/odx_bindings.cpp`)
+  - OdxParser, OdxDatabase classes
+  - DID/DTC lookup
+  - Service definition access
+- [ ] Rust bindings (`bindings/rust/wadjet/src/odx.rs`)
+- [ ] C ABI layer (`bindings/c/include/wadjet_odx.h`)
+
+**Testing:**
+
+Unit Tests (`tests/odx/test_odx_parser.cpp`):
+- [ ] Parse minimal ODX-D file
+- [ ] Parse ODX with inheritance
+- [ ] Parse PDX container
+- [ ] Handle malformed ODX
+- [ ] Version detection
+
+Unit Tests (`tests/odx/test_odx_types.cpp`):
+- [ ] CompuMethod evaluation
+- [ ] Data type decoding
+- [ ] Parameter extraction
+- [ ] DID value decoding
+
+Unit Tests (`tests/odx/test_odx_database.cpp`):
+- [ ] Service lookup
+- [ ] DID lookup
+- [ ] DTC lookup
+- [ ] Variant selection
+
+Integration Tests (`tests/integration/test_odx_uds.cpp`):
+- [ ] Decode UDS traffic with ODX context
+- [ ] DID value interpretation
+- [ ] DTC description lookup
+- [ ] Multi-ECU variant handling
+
+Regression Tests:
+- [ ] `odx_samples/` — Sample ODX files
+  - `minimal_ecu.odx-d` — Minimal ECU definition
+  - `did_catalog.odx-d` — DID definitions
+  - `dtc_catalog.odx-d` — DTC definitions
+  - `multi_variant/` — Multi-variant project
+  - `test_project.pdx` — PDX container
+
+**Documentation:**
+
+- [ ] `docs/odx.md` — ODX parser guide
+  - Supported ODX versions
+  - File loading workflow
+  - Variant selection
+  - Query API reference
+- [ ] `docs/protocols/odx_uds_integration.md` — UDS integration
+  - ODX-enhanced UDS decoding
+  - DID interpretation
+  - DTC lookup
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with ODX layer
+- [ ] Update `README.md` with ODX support
+
+**Use Cases & Examples:**
+
+- [ ] `examples/odx_loader.cpp` — Load ODX project
+  - Parse ODX/PDX files
+  - List all DIDs
+  - List all DTCs
+  - List all services
+- [ ] `examples/odx_uds_decode.cpp` — ODX-enhanced UDS decoding
+  - Load ODX
+  - Capture UDS traffic
+  - Decode with parameter names
+  - Show engineering values
+- [ ] `examples/python/odx_analysis.py` — Python example
+- [ ] `examples/scenarios/odx_did_test.yaml` — ODX-based DID test
+
+**CLI Integration:**
+
+```bash
+# Load ODX and list DIDs
+wadjet-run --odx project.pdx --list-dids
+
+# Capture with ODX context
+wadjet-run scenario.yaml --odx ecu.odx-d -i eth0
+
+# Decode with ODX intelligence
+wadjet-decode capture.pcap --odx project.pdx --output decoded.json
+```
+
+**Test Count Target:** 50+ tests
+
+---
+
+### Milestone 17 — Signal-Level Decoding
+
+**Goal:** Decode individual signals from network traffic using ARXML/ODX databases
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Key differentiator for automotive protocol analysis
+
+**Overview:**
+
+Signal-level decoding transforms raw bytes into meaningful engineering values:
+- Extract signal bits from frames using ARXML definitions
+- Apply computation methods (scaling, offset, lookup tables)
+- Display physical values with units
+- Group signals by ECU, frame, or functional domain
+
+This milestone bridges the gap between "bytes on wire" and "what does it mean?"
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                Signal Decoding Pipeline                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   Raw Packet Data                        │   │
+│  │           (Captured Ethernet frame bytes)                │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Protocol Identification                     │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ SOME/IP     │ │ DoIP/UDS    │ │ Raw Ethernet        │ │   │
+│  │  │ Service ID  │ │ DID/Routine │ │ EtherType + VLAN    │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │               Database Lookup                            │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ ARXML       │ │ ODX         │ │ Manual Config       │ │   │
+│  │  │ Signal Def  │ │ DID/Param   │ │ (JSON/YAML)         │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │               Signal Extraction                          │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │  Bit-level extraction:                              │ │   │
+│  │  │  - Start bit, length, byte order                    │ │   │
+│  │  │  - Signed/unsigned handling                         │ │   │
+│  │  │  - Multiplexed signal support                       │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Value Conversion                            │   │
+│  │  ┌─────────────────┐  ┌─────────────────────────────┐    │   │
+│  │  │ CompuMethod     │  │ Value Constraints           │    │   │
+│  │  │ - Linear        │  │ - Min/Max validation        │    │   │
+│  │  │ - Rational      │  │ - Error value detection     │    │   │
+│  │  │ - Text table    │  │ - Not-available handling    │    │   │
+│  │  │ - Tab interp    │  │                             │    │   │
+│  │  └─────────────────┘  └─────────────────────────────┘    │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                Decoded Signal Output                     │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │  Signal: EngineSpeed                                │ │   │
+│  │  │  Raw: 0x1234 (4660)                                 │ │   │
+│  │  │  Physical: 2330.0 rpm                               │ │   │
+│  │  │  Status: Valid                                      │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Core Headers:
+- [ ] `include/wadjet/signals/signal.hpp` — Signal definitions
+  - Signal — Signal definition
+  - SignalValue — Decoded signal value (raw + physical)
+  - SignalGroup — Related signals
+  - SignalStatus enum (VALID, ERROR, NOT_AVAILABLE, INVALID)
+  - PhysicalValue — Value with unit
+- [ ] `include/wadjet/signals/signal_database.hpp` — Signal database
+  - SignalDatabase — Central signal registry
+  - RegisterSignal() — Manual signal registration
+  - LoadFromArxml() — Load from ARXML
+  - LoadFromOdx() — Load from ODX
+  - LoadFromJson() — Load from JSON config
+- [ ] `include/wadjet/signals/signal_decoder.hpp` — Signal decoder
+  - SignalDecoder — Main decoder class
+  - DecodeOptions (strict mode, default values)
+  - DecodedFrame — Frame with decoded signals
+  - DecodedSignal — Individual signal result
+
+Bit Extraction:
+- [ ] `include/wadjet/signals/bit_extraction.hpp` — Bit-level operations
+  - BitPosition — Start bit definition
+  - BitLength — Signal length
+  - ByteOrder enum (LITTLE_ENDIAN, BIG_ENDIAN, BIG_ENDIAN_BITNUM)
+  - ExtractBits() — Generic bit extraction
+  - SignExtend() — Signed value handling
+- [ ] `include/wadjet/signals/multiplexer.hpp` — Multiplexed signals
+  - Multiplexer — Mux signal definition
+  - MuxGroup — Multiplexed signal group
+  - MuxValue — Multiplexer value
+  - ResolveMux() — Determine active signals
+
+Value Conversion:
+- [ ] `include/wadjet/signals/compu_method.hpp` — Computation methods
+  - ICompuMethod — Interface
+  - IdenticalCompu — Direct mapping
+  - LinearCompu — y = ax + b
+  - RationalCompu — Polynomial/rational
+  - TextTableCompu — Enum mapping
+  - TabInterpCompu — Interpolation table
+  - ScaleLinearCompu — Piecewise linear
+- [ ] `include/wadjet/signals/constraints.hpp` — Value constraints
+  - ValueConstraint — Min/max/error values
+  - NotAvailableValue — N/A detection
+  - ErrorValue — Error value detection
+  - ValidateValue() — Constraint checking
+
+Protocol-Specific Decoders:
+- [ ] `include/wadjet/signals/someip_signal.hpp` — SOME/IP signals
+  - SomeipSignalDecoder — SOME/IP payload decoder
+  - SerializationConfig — SOME/IP serialization rules
+  - StructureDecoder — Complex type decoder
+  - ArrayDecoder — Dynamic array decoder
+- [ ] `include/wadjet/signals/uds_signal.hpp` — UDS signals
+  - UdsSignalDecoder — UDS payload decoder
+  - DidDecoder — DID parameter decoder
+  - RoutineDecoder — Routine parameter decoder
+  - DtcDecoder — DTC structure decoder
+- [ ] `include/wadjet/signals/ethernet_signal.hpp` — Raw Ethernet signals
+  - EthernetSignalDecoder — Raw frame decoder
+  - PduDecoder — PDU-based decoding
+  - SignalPduMapping — Signal to PDU mapping
+
+Output Formats:
+- [ ] `include/wadjet/signals/signal_output.hpp` — Output formatting
+  - SignalFormatter — Format decoded signals
+  - JsonSignalOutput — JSON format
+  - TextSignalOutput — Human-readable
+  - CsvSignalOutput — CSV export
+  - SignalTrace — Time-series recording
+
+Source Files:
+- [ ] `src/signals/signal_database.cpp` — Database implementation
+- [ ] `src/signals/signal_decoder.cpp` — Main decoder
+- [ ] `src/signals/bit_extraction.cpp` — Bit operations
+- [ ] `src/signals/compu_method.cpp` — Computation methods
+- [ ] `src/signals/someip_signal.cpp` — SOME/IP decoding
+- [ ] `src/signals/uds_signal.cpp` — UDS decoding
+- [ ] `src/signals/ethernet_signal.cpp` — Ethernet decoding
+- [ ] `src/signals/signal_output.cpp` — Output formatting
+
+Integration:
+- [ ] `include/wadjet/signals/decode_context.hpp` — Decoder integration
+  - DecodeContext — Extends ProtocolDispatcher
+  - SignalAwareDecoder — Signal-enabled packet decoder
+  - DecodedPacket — Packet with signals
+- [ ] Python bindings (`bindings/python/src/signal_bindings.cpp`)
+  - SignalDatabase, SignalDecoder
+  - SignalValue, DecodedFrame
+  - NumPy integration for signal arrays
+- [ ] Rust bindings (`bindings/rust/wadjet/src/signals.rs`)
+- [ ] C ABI layer (`bindings/c/include/wadjet_signals.h`)
+
+**Testing:**
+
+Unit Tests (`tests/signals/test_bit_extraction.cpp`):
+- [ ] Little-endian extraction
+- [ ] Big-endian extraction (Motorola byte order)
+- [ ] Big-endian bit numbering
+- [ ] Sign extension
+- [ ] Multi-byte signals
+- [ ] Boundary conditions
+
+Unit Tests (`tests/signals/test_compu_method.cpp`):
+- [ ] Identity conversion
+- [ ] Linear conversion (y = ax + b)
+- [ ] Rational conversion
+- [ ] Text table lookup
+- [ ] Interpolation tables
+- [ ] Piecewise linear
+
+Unit Tests (`tests/signals/test_signal_decoder.cpp`):
+- [ ] Decode single signal
+- [ ] Decode signal group
+- [ ] Multiplexed signals
+- [ ] Constraint validation
+- [ ] Error value detection
+- [ ] Not-available handling
+
+Integration Tests (`tests/integration/test_signal_integration.cpp`):
+- [ ] ARXML + signal decoding
+- [ ] ODX + UDS signal decoding
+- [ ] Full packet decode pipeline
+- [ ] Live capture with signals
+
+Performance Tests (`benchmarks/bench_signal.cpp`):
+- [ ] High-frequency signal decoding
+- [ ] Large signal database lookup
+- [ ] Bulk frame processing
+
+Regression Tests:
+- [ ] `signal_samples/` — Sample configurations
+  - `engine_signals.json` — Engine data signals
+  - `body_signals.json` — Body control signals
+  - `adas_signals.json` — ADAS signals
+  - `test_frames/` — Sample frames with expected values
+
+**Documentation:**
+
+- [ ] `docs/signals.md` — Signal decoding guide
+  - Signal database configuration
+  - ARXML/ODX integration
+  - Manual signal definition
+  - Decoding workflow
+- [ ] `docs/signals_format.md` — Signal definition format
+  - JSON signal format
+  - YAML signal format
+  - Bit position conventions
+  - Computation method types
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with signal layer
+- [ ] Update `README.md` with signal support
+
+**Use Cases & Examples:**
+
+- [ ] `examples/signal_monitor.cpp` — Signal monitor
+  - Load signal database
+  - Capture traffic
+  - Decode signals in real-time
+  - Display signal values
+- [ ] `examples/signal_recorder.cpp` — Signal recorder
+  - Record signals to CSV
+  - Time-series export
+  - Signal filtering
+- [ ] `examples/python/signal_analysis.py` — Python analysis
+  - Load signals
+  - Plot signal values
+  - Statistics calculation
+- [ ] `examples/scenarios/signal_test.yaml` — Signal-based test
+
+**Matchers & Assertions:**
+
+```cpp
+// New signal matchers
+EXPECT_THAT(packet, HasSignal("EngineSpeed"));
+EXPECT_THAT(packet, SignalEquals("EngineSpeed", 2500.0, 0.1));
+EXPECT_THAT(packet, SignalInRange("VehicleSpeed", 0.0, 250.0));
+EXPECT_THAT(packet, SignalStatus("BrakePedal", SignalStatus::VALID));
+EXPECT_THAT(packet, SignalText("GearPosition", "D"));
+```
+
+**CLI Integration:**
+
+```bash
+# Decode with signals
+wadjet-decode capture.pcap --arxml system.arxml --signals
+
+# Monitor signals live
+wadjet-signals -i eth0 --arxml system.arxml --filter "EngineSpeed,VehicleSpeed"
+
+# Record signals to CSV
+wadjet-signals -i eth0 --arxml system.arxml -o signals.csv
+```
+
+**Test Count Target:** 60+ tests
+
+---
+
+### Milestone 18 — IPv6 Protocol Support
+
+**Goal:** Add IPv6 protocol decoding for next-generation automotive networks
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🟡 Medium — Increasingly important for automotive Ethernet
+
+**Overview:**
+
+IPv6 is becoming more common in automotive networks, especially for:
+- Service-Oriented Architecture (SOA) with IPv6 multicast
+- DoIP over IPv6
+- DDS/RTPS over IPv6
+- Next-generation E/E architectures
+
+This milestone adds full IPv6 support alongside existing IPv4.
+
+**Architecture:**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    IPv6 Protocol Stack                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   Ethernet Frame                         │   │
+│  │           EtherType: 0x86DD (IPv6)                       │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   IPv6 Header (40 bytes)                 │   │
+│  │  ┌─────────────────────────────────────────────────────┐ │   │
+│  │  │ Version │ TC  │ Flow Label │ Payload Len │ Next Hdr│ │   │
+│  │  │   (4)   │ (8) │   (20)     │    (16)     │   (8)   │ │   │
+│  │  ├─────────────────────────────────────────────────────┤ │   │
+│  │  │           Source Address (128 bits)                 │ │   │
+│  │  ├─────────────────────────────────────────────────────┤ │   │
+│  │  │         Destination Address (128 bits)              │ │   │
+│  │  └─────────────────────────────────────────────────────┘ │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Extension Headers (optional)                │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ Hop-by-Hop  │ │ Routing     │ │ Fragment            │ │   │
+│  │  │ Options     │ │ Header      │ │ Header              │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ Destination │ │ Authentication│ │ ESP (encrypted)   │ │   │
+│  │  │ Options     │ │ Header (AH)  │ │                    │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └─────────────────────────┬────────────────────────────────┘   │
+│                            │                                    │
+│                            ▼                                    │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │              Upper Layer Protocols                       │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐ │   │
+│  │  │ TCP         │ │ UDP         │ │ ICMPv6              │ │   │
+│  │  │             │ │             │ │ (ND, MLD)           │ │   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘ │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Implementation:**
+
+Core Headers:
+- [ ] `include/wadjet/protocols/ipv6.hpp` — Main IPv6 header
+  - IPv6Header — 40-byte fixed header
+  - IPv6Address — 128-bit address
+  - FlowLabel — 20-bit flow label
+  - TrafficClass — 8-bit traffic class (DSCP + ECN)
+- [ ] `include/wadjet/protocols/ipv6_types.hpp` — Type definitions
+  - NextHeader enum (matches IPv4 protocol numbers + extensions)
+  - IPv6Scope enum (Interface-Local, Link-Local, Site-Local, Global)
+  - MulticastFlags
+  - AddressType enum (Unicast, Multicast, Anycast)
+- [ ] `include/wadjet/protocols/ipv6_ext.hpp` — Extension headers
+  - ExtensionHeader — Base class
+  - HopByHopHeader — Hop-by-Hop Options
+  - RoutingHeader — Routing Header (types 0, 2, 3, 4)
+  - FragmentHeader — Fragment Header
+  - DestinationOptionsHeader — Destination Options
+  - NoNextHeader — No Next Header marker
+- [ ] `include/wadjet/protocols/icmpv6.hpp` — ICMPv6 protocol
+  - ICMPv6Header — Header structure
+  - ICMPv6Type enum (Echo, Router Solicitation, Neighbor Discovery, etc.)
+  - NeighborDiscovery — ND messages
+  - MulticastListenerDiscovery — MLD messages
+
+Decoder Implementation:
+- [ ] `src/protocols/ipv6_decoder.cpp` — IPv6 decoder
+  - Header parsing
+  - Extension header chain parsing
+  - Next header dispatch
+  - Address validation
+- [ ] `src/protocols/ipv6_ext_decoder.cpp` — Extension header decoders
+  - Hop-by-Hop Options parsing
+  - Routing Header parsing (all types)
+  - Fragment Header handling
+  - Destination Options parsing
+- [ ] `src/protocols/icmpv6_decoder.cpp` — ICMPv6 decoder
+  - Echo Request/Reply
+  - Neighbor Discovery (NS, NA, RS, RA)
+  - MLD (Query, Report, Done)
+  - Destination Unreachable, etc.
+
+Address Utilities:
+- [ ] `include/wadjet/net/ipv6_address.hpp` — IPv6 address class
+  - IPv6Address — 128-bit address
+  - Parse from string (full, compressed, mixed)
+  - Format to string (RFC 5952 canonical)
+  - Scope detection
+  - Multicast group detection
+  - Link-local detection
+  - Solicited-node multicast calculation
+- [ ] `src/net/ipv6_address.cpp` — Implementation
+
+Protocol Dispatcher Integration:
+- [ ] Update `protocols/dispatcher.hpp`
+  - Add EtherType 0x86DD dispatch
+  - IPv6 → UDP/TCP → SOME/IP/DoIP chain
+  - ICMPv6 dispatch
+- [ ] Update `protocols/tcp.hpp` / `protocols/udp.hpp`
+  - Support IPv6 pseudo-header checksum
+  - IPv6 source/destination in context
+
+Language Bindings:
+- [ ] Python bindings
+  - IPv6Address class
+  - IPv6Header class
+  - ICMPv6Header class
+- [ ] Rust bindings
+  - IPv6Address struct
+  - IPv6Header struct
+- [ ] C ABI layer
+  - `wadjet_ipv6_header_t`
+  - `wadjet_ipv6_address_t`
+
+**Testing:**
+
+Unit Tests (`tests/protocols/test_ipv6.cpp`):
+- [ ] IPv6 header parsing
+- [ ] Address parsing (all formats)
+- [ ] Address formatting (canonical)
+- [ ] Extension header parsing
+- [ ] Fragment handling
+- [ ] Malformed header detection
+
+Unit Tests (`tests/protocols/test_icmpv6.cpp`):
+- [ ] Echo Request/Reply
+- [ ] Router Solicitation/Advertisement
+- [ ] Neighbor Solicitation/Advertisement
+- [ ] MLD Query/Report
+- [ ] Error messages
+
+Unit Tests (`tests/net/test_ipv6_address.cpp`):
+- [ ] Parse full address
+- [ ] Parse compressed address (::)
+- [ ] Parse mixed IPv4-mapped
+- [ ] Canonical formatting
+- [ ] Scope detection
+- [ ] Multicast group handling
+
+Integration Tests (`tests/integration/test_ipv6_integration.cpp`):
+- [ ] Full IPv6 + UDP decode
+- [ ] Full IPv6 + TCP decode
+- [ ] IPv6 + SOME/IP
+- [ ] IPv6 + DoIP
+- [ ] Live capture (loopback)
+
+Fuzz Testing (`fuzz/fuzz_ipv6.cpp`):
+- [ ] IPv6 header fuzzer
+- [ ] Extension header fuzzer
+- [ ] ICMPv6 fuzzer
+- [ ] Address parser fuzzer
+
+Regression Tests:
+- [ ] `pcap_samples/ipv6/` — IPv6 captures
+  - `ipv6_udp.pcap` — Basic IPv6/UDP
+  - `ipv6_tcp.pcap` — IPv6/TCP
+  - `ipv6_someip.pcap` — SOME/IP over IPv6
+  - `ipv6_nd.pcap` — Neighbor Discovery
+  - `ipv6_fragments.pcap` — Fragmented packets
+
+**Documentation:**
+
+- [ ] `docs/protocols/ipv6.md` — IPv6 reference
+  - Header format
+  - Extension headers
+  - Address formats
+  - ICMPv6 overview
+- [ ] API documentation (Doxygen)
+- [ ] Update `docs/architecture.md` with IPv6
+- [ ] Update `README.md` with IPv6 support
+
+**Use Cases & Examples:**
+
+- [ ] `examples/ipv6_monitor.cpp` — IPv6 traffic monitor
+  - Address discovery
+  - Traffic statistics by address
+  - ICMPv6 analysis
+- [ ] `examples/ipv6_nd_analyzer.cpp` — Neighbor Discovery analyzer
+  - Track neighbor cache
+  - Router discovery
+  - Address resolution
+- [ ] `examples/scenarios/ipv6_someip_test.yaml` — IPv6 SOME/IP test
+- [ ] `examples/python/ipv6_analysis.py` — Python example
+
+**Matchers & Assertions:**
+
+```cpp
+// IPv6 matchers
+EXPECT_THAT(packet, HasIPv6());
+EXPECT_THAT(packet, HasIPv6SourceAddress("fe80::1"));
+EXPECT_THAT(packet, HasIPv6DestAddress("ff02::1"));
+EXPECT_THAT(packet, HasIPv6NextHeader(NextHeader::UDP));
+EXPECT_THAT(packet, HasIPv6TrafficClass(0xE0));
+EXPECT_THAT(packet, HasIPv6FlowLabel(0x12345));
+EXPECT_THAT(packet, IsIPv6Multicast());
+EXPECT_THAT(packet, IsIPv6LinkLocal());
+EXPECT_THAT(packet, HasIPv6ExtensionHeader(ExtensionType::Fragment));
+
+// ICMPv6 matchers
+EXPECT_THAT(packet, HasICMPv6());
+EXPECT_THAT(packet, IsICMPv6NeighborSolicitation());
+EXPECT_THAT(packet, IsICMPv6RouterAdvertisement());
+EXPECT_THAT(packet, IsICMPv6EchoRequest());
+```
+
+**Test Count Target:** 45+ tests
+
+---
+
+### Milestone 19 — Docker & CI/CD Integration
+
+**Goal:** Provide official Docker images and enhanced CI/CD integration
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🟡 Medium — Improves adoption and team workflows
+
+**Overview:**
+
+Containerization enables:
+- Consistent build/test environment
+- Easy CI/CD integration
+- Cross-team sharing without installation
+- Reproducible test results
+
+**Implementation:**
+
+Docker Images:
+- [ ] `docker/Dockerfile` — Main development image
+  - Ubuntu 22.04 LTS base
+  - All build dependencies
+  - Pre-built Wadjet-Link
+  - Python bindings installed
+- [ ] `docker/Dockerfile.minimal` — Minimal runtime image
+  - Alpine-based
+  - Runtime dependencies only
+  - CLI tools only
+- [ ] `docker/Dockerfile.dev` — Full development image
+  - Build tools (CMake, Ninja, GCC, Clang)
+  - Debugging tools (GDB, Valgrind)
+  - Documentation tools (Doxygen)
+- [ ] `docker/docker-compose.yml` — Multi-container setup
+  - Wadjet-Link service
+  - Test runner service
+  - Report viewer service (future)
+
+GitHub Actions Enhancements:
+- [ ] `.github/workflows/docker-build.yml` — Docker image build
+  - Build and push to GitHub Container Registry
+  - Multi-architecture (amd64, arm64)
+  - Version tagging
+- [ ] `.github/workflows/docker-test.yml` — Containerized testing
+  - Run tests in Docker
+  - Matrix across Ubuntu versions
+  - Artifact collection
+- [ ] `.github/actions/wadjet-test/action.yml` — Reusable test action
+  - Setup Wadjet-Link in CI
+  - Run scenario tests
+  - Generate reports
+
+CI/CD Integration Examples:
+- [ ] `ci/jenkins/Jenkinsfile` — Jenkins pipeline example
+- [ ] `ci/gitlab/.gitlab-ci.yml` — GitLab CI example
+- [ ] `ci/azure/azure-pipelines.yml` — Azure DevOps example
+- [ ] `ci/github/test-workflow.yml` — GitHub Actions template
+
+Helper Scripts:
+- [ ] `scripts/docker-build.sh` — Build Docker images
+- [ ] `scripts/docker-test.sh` — Run tests in Docker
+- [ ] `scripts/ci-setup.sh` — CI environment setup
+- [ ] `scripts/publish-results.sh` — Upload test results
+
+**Documentation:**
+
+- [ ] `docs/docker.md` — Docker usage guide
+- [ ] `docs/ci_cd.md` — CI/CD integration guide
+- [ ] `README.md` — Quick start with Docker
+
+**Test Count Target:** 10+ integration tests
+
+---
+
+### Milestone 20 — A2L/HEX File Support
+
+**Goal:** Parse A2L measurement files and HEX flash files for calibration workflows
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🟢 Low — Useful for calibration engineers
+
+**Overview:**
+
+A2L (ASAM MCD-2 MC) describes ECU memory layout for measurement and calibration:
+- Memory addresses and data types
+- Calibration parameters
+- Measurement signals
+- Conversion formulas
+
+HEX files (Intel HEX, Motorola S-Record) contain:
+- ECU flash data
+- Calibration data
+- Application software
+
+**Implementation:**
+
+A2L Parser:
+- [ ] `include/wadjet/a2l/a2l.hpp` — Main header
+- [ ] `include/wadjet/a2l/a2l_types.hpp` — Type definitions
+  - Module, Characteristic, Measurement, CompuMethod
+  - MemorySegment, AddressType
+  - AxisPts, Curve, Map, Cuboid
+- [ ] `include/wadjet/a2l/a2l_parser.hpp` — Parser
+  - A2lParser class
+  - A2lDatabase — In-memory storage
+- [ ] `src/a2l/a2l_parser.cpp` — Implementation
+  - A2L grammar parsing
+  - IF_DATA handling
+
+HEX Parser:
+- [ ] `include/wadjet/hex/hex.hpp` — Main header
+- [ ] `include/wadjet/hex/intel_hex.hpp` — Intel HEX format
+  - IntelHexParser
+  - Record types (data, EOF, extended address)
+- [ ] `include/wadjet/hex/srec.hpp` — Motorola S-Record
+  - SrecParser
+  - Record types (S0-S9)
+- [ ] `include/wadjet/hex/hex_database.hpp` — Memory image
+  - HexDatabase — Unified memory view
+  - Address ranges
+  - Gap detection
+
+**Testing:**
+
+- [ ] A2L parsing tests (30+)
+- [ ] Intel HEX parsing tests (15+)
+- [ ] S-Record parsing tests (15+)
+- [ ] Integration tests (10+)
+
+**Documentation:**
+
+- [ ] `docs/a2l.md` — A2L parser guide
+- [ ] `docs/hex.md` — HEX file guide
+
+**Test Count Target:** 70+ tests
+
+---
+
+### Milestone 21 — PreProduction Quality Gate
+
+**Goal:** Ensure production-ready code quality, documentation, and release readiness
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required before any production release
+
+**Dependencies:**
+
+> ⚠️ **Prerequisite:** Milestone 13 (Protocol Completeness) should be complete before starting PreProduction.
+> All protocol implementations must be feature-complete before quality gate review.
+
+- ⏳ Milestone 13: Protocol Completeness
+- ⏳ All feature milestones you intend to ship (14-20 as needed)
+
+**Overview:**
+
+This milestone ensures that Wadjet-Link meets production-quality standards before release. It covers code quality, documentation completeness, test coverage, and release preparation.
+
+**Implementation Checklist:**
+
+The following items must be completed **in sequence**:
+
+**Phase 1: Code Formatting & Style**
+
+- [ ] C++ code formatted with clang-format (no warnings/errors)
+- [ ] Python code formatted with black/isort (no warnings/errors)
+- [ ] Rust code formatted with rustfmt (no warnings/errors)
+- [ ] C code formatted with clang-format (no warnings/errors)
+- [ ] Google C++ Style Guide applied and enforced
+- [ ] All linter warnings resolved (clang-tidy, pylint, clippy)
+
+**Phase 2: Design Principles & Best Practices**
+
+- [ ] KISS (Keep It Simple, Stupid) — No over-engineering
+- [ ] DRY (Don't Repeat Yourself) — No code duplication
+- [ ] SOLID principles applied where appropriate
+- [ ] Single Responsibility — Each class/function has one purpose
+- [ ] Open/Closed — Extensible without modification
+- [ ] Liskov Substitution — Proper inheritance hierarchies
+- [ ] Interface Segregation — Focused interfaces
+- [ ] Dependency Inversion — Depend on abstractions
+- [ ] YAGNI (You Aren't Gonna Need It) — No speculative features
+- [ ] Composition over inheritance where appropriate
+- [ ] Fail-fast error handling
+
+**Phase 3: C++ Optimization & Metaprogramming**
+
+- [ ] Templates used to minimize code duplication
+- [ ] constexpr/consteval used for compile-time computation
+- [ ] SFINAE/concepts for type constraints
+- [ ] Policy-based design where beneficial
+- [ ] Type traits for compile-time type manipulation
+- [ ] Variadic templates for flexible interfaces
+- [ ] Template specialization for optimized paths
+- [ ] Zero runtime overhead abstractions
+
+**Phase 4: Zero-Copy Architecture**
+
+- [ ] All packet handling uses zero-copy (PacketView)
+- [ ] No unnecessary buffer copies in decode path
+- [ ] Memory-mapped I/O where applicable
+- [ ] Span/string_view used instead of copies
+- [ ] Move semantics used throughout
+- [ ] No hidden allocations in hot paths
+- [ ] Buffer pooling for reusable allocations
+- [ ] Verified with profiling tools
+
+**Phase 5: Memory Safety & Sanitizers**
+
+- [ ] AddressSanitizer (ASan) — No memory leaks, buffer overflows
+- [ ] UndefinedBehaviorSanitizer (UBSan) — No undefined behavior
+- [ ] ThreadSanitizer (TSan) — No data races in multi-threaded code
+- [ ] MemorySanitizer (MSan) — No uninitialized memory reads
+- [ ] Valgrind memcheck clean (alternative to ASan)
+- [ ] Static analysis with clang-tidy (modernize, performance, bugprone)
+- [ ] Static analysis with cppcheck (no high-severity issues)
+- [ ] Python: mypy type checking passes
+- [ ] Rust: cargo clippy with no warnings
+
+**Phase 6: Examples**
+
+- [ ] Every public API feature has an example in `/examples/`
+- [ ] Examples compile and run successfully
+- [ ] Examples are well-commented and educational
+- [ ] Examples cover common use cases
+- [ ] Python examples in `/examples/python/`
+- [ ] Rust examples in `/bindings/rust/examples/`
+- [ ] Scenario examples in `/examples/scenarios/`
+- [ ] Example README with descriptions of each example
+
+**Phase 7: Test Coverage**
+
+- [ ] Unit test coverage ≥ 90% for core libraries
+- [ ] Integration test coverage ≥ 80%
+- [ ] All public APIs have test coverage
+- [ ] Edge cases and error paths tested
+- [ ] Fuzz testing for all protocol parsers
+- [ ] Property-based testing where applicable
+- [ ] Performance regression tests
+- [ ] Coverage reports generated and reviewed
+- [ ] No untested critical code paths
+
+**Phase 8: Documentation**
+
+- [ ] All public APIs documented with Doxygen
+- [ ] User guide complete and accurate
+- [ ] Architecture documentation up-to-date
+- [ ] Protocol documentation complete
+- [ ] Installation guide tested on clean system
+- [ ] Troubleshooting guide with common issues
+- [ ] API reference generated and published
+- [ ] Code examples in documentation compile
+- [ ] Language is clear, concise, and accessible
+- [ ] Cross-references to related sections
+
+**Phase 9: Architecture Diagrams**
+
+- [ ] Component diagram reflects current architecture
+- [ ] Class diagrams for major subsystems
+- [ ] Sequence diagrams for key workflows
+- [ ] Protocol stack diagrams accurate
+- [ ] Data flow diagrams complete
+- [ ] Deployment diagrams (if applicable)
+- [ ] Diagrams use consistent notation (UML/PlantUML)
+- [ ] Diagrams versioned with code
+- [ ] Diagrams referenced from documentation
+
+**Phase 10: Performance Validation**
+
+- [ ] Benchmark suite complete
+- [ ] Baseline performance documented
+- [ ] No performance regressions
+- [ ] Memory footprint documented
+- [ ] Latency requirements met
+- [ ] Throughput requirements met
+- [ ] Profiling results reviewed
+
+**Phase 11: CI/CD & Release**
+
+- [ ] All CI checks pass on supported platforms (Linux)
+- [ ] Automated build for release artifacts
+- [ ] Docker images build and run successfully
+- [ ] Package creation (deb, rpm, or tarball)
+- [ ] Version numbers consistent across codebase
+- [ ] Git tags for releases
+
+**Phase 12: API Stability & Compatibility**
+
+- [ ] Public API marked stable
+- [ ] ABI compatibility documented
+- [ ] Deprecation policy defined
+- [ ] Breaking changes documented
+- [ ] Semantic versioning followed
+- [ ] C ABI stable for FFI consumers
+- [ ] Python API follows PEP conventions
+- [ ] Rust API follows Rust conventions
+
+**Phase 13: Licensing & Legal**
+
+- [ ] All source files have license headers
+- [ ] Third-party dependencies documented
+- [ ] Third-party licenses compatible
+- [ ] NOTICE/ATTRIBUTION file complete
+- [ ] Copyright notices accurate
+- [ ] Contributor License Agreement (if needed)
+
+**Phase 14: Security Review**
+
+- [ ] No hardcoded credentials or secrets
+- [ ] Input validation on all public APIs
+- [ ] Secure defaults configured
+- [ ] No known vulnerabilities in dependencies
+- [ ] Fuzzing found no security issues
+- [ ] Network input properly sanitized
+
+**Phase 15: Release Documentation**
+
+- [ ] CHANGELOG.md complete with all changes
+- [ ] Release notes written
+- [ ] Migration guide for breaking changes
+- [ ] Known issues documented
+- [ ] README installation tested on clean system
+- [ ] Quick start guide verified
+
+**Verification:**
+
+```bash
+# Run all verification checks
+./scripts/preproduction-check.sh
+
+# Individual checks
+make format-check      # Code formatting
+make lint              # Static analysis
+make test-coverage     # Test coverage report
+make docs              # Documentation build
+make sanitizer-check   # Memory/thread sanitizers
+make benchmark         # Performance validation
+```
+
+**Exit Criteria:**
+
+All checkboxes above must be checked before the milestone is considered complete. Any unchecked item blocks release.
+
+**Test Count Target:** All existing tests pass + coverage ≥ 90%
+
+---
+
+### Milestone 22 — ISO 26262 Tool Qualification (ASIL-D)
+
+**Goal:** Qualify Wadjet-Link as an ISO 26262 compliant testing tool for ASIL-D safety-critical automotive development
+
+**Status:** ⏳ Not Started
+
+**Priority:** 🔴 High — Required for use in safety-critical automotive projects
+
+**Dependencies:**
+
+> ⚠️ **Prerequisite:** Milestones 13 and 21 MUST be complete before starting ISO 26262 qualification.
+> - Milestone 13 (Protocol Completeness) — Tool must be feature-complete
+> - Milestone 21 (PreProduction Quality Gate) — Tool must meet production quality standards
+
+- ⏳ Milestone 13: Protocol Completeness (required)
+- ⏳ Milestone 21: PreProduction Quality Gate (required)
+
+**Overview:**
+
+ISO 26262-8 Clause 11 defines requirements for qualifying software tools used in safety-related automotive development. As a testing/validation tool, Wadjet-Link must be qualified to ensure it doesn't introduce or fail to detect safety-relevant defects.
+
+**Tool Classification (ISO 26262-8:2018):**
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│              ISO 26262 Tool Classification                    │
+├─────────────────────────────────────────────────────────────────┤
+│  Tool Category: T2 (Testing Tool)                             │
+│  ───────────────────────────────────────────────────────────────┤
+│  Tool Impact (TI): TI2                                        │
+│    - Can fail to detect errors in safety-related item         │
+│    - False negative test results possible                     │
+│  ───────────────────────────────────────────────────────────────┤
+│  Tool Error Detection (TD): TD3                               │
+│    - High confidence needed                                   │
+│    - Errors may not be detected without measures              │
+│  ───────────────────────────────────────────────────────────────┤
+│  Tool Confidence Level (TCL): TCL3                            │
+│    - Highest qualification effort required                    │
+│    - TI2 + TD3 = TCL3 (per ISO 26262-8 Table 4)               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Qualification Methods (ISO 26262-8 Table 5):**
+
+For TCL3, the following methods are required:
+
+| Method | Description | Required for TCL3 |
+|--------|-------------|-------------------|
+| 1a | Increased confidence from use | ++ (Highly Recommended) |
+| 1b | Evaluation of development process | ++ (Highly Recommended) |
+| 1c | Validation of the software tool | ++ (Highly Recommended) |
+| 1d | Development per safety standard | + (Recommended) |
+
+**Implementation Checklist:**
+
+**Phase 1: Tool Qualification Plan (TQP)**
+
+- [ ] Define tool qualification scope
+- [ ] Identify tool use cases for safety-related development
+- [ ] Document tool classification rationale (TI, TD, TCL)
+- [ ] Define qualification methods to be applied
+- [ ] Establish qualification schedule and responsibilities
+- [ ] Define acceptance criteria for qualification
+- [ ] Plan for third-party assessment (if required)
+- [ ] Document: `docs/iso26262/tool_qualification_plan.md`
+
+**Phase 2: Tool Operational Requirements (TOR)**
+
+- [ ] Define intended use of tool in safety lifecycle
+  - [ ] Which ISO 26262 phases/activities
+  - [ ] ASIL levels supported (A, B, C, D)
+  - [ ] Input/output work products
+- [ ] Specify operational constraints
+  - [ ] Supported platforms/OS versions
+  - [ ] Hardware requirements
+  - [ ] Dependencies and versions
+- [ ] Define expected tool behavior
+  - [ ] Functional requirements
+  - [ ] Performance requirements
+  - [ ] Reliability requirements
+- [ ] Specify safety-relevant features
+  - [ ] Protocol decoding accuracy
+  - [ ] Timing precision requirements
+  - [ ] Test verdict correctness
+- [ ] Document failure modes and effects
+- [ ] Document: `docs/iso26262/tool_operational_requirements.md`
+
+**Phase 3: Tool Development Process Evaluation**
+
+- [ ] Document development process used
+- [ ] Map process to IEC 61508-3 / ISO 26262-6 requirements
+- [ ] Evidence of requirements management
+  - [ ] Requirements traceability matrix
+  - [ ] Requirements review records
+- [ ] Evidence of design documentation
+  - [ ] Architecture documentation
+  - [ ] Interface specifications
+  - [ ] Design review records
+- [ ] Evidence of implementation quality
+  - [ ] Coding guidelines compliance
+  - [ ] Code review records
+  - [ ] Static analysis reports
+- [ ] Evidence of testing
+  - [ ] Test plans and specifications
+  - [ ] Test reports
+  - [ ] Coverage analysis
+- [ ] Evidence of configuration management
+  - [ ] Version control history
+  - [ ] Build reproducibility
+  - [ ] Release process
+- [ ] Document: `docs/iso26262/development_process_evaluation.md`
+
+**Phase 4: Tool Validation**
+
+- [ ] Validation test specification
+  - [ ] Test cases for each TOR requirement
+  - [ ] Expected results documented
+  - [ ] Test coverage analysis
+- [ ] Validation test execution
+  - [ ] Execute all validation tests
+  - [ ] Document test results
+  - [ ] Analyze deviations
+- [ ] Protocol decoder validation
+  - [ ] Validate against known-good reference data
+  - [ ] Cross-validate with certified tools
+  - [ ] Boundary condition testing
+- [ ] Timing accuracy validation
+  - [ ] Timestamp precision verification
+  - [ ] Latency measurement validation
+  - [ ] Synchronization accuracy
+- [ ] Test verdict validation
+  - [ ] No false negatives (missed failures)
+  - [ ] Minimal false positives
+  - [ ] Correct pass/fail determination
+- [ ] Error handling validation
+  - [ ] Graceful degradation
+  - [ ] Error reporting accuracy
+  - [ ] No silent failures
+- [ ] Document: `docs/iso26262/tool_validation_report.md`
+
+**Phase 5: Increased Confidence from Use**
+
+- [ ] Document usage history
+  - [ ] Projects using the tool
+  - [ ] Duration of use
+  - [ ] Volume of use (tests executed, packets analyzed)
+- [ ] Collect anomaly/bug reports
+  - [ ] Issues found during use
+  - [ ] Root cause analysis
+  - [ ] Corrective actions
+- [ ] User feedback collection
+  - [ ] Effectiveness assessment
+  - [ ] Reliability feedback
+  - [ ] Improvement suggestions
+- [ ] Regression tracking
+  - [ ] Known issues list
+  - [ ] Workarounds documented
+  - [ ] Issue resolution tracking
+- [ ] Document: `docs/iso26262/usage_experience_report.md`
+
+**Phase 6: Tool User Manual (Safety-Relevant)**
+
+- [ ] Installation instructions
+  - [ ] Supported configurations
+  - [ ] Dependencies and versions
+  - [ ] Verification steps
+- [ ] Operational guidance
+  - [ ] Correct usage procedures
+  - [ ] Safety-relevant features
+  - [ ] Limitations and constraints
+- [ ] Error interpretation guide
+  - [ ] Error messages explained
+  - [ ] Troubleshooting procedures
+  - [ ] When to distrust results
+- [ ] Warnings and cautions
+  - [ ] Known limitations
+  - [ ] Conditions that may cause incorrect results
+  - [ ] Mandatory verification steps
+- [ ] Reference to qualification documents
+- [ ] Document: `docs/iso26262/tool_user_manual.md`
+
+**Phase 7: Configuration & Change Management**
+
+- [ ] Unique tool identification
+  - [ ] Version numbering scheme
+  - [ ] Build identification
+  - [ ] Checksum/hash for verification
+- [ ] Configuration items identified
+  - [ ] Source code
+  - [ ] Build scripts
+  - [ ] Test artifacts
+  - [ ] Documentation
+- [ ] Change control process
+  - [ ] Change request procedure
+  - [ ] Impact analysis requirement
+  - [ ] Approval workflow
+  - [ ] Regression testing requirement
+- [ ] Release management
+  - [ ] Release criteria
+  - [ ] Release notes
+  - [ ] Deployment procedure
+- [ ] Traceability
+  - [ ] Requirements to tests
+  - [ ] Requirements to code
+  - [ ] Changes to releases
+- [ ] Document: `docs/iso26262/configuration_management_plan.md`
+
+**Phase 8: Anomaly Management**
+
+- [ ] Anomaly reporting process
+  - [ ] How to report issues
+  - [ ] Required information
+  - [ ] Classification criteria
+- [ ] Safety impact analysis
+  - [ ] Assess impact on tool qualification
+  - [ ] Assess impact on projects using tool
+  - [ ] Determine if re-qualification needed
+- [ ] Corrective action process
+  - [ ] Root cause analysis
+  - [ ] Fix implementation
+  - [ ] Verification of fix
+- [ ] Communication process
+  - [ ] Notify affected users
+  - [ ] Publish safety-relevant anomalies
+  - [ ] Update qualification status
+- [ ] Document: `docs/iso26262/anomaly_management_process.md`
+
+**Phase 9: Tool Confidence Argument**
+
+- [ ] Summarize qualification activities
+- [ ] Present evidence of tool confidence
+  - [ ] Development process compliance
+  - [ ] Validation results
+  - [ ] Usage experience
+- [ ] Residual risk assessment
+  - [ ] Known limitations
+  - [ ] Mitigations in place
+  - [ ] Acceptable risk argument
+- [ ] Qualification conclusion
+  - [ ] Tool suitable for intended use
+  - [ ] Conditions of use
+  - [ ] Required user activities
+- [ ] Document: `docs/iso26262/tool_qualification_report.md`
+
+**Phase 10: Assessment & Confirmation**
+
+- [ ] Internal review of qualification package
+- [ ] Address review findings
+- [ ] Prepare for external assessment (optional)
+  - [ ] Select qualified assessor
+  - [ ] Provide qualification package
+  - [ ] Address assessment findings
+- [ ] Obtain confirmation of qualification
+- [ ] Archive qualification evidence
+- [ ] Plan for re-qualification triggers
+  - [ ] Major version changes
+  - [ ] New features
+  - [ ] Anomaly discovery
+
+**Required Documentation Artifacts:**
+
+```text
+docs/iso26262/
+├── tool_qualification_plan.md          # TQP - Qualification approach
+├── tool_operational_requirements.md    # TOR - Intended use & requirements
+├── development_process_evaluation.md   # Process evidence
+├── tool_validation_specification.md    # Validation test cases
+├── tool_validation_report.md           # Validation results
+├── usage_experience_report.md          # Use history evidence
+├── tool_user_manual.md                 # Safety-relevant usage guide
+├── configuration_management_plan.md    # CM procedures
+├── anomaly_management_process.md       # Issue handling
+├── tool_qualification_report.md        # Final qualification argument
+└── traceability/
+    ├── requirements_traceability.csv    # TOR to tests/code
+    ├── validation_coverage.csv          # Test coverage matrix
+    └── anomaly_register.csv             # Known issues tracking
+```
+
+**Validation Test Categories:**
+
+| Category | Description | Coverage Target |
+|----------|-------------|----------------|
+| Protocol Decoding | Verify correct parsing of all protocols | 100% of supported protocols |
+| Timing Accuracy | Verify timestamp and timing measurements | ± specified tolerance |
+| Test Verdicts | Verify correct pass/fail determination | 100% correct verdicts |
+| Error Handling | Verify graceful handling of invalid input | All error paths |
+| Boundary Conditions | Verify behavior at limits | All specified limits |
+| Stress Conditions | Verify behavior under load | Specified load levels |
+| Regression | Verify no regressions from previous versions | All previous test cases |
+
+**Cross-Validation Requirements:**
+
+- [ ] Protocol decoding validated against:
+  - [ ] Wireshark (reference tool)
+  - [ ] Vector CANoe/CANalyzer (if available)
+  - [ ] Known-good capture files with expected values
+- [ ] Timing validated against:
+  - [ ] Hardware timestamping verification
+  - [ ] Reference timing equipment
+- [ ] Test execution validated against:
+  - [ ] Manual test execution
+  - [ ] Alternative test frameworks
+
+**Re-Qualification Triggers:**
+
+| Trigger | Action Required |
+|---------|----------------|
+| Major version release | Full re-qualification |
+| New protocol support | Partial re-qualification (new features) |
+| Bug fix (safety-relevant) | Impact analysis + targeted validation |
+| Platform/dependency change | Impact analysis + regression testing |
+| ASIL level increase | Gap analysis + additional validation |
+
+**Exit Criteria:**
+
+1. All qualification documentation complete and reviewed
+2. All validation tests pass
+3. No open safety-relevant anomalies
+4. Tool confidence argument accepted
+5. Qualification confirmed (internal or external)
+6. Tool released with qualified status
+
+**References:**
+
+- ISO 26262-8:2018 Clause 11 "Qualification of software tools"
+- ISO 26262-8:2018 Clause 12 "Qualification of hardware tools" (if applicable)
+- IEC 61508-3 "Software requirements" (for process evaluation)
+- ISO/PAS 8926 "Tool qualification" (additional guidance)
