@@ -2548,62 +2548,6 @@ Statistics:
 
 ---
 
-## Testing Strategy
-
-| Test Type | Description |
-|-----------|-------------|
-| Unit tests | Packet parsing, protocol decoders |
-| Property-based | Fuzz testing for parsers |
-| Integration | Loopback interface tests |
-| Regression | Known pcap fixtures in repo |
-| Stress | High packet rate, dropped frame detection |
-| Benchmarks | Throughput and latency measurement |
-
----
-
-## MVP Definition
-
-MVP is complete when:
-
-- [x] Raw Ethernet capture works on Linux
-- [x] SOME/IP decode works
-- [x] GoogleTest can assert on live traffic
-- [x] README shows usage example
-- [x] At least 20 unit tests exist (378 tests)
-- [x] CI pipeline passes
-
----
-
-## Post-MVP Roadmap
-
-| Milestone | Description | Priority | Status |
-|-----------|-------------|----------|--------|
-| 8 | gPTP (IEEE 802.1AS) decoder | 🔴 High | ✅ Complete |
-| 9 | UDS over IP decoder | 🔴 High | ✅ Complete |
-| 10 | DDS protocol support | 🟡 Medium | ✅ Complete |
-| 11 | UDS over DoIP integration | 🔴 High | ✅ Complete |
-| 12 | TSN awareness (802.1Qbv) | 🟡 Medium | ⏳ Not Started |
-| **13** | **Protocol Completeness** | 🔴 High | ⏳ **NEXT** |
-| 14 | Web-based report viewer | 🟢 Low | ⏳ Not Started |
-| 15 | ARXML Parser (AUTOSAR) | 🔴 High | ⏳ Not Started |
-| 16 | ODX/PDX Diagnostic Database | 🔴 High | ⏳ Not Started |
-| 17 | Signal-Level Decoding | 🔴 High | ⏳ Not Started |
-| 18 | IPv6 Protocol Support | 🟡 Medium | ⏳ Not Started |
-| 19 | Production Packaging & Distribution | 🔴 High | ⏳ Not Started |
-| 20 | A2L/HEX File Support | 🟢 Low | ⏳ Not Started |
-| 21 | PreProduction Quality Gate | 🔴 High | ⏳ Not Started |
-| 22 | ISO 26262 Tool Qualification | 🔴 High | ⏳ Not Started |
-| 23 | Advanced Operations & Security | 🔴 High | ⏳ Not Started |
-
----
-
-## Stretch Goals (Completed)
-
-- [x] Rust FFI bindings (Milestone 7)
-- [x] Packet injection (TX capability via ReplaySession)
-
----
-
 ### Milestone 15 — ARXML Parser (AUTOSAR System Description)
 
 **Goal:** Parse AUTOSAR ARXML files to extract network configuration, ECU definitions, and signal/message mappings
@@ -4931,3 +4875,61 @@ gRPC Protocol:
 - ISO 13400-2:2019 (DoIP with TLS)
 - RFC 8446 (TLS 1.3)
 - gRPC documentation
+
+
+---
+
+
+## Testing Strategy
+
+| Test Type | Description |
+|-----------|-------------|
+| Unit tests | Packet parsing, protocol decoders |
+| Property-based | Fuzz testing for parsers |
+| Integration | Loopback interface tests |
+| Regression | Known pcap fixtures in repo |
+| Stress | High packet rate, dropped frame detection |
+| Benchmarks | Throughput and latency measurement |
+
+---
+
+## MVP Definition
+
+MVP is complete when:
+
+- [x] Raw Ethernet capture works on Linux
+- [x] SOME/IP decode works
+- [x] GoogleTest can assert on live traffic
+- [x] README shows usage example
+- [x] At least 20 unit tests exist (378 tests)
+- [x] CI pipeline passes
+
+---
+
+## Post-MVP Roadmap
+
+| Milestone | Description | Priority | Status |
+|-----------|-------------|----------|--------|
+| 8 | gPTP (IEEE 802.1AS) decoder | 🔴 High | ✅ Complete |
+| 9 | UDS over IP decoder | 🔴 High | ✅ Complete |
+| 10 | DDS protocol support | 🟡 Medium | ✅ Complete |
+| 11 | UDS over DoIP integration | 🔴 High | ✅ Complete |
+| 12 | TSN awareness (802.1Qbv) | 🟡 Medium | ⏳ Not Started |
+| **13** | **Protocol Completeness** | 🔴 High | ⏳ **NEXT** |
+| 14 | Web-based report viewer | 🟢 Low | ⏳ Not Started |
+| 15 | ARXML Parser (AUTOSAR) | 🔴 High | ⏳ Not Started |
+| 16 | ODX/PDX Diagnostic Database | 🔴 High | ⏳ Not Started |
+| 17 | Signal-Level Decoding | 🔴 High | ⏳ Not Started |
+| 18 | IPv6 Protocol Support | 🟡 Medium | ⏳ Not Started |
+| 19 | Production Packaging & Distribution | 🔴 High | ⏳ Not Started |
+| 20 | A2L/HEX File Support | 🟢 Low | ⏳ Not Started |
+| 21 | PreProduction Quality Gate | 🔴 High | ⏳ Not Started |
+| 22 | ISO 26262 Tool Qualification | 🔴 High | ⏳ Not Started |
+| 23 | Advanced Operations & Security | 🔴 High | ⏳ Not Started |
+
+---
+
+## Stretch Goals (Completed)
+
+- [x] Rust FFI bindings (Milestone 7)
+- [x] Packet injection (TX capability via ReplaySession)
