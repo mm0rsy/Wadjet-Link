@@ -5,8 +5,16 @@
 
 ## Summary
 
-Complete all protocol implementations to 100% specification compliance. This milestone addresses gaps in Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP, gPTP, UDS, and DDS/RTPS decoders. Focus on: TCP state machine, IPv4 fragmentation/options, UDP checksum validation, SOME/IP-TP segmentation, SD entry arrays, DoIP power mode, UDS NRC handling, gPTP TLVs, and DDS CDR improvements. **230+ tests target across 10 phases.**
+Complete all protocol implementations to 100% specification compliance. This milestone addresses gaps in Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP, gPTP, UDS, and DDS/RTPS decoders. Focus on: TCP state machine (2min/30s timeouts), IPv4 fragmentation/options (30s timeout), UDP checksum validation (warning-only mode), SOME/IP-TP segmentation (16 MB max), SD entry arrays, DoIP power mode, UDS NRC handling, gPTP TLVs, and DDS CDR improvements. **230+ tests target across 10 phases.**
+## Clarifications (From spec.md Session 2026-01-13)
 
+**Key design parameters established:**
+
+1. **IPv4 Fragment Reassembly Timeout**: 30 seconds (automotive-optimized)
+2. **TCP Connection Tracking Timeout**: 2 minutes for incomplete connections, 30 seconds for TIME_WAIT state
+3. **SOME/IP-TP Maximum Message Size**: 16 MB maximum (realistic automotive limit)
+4. **UDP Checksum Validation Default**: Enabled with warning-only mode (logs warnings, doesn't drop packets)
+5. **TCP Out-of-Order Segment Buffering**: Buffer up to 16 segments per connection
 ## Technical Context
 
 **Language/Version**: C++20 (existing codebase baseline from M0-M11)  
@@ -152,6 +160,8 @@ fuzz/
 
 - How do production network analysis tools (Wireshark, tcpdump) implement TCP state tracking?
 - What is the optimal data structure for connection tracking (hash map with (src_ip, src_port, dst_ip, dst_port, protocol) 5-tuple key)?
+- **Connection timeouts**: 2 minutes for incomplete connections, 30 seconds for TIME_WAIT (clarified)
+- **Out-of-order buffering**: Up to 16 segments per connection (clarified)
 - How to handle TCP retransmissions (sequence number tracking, duplicate ACK detection)?
 - What is the standard approach for TCP option parsing (TLV format, option codes 0-255)?
 
@@ -170,7 +180,7 @@ fuzz/
 **Questions to Answer**:
 
 - How to implement fragment cache (keyed by (src_ip, dst_ip, protocol, identification))?
-- What is the standard reassembly timeout (RFC 791 specifies 60-120 seconds)?
+- **Reassembly timeout**: 30 seconds (automotive-optimized, configurable - clarified)
 - How to handle overlapping fragments (take first, take last, or error)?
 - What are common IPv4 options and their parsing formats?
 
@@ -188,7 +198,8 @@ fuzz/
 
 - What is the SOME/IP-TP header format (offset field, more segments flag)?
 - How to handle out-of-order segments?
-- What is the standard TP timeout (PRS_SOMEIP_00191)?
+- TP timeout: **5 seconds** (per PRS_SOMEIP_00191)
+- Maximum message size: **16 MB** (realistic automotive limit for firmware updates and diagnostics)
 
 **Research Sources**:
 
@@ -215,8 +226,9 @@ fuzz/
 
 ## TCP State Machine
 
-### Decision: Use hash map with 5-tuple key
+### Decision: Use hash map with 5-tuple key, 16-segment out-of-order buffer
 ### Rationale: Industry standard (Wireshark, Linux kernel)
+### Timeouts: 2 minutes for incomplete connections, 30 seconds for TIME_WAIT
 ### Data Structure:
 \`\`\`cpp
 struct TcpConnection {
@@ -225,6 +237,8 @@ struct TcpConnection {
     uint32_t ack_next;
     uint16_t window_size;
     uint8_t window_scale;
+    std::array<TcpSegment, 16> out_of_order_buffer;  // Max 16 segments
+    std::chrono::steady_clock::time_point last_seen;
     // ...
 };
 std::unordered_map<ConnectionKey, TcpConnection> connections_;
@@ -232,14 +246,20 @@ std::unordered_map<ConnectionKey, TcpConnection> connections_;
 
 ## IPv4 Fragmentation
 
-### Decision: 60-second reassembly timeout, take-first for overlaps
-### Rationale: RFC 791 default, conservative approach
+### Decision: 30-second reassembly timeout (automotive-optimized), take-first for overlaps
+### Rationale: Balances RFC 791 compliance with automotive resource constraints
 ### Algorithm: [Fragment cache with timeout cleanup]
+
+## UDP Checksum Validation
+
+### Decision: Enabled by default in warning-only mode
+### Rationale: Detects corruption without breaking legacy systems
+### Behavior: Log warnings for invalid checksums, don't drop packets
 
 ## SOME/IP-TP
 
-### Decision: 5-second segment timeout, buffer up to 64KB
-### Rationale: AUTOSAR PRS_SOMEIP_00191 default
+### Decision: 5-second segment timeout, 16 MB maximum message size
+### Rationale: AUTOSAR PRS_SOMEIP_00191 timeout, realistic automotive limit
 ### Segment Handling: [Out-of-order buffering with offset tracking]
 
 ## Fuzz Testing Strategy
