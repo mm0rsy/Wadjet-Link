@@ -1,4 +1,18 @@
+
 # Data Model: Protocol Completeness
+
+**Feature**: M13 Protocol Completeness  
+**Date**: 2026-01-16  
+**Status**: Phase 1 - Design
+**Purpose**: Entity definitions and data structures for protocol gap completion
+
+---
+
+## Overview
+
+This document defines all data entities, structures, and relationships for the protocol completeness milestone. Entities are organized by protocol layer and comply with Constitution Principle II (zero-copy where possible).
+
+// ...existing content for TcpConnection, Ipv4Fragment, SomeipTpMessage, etc...
 
 **Feature**: M13 Protocol Completeness  
 **Date**: 2026-01-15  
@@ -138,38 +152,14 @@ struct TcpConnection {
     // Window tracking
     std::uint16_t client_window = 0;         ///< Advertised window (client)
     std::uint16_t server_window = 0;         ///< Advertised window (server)
-    std::uint8_t client_window_scale = 0;    ///< Window scale factor (client)
-    std::uint8_t server_window_scale = 0;    ///< Window scale factor (server)
-    
-    // Out-of-order buffering (bounded to 16 segments per Constitution clarifications)
-    std::array<std::optional<TcpSegment>, 16> ooo_buffer_client;  ///< Client→Server OOO
-    std::array<std::optional<TcpSegment>, 16> ooo_buffer_server;  ///< Server→Client OOO
-    
     // Timing information
     std::chrono::steady_clock::time_point first_seen;      ///< First packet timestamp
-    std::chrono::steady_clock::time_point last_activity;   ///< Last packet timestamp
-    
-    // Statistics
-    std::uint64_t packets_client = 0;            ///< Total packets client→server
-    std::uint64_t packets_server = 0;            ///< Total packets server→client
-    std::uint64_t bytes_client = 0;              ///< Total bytes client→server
-    std::uint64_t bytes_server = 0;              ///< Total bytes server→client
     std::uint64_t retransmissions_client = 0;    ///< Detected retransmissions (client)
     std::uint64_t retransmissions_server = 0;    ///< Detected retransmissions (server)
-    
-    // Helper methods
-    
-    /// @brief Check if connection is expired
     bool is_expired(std::chrono::steady_clock::time_point now,
                    std::chrono::seconds timeout) const;
-    
-    /// @brief Get effective window size (accounting for scale factor)
-    std::uint32_t effective_window_client() const;
     std::uint32_t effective_window_server() const;
     
-    /// @brief Check if connection is in TIME_WAIT state
-    bool is_time_wait() const { return state == TcpState::TIME_WAIT; }
-};
 
 }  // namespace wadjet::protocols::tcp
 ```
