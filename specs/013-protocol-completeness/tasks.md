@@ -17,12 +17,13 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ## Phase 1: Setup & Prerequisites
 
+
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create milestone branch `milestone/013-protocol-completeness` from master
-- [ ] T002 [P] Create PCAP samples directory `pcap_samples/protocol-completeness/`
-- [ ] T003 [P] Create fuzz testing directory structure in `fuzz/` for new protocol fuzzers
-- [ ] T004 Update project documentation with M13 scope in README.md
+- [X] T001 Create milestone branch `milestone/013-protocol-completeness` from master
+- [X] T002 [P] Create PCAP samples directory `pcap_samples/protocol-completeness/`
+- [X] T003 [P] Create fuzz testing directory structure in `fuzz/` for new protocol fuzzers
+- [X] T004 Update project documentation with M13 scope in README.md
 
 ---
 
@@ -34,13 +35,13 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ### Research & Design
 
-- [ ] T005 Research TCP state machine implementation patterns (Wireshark, Linux kernel) - document in `specs/013-protocol-completeness/research.md`
-- [ ] T006 [P] Research IPv4 fragmentation reassembly algorithms (RFC 791, FreeBSD) - add to research.md
-- [ ] T007 [P] Research SOME/IP-TP segmentation (AUTOSAR PRS_SOMEIP) - add to research.md
-- [ ] T008 [P] Analyze protocol compliance gaps across all decoders - add to research.md
-- [ ] T009 Create `specs/013-protocol-completeness/data-model.md` with entity definitions (TcpConnection, Ipv4Fragment, SomeipTpMessage, etc.)
-- [ ] T010 [P] Create `specs/013-protocol-completeness/quickstart.md` with usage examples
-- [ ] T011 Review and update `specs/013-protocol-completeness/contracts/` if any API changes needed
+- [X] T005 Research TCP state machine implementation patterns (Wireshark, Linux kernel) - document in `specs/013-protocol-completeness/research.md`
+- [X] T006 [P] Research IPv4 fragmentation reassembly algorithms (RFC 791, FreeBSD) - add to research.md
+- [X] T007 [P] Research SOME/IP-TP segmentation (AUTOSAR PRS_SOMEIP) - add to research.md
+- [X] T008 [P] Analyze protocol compliance gaps across all decoders - add to research.md
+- [X] T009 Create `specs/013-protocol-completeness/data-model.md` with entity definitions (TcpConnection, Ipv4Fragment, SomeipTpMessage, etc.)
+- [X] T010 [P] Create `specs/013-protocol-completeness/quickstart.md` with usage examples
+- [X] T011 Review and update `specs/013-protocol-completeness/contracts/` if any API changes needed
 
 ### Core Infrastructure
 
