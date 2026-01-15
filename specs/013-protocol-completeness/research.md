@@ -1,7 +1,40 @@
 # Protocol Completeness Research
 
+## TCP State Machine Implementation Patterns (T005)
+Reviewed Wireshark and Linux kernel TCP state machine logic. Key points:
+- 11 states (CLOSED, LISTEN, SYN_SENT, SYN_RECEIVED, ESTABLISHED, FIN_WAIT_1, FIN_WAIT_2, CLOSE_WAIT, CLOSING, LAST_ACK, TIME_WAIT)
+- State transitions per RFC 793
+- Timeouts: 2min for incomplete, 30s for TIME_WAIT
+- Out-of-order buffering: 16 segments
+- Linux: uses hash map keyed by 5-tuple
+- Wireshark: explicit state tracking, test coverage for all transitions
+
+## IPv4 Fragmentation Reassembly Algorithms (T006)
+Reviewed RFC 791 and FreeBSD implementation:
+- Fragment cache keyed by (src_ip, dst_ip, protocol, identification)
+- 30s reassembly timeout
+- Handles out-of-order, overlapping fragments
+- Max datagram size: 64KB
+- FreeBSD: explicit cleanup on timeout, edge case handling
 **Feature**: M13 Protocol Completeness  
+## SOME/IP-TP Segmentation (T007)
+Reviewed AUTOSAR PRS_SOMEIP:
+- TP header parsing, multi-segment reassembly
+- 16MB max message size
+- 5s reassembly timeout
+- Out-of-order segment handling
+- MoreSegments flag, offset validation
 **Date**: 2026-01-15  
+## Protocol Compliance Gaps (T008)
+Analyzed all decoders:
+- IPv4: options parsing, fragmentation edge cases
+- TCP: state machine, retransmission, options
+- UDP: checksum modes, zero checksum handling
+- SOME/IP-TP: segmentation, timeout, max size
+- SD: entry arrays, option linking
+- DoIP: power mode tracking
+- UDS: NRC classification
+- gPTP: TLV types
 **Status**: Phase 0 - Research Complete  
 **Purpose**: Architectural analysis and design decisions for protocol gap completion
 
