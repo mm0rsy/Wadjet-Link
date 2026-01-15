@@ -17,7 +17,6 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ## Phase 1: Setup & Prerequisites
 
-
 **Purpose**: Project initialization and basic structure
 
 - [X] T001 Create milestone branch `milestone/013-protocol-completeness` from master
@@ -45,12 +44,12 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ### Core Infrastructure
 
-- [ ] T012 Create `include/wadjet/protocols/common/reassembly.hpp` for fragment/segment reassembly base class
-- [ ] T013 Create `include/wadjet/protocols/common/checksum.hpp` for checksum validation utilities
-- [ ] T014 Create `include/wadjet/protocols/common/state_tracker.hpp` for connection state tracking base
-- [ ] T015 [P] Implement generic timeout manager in `src/protocols/common/timeout_manager.cpp`
-- [ ] T016 [P] Create test fixtures in `tests/fixtures/protocol_samples.hpp`
-- [ ] T017 [P] Add GoogleTest matchers in `include/wadjet/testing/protocol_matchers.hpp`
+- [X] T012 Create `include/wadjet/protocols/common/reassembly.hpp` for fragment/segment reassembly base class
+- [X] T013 Create `include/wadjet/protocols/common/checksum.hpp` for checksum validation utilities
+- [X] T014 Create `include/wadjet/protocols/common/state_tracker.hpp` for connection state tracking base
+- [X] T015 [P] Implement generic timeout manager in `src/protocols/common/timeout_manager.cpp`
+- [X] T016 [P] Create test fixtures in `tests/fixtures/protocol_samples.hpp`
+- [X] T017 [P] Add GoogleTest matchers in `include/wadjet/testing/protocol_matchers.hpp`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
