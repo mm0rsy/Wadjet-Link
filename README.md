@@ -47,6 +47,25 @@
 
 Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstructs the complete truth of automotive network traffic — without interfering with the stream.
 
+### 🚀 Current Milestone: M13 Protocol Completeness
+
+**Status**: In Development  
+**Branch**: `milestone/013-protocol-completeness`  
+**Goal**: Achieve 100% specification compliance across all protocol decoders
+
+This milestone completes critical protocol implementations including:
+- **TCP State Machine** — Full connection tracking with all 11 RFC 793 states (2min/30s timeouts)
+- **IPv4 Fragmentation** — Complete reassembly with 30s timeout, support for all 8 option types
+- **UDP Checksum Validation** — Configurable validation modes (strict/warning/disabled)
+- **SOME/IP-TP Segmentation** — Large message support up to 16 MB with 5s timeout
+- **SOME/IP-SD Entry Arrays** — Complete service discovery parsing for all entry types
+- **DoIP Power Mode Tracking** — Enhanced diagnostic session management
+- **UDS NRC Classification** — Temporary vs permanent negative response code handling
+- **gPTP TLV Parsing** — All Time-Sensitive Networking message types
+
+**Specification**: [specs/013-protocol-completeness/spec.md](specs/013-protocol-completeness/spec.md)  
+**Progress**: Phase 2 Complete (Foundational Infrastructure) — User Story Implementation Ready
+
 ## Key Features
 
 ### 🔍 Packet Capture & Analysis
