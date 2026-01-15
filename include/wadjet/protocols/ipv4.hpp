@@ -48,8 +48,50 @@ struct IPv4Header : public IDecodedHeader {
     std::uint16_t checksum = 0;         ///< Header checksum
     IPv4Address src_ip;                 ///< Source IP address
     IPv4Address dst_ip;                 ///< Destination IP address
-    std::vector<std::byte> options;     ///< IP options (if present)
+    std::vector<std::byte> options;     ///< IP options (raw bytes, if present)
     bool checksum_valid = false;        ///< Whether checksum was validated
+
+    /// Parsed IPv4 options (populated by parseIpv4Options)
+    struct Option {
+        std::uint8_t type;
+        std::vector<std::uint8_t> data;
+    };
+    using OptionsList = std::vector<Option>;
+    OptionsList parsed_options;
+    bool options_malformed = false; ///< Whether option parsing encountered malformed data
+
+    /// Known IPv4 option types (IANA)
+    enum class OptionType : std::uint8_t {
+        EOL = 0,
+        NOP = 1,
+        RECORD_ROUTE = 7,
+        TIMESTAMP = 68,
+        SECURITY = 130,
+        LOOSE_SOURCE_ROUTE = 131,
+        STREAM_ID = 136,
+        STRICT_SOURCE_ROUTE = 137,
+    };
+
+    /// Result of parsing IPv4 options
+    struct ParseOptionsResult {
+        OptionsList options;
+        bool malformed = false;
+    };
+
+    /// Parse raw options into structured list and detect malformed options
+    [[nodiscard]] static ParseOptionsResult parseIpv4Options(const std::vector<std::byte>& raw);
+
+    /// Fragment info (if packet is a fragment)
+    struct Ipv4Fragment {
+        IPv4Address src_ip;
+        IPv4Address dst_ip;
+        std::uint8_t protocol = 0;
+        std::uint16_t identification = 0;
+        std::uint16_t offset = 0; // in bytes
+        bool mf = false; // more fragments flag
+        std::vector<std::uint8_t> payload;
+    };
+
 
     // IDecodedHeader interface
     [[nodiscard]] std::string_view protocol_name() const override { return "IPv4"; }
