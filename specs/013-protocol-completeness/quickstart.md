@@ -1,3 +1,31 @@
+# Protocol Completeness: Quickstart
+ ...existing code...
+## Usage Examples
+
+### IPv4 Fragmentation
+```cpp
+Ipv4Fragment frag = decode_ipv4_fragment(packet);
+if (frag.mf_flag) { /* handle more fragments */ }
+```
+
+### TCP State Machine
+```cpp
+TcpConnection conn = track_tcp_connection(packet);
+if (conn.state == TcpState::ESTABLISHED) { /* data transfer */ }
+```
+
+### SOME/IP-TP Segmentation
+```cpp
+SomeipTpMessage msg = reassemble_someip_tp(segments);
+if (msg.max_size > 16 * 1024 * 1024) { /* error */ }
+```
+
+### UDP Checksum Validation
+```cpp
+UdpChecksumValidation result = validate_udp_checksum(packet);
+if (!result.result && result.mode == WARNING) { /* log warning */ }
+```
+ ...existing code...
 # Quickstart Guide: Protocol Completeness
 
 **Feature**: M13 Protocol Completeness  
