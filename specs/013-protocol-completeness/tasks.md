@@ -63,28 +63,28 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ### Implementation for User Story 1
 
-- [ ] T018 [P] [US1] Add Ipv4Options struct to `include/wadjet/protocols/ipv4.hpp` with all option types (Router Alert, Timestamp, Record Route, Source Route, NOP, EOL)
-- [ ] T019 [P] [US1] Add Ipv4Fragment struct to `include/wadjet/protocols/ipv4.hpp` for reassembly state (src_ip, dst_ip, protocol, identification, timeout)
-- [ ] T020 [P] [US1] Update Ipv4Header struct in `include/wadjet/protocols/ipv4.hpp` to include options, ToS/DSCP fields
-- [ ] T021 [US1] Implement parseIpv4Options() in `src/protocols/ipv4.cpp` with TLV parsing logic for all 8 option types
-- [ ] T022 [US1] Implement Ipv4FragmentReassembler class in `src/protocols/ipv4.cpp` with 30s timeout, fragment cache keyed by (src_ip, dst_ip, protocol, identification)
-- [ ] T023 [US1] Add ToS/DSCP field extraction to Ipv4Decoder::decode() in `src/protocols/ipv4.cpp`
-- [ ] T024 [US1] Add IPv4 checksum validation to Ipv4Decoder with enable/disable flag in `src/protocols/ipv4.cpp`
-- [ ] T025 [US1] Update Ipv4Decoder to detect and report IPv4 header anomalies (invalid version, bad header length) in `src/protocols/ipv4.cpp`
+- [X] T018 [P] [US1] Add Ipv4Options struct to `include/wadjet/protocols/ipv4.hpp` with all option types (Router Alert, Timestamp, Record Route, Source Route, NOP, EOL)
+- [X] T019 [P] [US1] Add Ipv4Fragment struct to `include/wadjet/protocols/ipv4.hpp` for reassembly state (src_ip, dst_ip, protocol, identification, timeout)
+- [X] T020 [P] [US1] Update Ipv4Header struct in `include/wadjet/protocols/ipv4.hpp` to include options, ToS/DSCP fields
+- [X] T021 [US1] Implement parseIpv4Options() in `src/protocols/ipv4.cpp` with TLV parsing logic for all 8 option types
+- [X] T022 [US1] Implement Ipv4FragmentReassembler class in `src/protocols/ipv4.cpp` with 30s timeout, fragment cache keyed by (src_ip, dst_ip, protocol, identification)
+- [X] T023 [US1] Add ToS/DSCP field extraction to Ipv4Decoder::decode() in `src/protocols/ipv4.cpp`
+- [X] T024 [US1] Add IPv4 checksum validation to Ipv4Decoder with enable/disable flag in `src/protocols/ipv4.cpp`
+- [X] T025 [US1] Update Ipv4Decoder to detect and report IPv4 header anomalies (invalid version, bad header length) in `src/protocols/ipv4.cpp`
 
 ### Tests for User Story 1
 
-- [ ] T026 [P] [US1] Create `tests/protocols/test_ipv4_options.cpp` with 12 tests for all IPv4 option types (Router Alert, Timestamp, Record Route, Source Route, NOP, EOL, Security, Stream ID)
-- [ ] T027 [P] [US1] Create `tests/protocols/test_ipv4_fragmentation.cpp` with 16 tests for fragmentation scenarios (simple fragments, out-of-order, overlapping, timeout, reassembly, fragmented packet with options)
-- [ ] T028 [P] [US1] Add IPv4 ToS/DSCP parsing tests to `tests/protocols/test_ipv4.cpp` (5 tests for QoS field extraction)
-- [ ] T029 [P] [US1] Add IPv4 checksum validation tests to `tests/protocols/test_ipv4.cpp` (8 tests for valid/invalid/disabled checksum)
-- [ ] T030 [P] [US1] Create `pcap_samples/protocol-completeness/ipv4_fragmented.pcap` with real fragmentation samples
-- [ ] T031 [P] [US1] Create `pcap_samples/protocol-completeness/ipv4_options.pcap` with all option types
+- [X] T026 [P] [US1] Create `tests/protocols/test_ipv4_options.cpp` with 12 tests for all IPv4 option types (Router Alert, Timestamp, Record Route, Source Route, NOP, EOL, Security, Stream ID)
+- [X] T027 [P] [US1] Create `tests/protocols/test_ipv4_fragmentation.cpp` with 16 tests for fragmentation scenarios (simple fragments, out-of-order, overlapping, timeout, reassembly, fragmented packet with options)
+- [X] T028 [P] [US1] Add IPv4 ToS/DSCP parsing tests to `tests/protocols/test_ipv4.cpp` (5 tests for QoS field extraction)
+- [X] T029 [P] [US1] Add IPv4 checksum validation tests to `tests/protocols/test_ipv4.cpp` (8 tests for valid/invalid/disabled checksum)
+- [X] T030 [P] [US1] Create `pcap_samples/protocol-completeness/ipv4_fragmented.pcap` with real fragmentation samples
+- [X] T031 [P] [US1] Create `pcap_samples/protocol-completeness/ipv4_options.pcap` with all option types
 
 ### Fuzz Testing for User Story 1
 
-- [ ] T032 [P] [US1] Create `fuzz/fuzz_ipv4_options.cpp` fuzzer for IPv4 options parsing
-- [ ] T033 [P] [US1] Create `fuzz/fuzz_ipv4_fragmentation.cpp` fuzzer for fragmentation reassembly
+- [X] T032 [P] [US1] Create `fuzz/fuzz_ipv4_options.cpp` fuzzer for IPv4 options parsing
+- [X] T033 [P] [US1] Create `fuzz/fuzz_ipv4_fragmentation.cpp` fuzzer for fragmentation reassembly
 
 **Checkpoint**: IPv4 parsing complete - all options, fragmentation, ToS/DSCP working independently
 
