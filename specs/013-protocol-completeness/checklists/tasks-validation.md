@@ -46,11 +46,11 @@
 
 ### Task Descriptions
 
-- [ ] CHK021 - Are all task descriptions unambiguous and actionable (no vague terms like "improve" or "enhance")? [Clarity, Tasks §All]
-- [ ] CHK022 - Do task descriptions specify exact file paths for implementation? [Clarity, Tasks §T012-T017, T018-T025, etc.]
-- [ ] CHK023 - Do task descriptions specify exact struct/class names to create or modify? [Clarity, Tasks §T018-T020, T039-T041, etc.]
-- [ ] CHK024 - Are timeout values explicitly stated in task descriptions (30s IPv4, 2min/30s TCP, 5s TP)? [Clarity, Tasks §T022, T042, T063]
-- [ ] CHK025 - Are buffer size limits explicitly stated in task descriptions (16 segments TCP OOO, 16 MB TP)? [Clarity, Tasks §T040, T059]
+- [X] CHK021 - Are all task descriptions unambiguous and actionable (no vague terms like "improve" or "enhance")? [Clarity, Tasks §All]
+- [X] CHK022 - Do task descriptions specify exact file paths for implementation? [Clarity, Tasks §T012-T017, T018-T025, etc.]
+- [X] CHK023 - Do task descriptions specify exact struct/class names to create or modify? [Clarity, Tasks §T018-T020, T039-T041, etc.]
+- [X] CHK024 - Are timeout values explicitly stated in task descriptions (30s IPv4, 2min/30s TCP, 5s TP)? [Clarity, Tasks §T022, T042, T063]
+- [X] CHK025 - Are buffer size limits explicitly stated in task descriptions (16 segments TCP OOO, 16 MB TP)? [Clarity, Tasks §T040, T059]
 - [ ] CHK026 - Are test count targets specified for each test file creation task? [Clarity, Tasks §T026-T029, T034-T036, etc.]
 
 ### Acceptance Criteria

@@ -23,44 +23,44 @@
 
 ### IPv4 Options Parsing Requirements
 
-- [ ] CHK008 - Are all 8 IPv4 option types explicitly listed in requirements? [Completeness, Spec FR-001]
-- [ ] CHK009 - Is Router Alert option parsing requirement specified? [Gap]
-- [ ] CHK010 - Is Timestamp option parsing requirement specified? [Gap]
-- [ ] CHK011 - Is Record Route option parsing requirement specified? [Gap]
-- [ ] CHK012 - Is Source Route option parsing requirement specified? [Gap]
-- [ ] CHK013 - Is Strict Source Route option parsing requirement specified? [Gap]
-- [ ] CHK014 - Is NOP (No Operation) option handling specified? [Gap]
-- [ ] CHK015 - Is EOL (End of Options List) handling specified? [Gap]
-- [ ] CHK016 - Are IPv4 option TLV parsing rules defined? [Gap]
-- [ ] CHK017 - Are malformed option handling requirements defined? [Exception Flow, Gap]
+- [X] CHK008 - Are all 8 IPv4 option types explicitly listed in requirements? [Completeness, Spec FR-001]
+- [X] CHK009 - Is Router Alert option parsing requirement specified? [Completeness]
+- [X] CHK010 - Is Timestamp option parsing requirement specified? [Completeness]
+- [X] CHK011 - Is Record Route option parsing requirement specified? [Completeness]
+- [X] CHK012 - Is Source Route option parsing requirement specified? [Completeness]
+- [X] CHK013 - Is Strict Source Route option parsing requirement specified? [Completeness]
+- [X] CHK014 - Is NOP (No Operation) option handling specified? [Completeness]
+- [X] CHK015 - Is EOL (End of Options List) handling specified? [Completeness]
+- [X] CHK016 - Are IPv4 option TLV parsing rules defined? [Completeness]
+- [X] CHK017 - Are malformed option handling requirements defined? [Exception Flow, Complete]
 
 ### IPv4 Fragmentation Requirements
 
-- [ ] CHK018 - Is fragment offset field parsing requirement specified? [Completeness, Spec FR-002]
-- [ ] CHK019 - Is MF (More Fragments) flag parsing requirement specified? [Completeness, Spec FR-002]
-- [ ] CHK020 - Is fragment identification field requirement specified? [Completeness, Spec FR-002]
-- [ ] CHK021 - Is the 30-second reassembly timeout explicitly specified? [Clarity, Spec FR-003, Clarifications]
-- [ ] CHK022 - Is reassembly timeout configurability requirement specified? [Completeness, Spec FR-003]
+- [X] CHK018 - Is fragment offset field parsing requirement specified? [Completeness, Spec FR-002]
+- [X] CHK019 - Is MF (More Fragments) flag parsing requirement specified? [Completeness, Spec FR-002]
+- [X] CHK020 - Is fragment identification field requirement specified? [Completeness, Spec FR-002]
+- [X] CHK021 - Is the 30-second reassembly timeout explicitly specified? [Clarity, Spec FR-003, Clarifications]
+- [X] CHK022 - Is reassembly timeout configurability requirement specified? [Completeness, Spec FR-003]
 - [ ] CHK023 - Is fragment cache size/limit requirement defined? [Gap]
-- [ ] CHK024 - Is fragment cache keying (src_ip, dst_ip, protocol, id) specified? [Gap]
+- [X] CHK024 - Is fragment cache keying (src_ip, dst_ip, protocol, id) specified? [Completeness]
 - [ ] CHK025 - Is overlapping fragment handling strategy defined? [Gap, Edge Case]
-- [ ] CHK026 - Is out-of-order fragment reassembly requirement specified? [Gap]
-- [ ] CHK027 - Is incomplete fragment cleanup (timeout) requirement specified? [Completeness, Spec FR-003]
+- [X] CHK026 - Is out-of-order fragment reassembly requirement specified? [Completeness]
+- [X] CHK027 - Is incomplete fragment cleanup (timeout) requirement specified? [Completeness, Spec FR-003]
 - [ ] CHK028 - Is maximum datagram size for reassembly (64KB) specified? [Gap, Spec SC-002]
 
 ### IPv4 ToS/DSCP Requirements
 
-- [ ] CHK029 - Is Type of Service (ToS) field parsing requirement specified? [Completeness, Spec FR-004]
-- [ ] CHK030 - Is DSCP (Differentiated Services Code Point) parsing requirement specified? [Completeness, Spec FR-004]
-- [ ] CHK031 - Is QoS marking extraction requirement specified? [Gap, Spec US1 Acceptance 4]
+- [X] CHK029 - Is Type of Service (ToS) field parsing requirement specified? [Completeness, Spec FR-004]
+- [X] CHK030 - Is DSCP (Differentiated Services Code Point) parsing requirement specified? [Completeness, Spec FR-004]
+- [X] CHK031 - Is QoS marking extraction requirement specified? [Completeness, Spec US1 Acceptance 4]
 - [ ] CHK032 - Are ToS/DSCP interpretation rules defined? [Gap]
 
 ### IPv4 Checksum Validation Requirements
 
-- [ ] CHK033 - Is IPv4 header checksum validation requirement specified? [Completeness, Spec FR-005]
-- [ ] CHK034 - Is checksum validation enable/disable flag requirement specified? [Completeness, Spec FR-005]
-- [ ] CHK035 - Is corrupted packet detection requirement specified? [Completeness, Spec US1 Acceptance 5]
-- [ ] CHK036 - Is checksum validation error reporting requirement specified? [Gap]
+- [X] CHK033 - Is IPv4 header checksum validation requirement specified? [Completeness, Spec FR-005]
+- [X] CHK034 - Is checksum validation enable/disable flag requirement specified? [Completeness, Spec FR-005]
+- [X] CHK035 - Is corrupted packet detection requirement specified? [Completeness, Spec US1 Acceptance 5]
+- [X] CHK036 - Is checksum validation error reporting requirement specified? [Completeness]
 
 ### IPv4 Anomaly Detection Requirements
 
