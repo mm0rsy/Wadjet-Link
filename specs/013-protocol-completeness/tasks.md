@@ -271,21 +271,29 @@ After remediation tasks R001-R010 are complete:
 
 ### Tests for User Story 6 (Write FIRST)
 
-- [ ] T078 [P] [US6] Create tests/protocols/test_doip_power.cpp with 20 tests (power mode messages 0x4003/0x4004, entity status 0x4001/0x4002, NACK codes, alive check, power mode transitions, payload length validation)
-- [ ] T079 [P] [US6] Create pcap_samples/protocol-completeness/doip_power_mode.pcap with power mode state transitions
+- [X] T078 [P] [US6] Create tests/protocols/test_doip_power.cpp with 20 tests (power mode messages 0x4003/0x4004, entity status 0x4001/0x4002, NACK codes, alive check, power mode transitions, payload length validation)
+- [X] T079 [P] [US6] Create pcap_samples/protocol-completeness/doip_power_mode.pcap with power mode state transitions
 
 ### Implementation for User Story 6
 
-- [ ] T080 [P] [US6] Add DoipPowerMode enum to include/wadjet/protocols/doip.hpp (Ready, NotReady, NotSupported)
-- [ ] T081 [P] [US6] Add power mode message types (0x4003, 0x4004) to DoipPayloadType enum in include/wadjet/protocols/doip.hpp
-- [ ] T082 [P] [US6] Add entity status message types (0x4001, 0x4002) to include/wadjet/protocols/doip.hpp
-- [ ] T083 [P] [US6] Add DoIP NACK codes enum to include/wadjet/protocols/doip.hpp
-- [ ] T084 [US6] Implement parseDiagnosticPowerMode() in src/protocols/doip.cpp
-- [ ] T085 [US6] Implement parseEntityStatus() in src/protocols/doip.cpp
-- [ ] T086 [US6] Implement parseDoipNack() in src/protocols/doip.cpp
-- [ ] T087 [US6] Implement parseAliveCheck() (request/response) in src/protocols/doip.cpp
-- [ ] T088 [US6] Update DoipDecoder to handle all new message types in src/protocols/doip.cpp
-- [ ] T089 [US6] Add DoIP payload length validation in src/protocols/doip.cpp
+- [X] T080 [P] [US6] Add DoipPowerMode enum to include/wadjet/protocols/doip.hpp (Ready, NotReady, NotSupported)
+- [X] T081 [P] [US6] Add power mode message types (0x4003, 0x4004) to DoipPayloadType enum in include/wadjet/protocols/doip.hpp
+- [X] T082 [P] [US6] Add entity status message types (0x4001, 0x4002) to include/wadjet/protocols/doip.hpp
+- [X] T083 [P] [US6] Add DoIP NACK codes enum to include/wadjet/protocols/doip.hpp
+- [X] T084 [US6] Implement parseDiagnosticPowerMode() in src/protocols/doip.cpp
+- [X] T085 [US6] Implement parseEntityStatus() in src/protocols/doip.cpp
+- [X] T086 [US6] Implement parseDoipNack() in src/protocols/doip.cpp
+- [X] T087 [US6] Implement parseAliveCheck() (request/response) in src/protocols/doip.cpp
+- [X] T088 [US6] Update DoipDecoder to handle all new message types in src/protocols/doip.cpp
+- [X] T089 [US6] Add DoIP payload length validation in src/protocols/doip.cpp
+
+**Additional Completions** (Beyond Original Scope):
+
+- [X] Added ActivationType enum with 7 variants (Default, WWH-OBD, Central Security, Manufacturer-specific range, etc.)
+- [X] Added EntityType enum with Gateway/Node distinction
+- [X] Added string conversion functions: activation_type_string(), entity_type_string(), power_mode_string()
+- [X] Added 14 comprehensive parsing unit tests covering all new functionality (total 53 DoIP tests)
+- [X] Comprehensive payload length validation in decode_impl() for all DoIP message types
 
 **Checkpoint**: DoIP power mode and entity status messages fully supported with proper validation
 

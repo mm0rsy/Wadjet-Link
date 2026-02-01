@@ -270,3 +270,161 @@ TEST_F(DoIPMessageCategorizationTest, AliveCheckIsNotDiagnosticMessage) {
     EXPECT_FALSE(header.is_diagnostic_message());
 }
 
+//==============================================================================
+// DoIP Parse Power Mode Tests
+//==============================================================================
+
+class DoIPParsePowerModeTest : public ::testing::Test {
+};
+
+TEST_F(DoIPParsePowerModeTest, ParsePowerModeReady) {
+    std::array<std::byte, 1> payload{std::byte(0x00)};
+    auto result = DoIPDecoder::parse_diagnostic_power_mode(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), PowerMode::Ready);
+}
+
+TEST_F(DoIPParsePowerModeTest, ParsePowerModeNotReady) {
+    std::array<std::byte, 1> payload{std::byte(0x01)};
+    auto result = DoIPDecoder::parse_diagnostic_power_mode(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), PowerMode::NotReady);
+}
+
+TEST_F(DoIPParsePowerModeTest, ParsePowerModeNotSupported) {
+    std::array<std::byte, 1> payload{std::byte(0x02)};
+    auto result = DoIPDecoder::parse_diagnostic_power_mode(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), PowerMode::NotSupported);
+}
+
+TEST_F(DoIPParsePowerModeTest, ParsePowerModeEmptyPayload) {
+    std::vector<std::byte> empty;
+    auto result = DoIPDecoder::parse_diagnostic_power_mode(empty);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(DoIPParsePowerModeTest, ParsePowerModeInvalidCode) {
+    std::array<std::byte, 1> payload{std::byte(0x03)};
+    auto result = DoIPDecoder::parse_diagnostic_power_mode(payload);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+//==============================================================================
+// DoIP Parse Entity Status Tests
+//==============================================================================
+
+class DoIPParseEntityStatusTest : public ::testing::Test {
+};
+
+TEST_F(DoIPParseEntityStatusTest, ParseEntityStatusValidPayload) {
+    // node_type(1) + max_concurrent(1) + current_concurrent(1) + max_connections(2)
+    std::array<std::byte, 5> payload{
+        std::byte(0x00),  // Gateway
+        std::byte(0x0A),  // max_concurrent = 10
+        std::byte(0x05),  // current_concurrent = 5
+        std::byte(0x00),  // max_connections high byte
+        std::byte(0x20),  // max_connections low byte = 32
+    };
+    
+    auto result = DoIPDecoder::parse_entity_status(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    auto [node_type, max_concurrent, current_concurrent, max_connections] = result.value();
+    EXPECT_EQ(node_type, 0x00);
+    EXPECT_EQ(max_concurrent, 0x0A);
+    EXPECT_EQ(current_concurrent, 0x05);
+    EXPECT_EQ(max_connections, 0x0020);
+}
+
+TEST_F(DoIPParseEntityStatusTest, ParseEntityStatusEmptyPayload) {
+    std::vector<std::byte> empty;
+    auto result = DoIPDecoder::parse_entity_status(empty);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(DoIPParseEntityStatusTest, ParseEntityStatusTooShort) {
+    std::array<std::byte, 4> payload{
+        std::byte(0x00), std::byte(0x0A), std::byte(0x05), std::byte(0x00)
+    };
+    auto result = DoIPDecoder::parse_entity_status(payload);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+//==============================================================================
+// DoIP Parse Generic NACK Tests
+//==============================================================================
+
+class DoIPParseGenericNackTest : public ::testing::Test {
+};
+
+TEST_F(DoIPParseGenericNackTest, ParseGenericNackValidPayload) {
+    // nack_code(1) + unknown_payload_type(2)
+    std::array<std::byte, 3> payload{
+        std::byte(0x01),  // UnknownPayloadType
+        std::byte(0xAB),  // high byte
+        std::byte(0xCD),  // low byte
+    };
+    
+    auto result = DoIPDecoder::parse_generic_nack(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    auto [nack_code, unknown_payload_type] = result.value();
+    EXPECT_EQ(nack_code, NackCode::UnknownPayloadType);
+    EXPECT_EQ(unknown_payload_type, 0xABCD);
+}
+
+TEST_F(DoIPParseGenericNackTest, ParseGenericNackTooShort) {
+    std::array<std::byte, 2> payload{std::byte(0x01), std::byte(0xAB)};
+    auto result = DoIPDecoder::parse_generic_nack(payload);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(DoIPParseGenericNackTest, ParseGenericNackEmptyPayload) {
+    std::vector<std::byte> empty;
+    auto result = DoIPDecoder::parse_generic_nack(empty);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+//==============================================================================
+// DoIP Parse Alive Check Response Tests
+//==============================================================================
+
+class DoIPParseAliveCheckTest : public ::testing::Test {
+};
+
+TEST_F(DoIPParseAliveCheckTest, ParseAliveCheckResponseValidPayload) {
+    // tester_source_address(2)
+    std::array<std::byte, 2> payload{
+        std::byte(0x12),  // high byte
+        std::byte(0x34),  // low byte
+    };
+    
+    auto result = DoIPDecoder::parse_alive_check_response(payload);
+    
+    EXPECT_TRUE(result.has_value());
+    EXPECT_EQ(result.value(), 0x1234);
+}
+
+TEST_F(DoIPParseAliveCheckTest, ParseAliveCheckResponseTooShort) {
+    std::array<std::byte, 1> payload{std::byte(0x12)};
+    auto result = DoIPDecoder::parse_alive_check_response(payload);
+    
+    EXPECT_FALSE(result.has_value());
+}
+
+TEST_F(DoIPParseAliveCheckTest, ParseAliveCheckResponseEmptyPayload) {
+    std::vector<std::byte> empty;
+    auto result = DoIPDecoder::parse_alive_check_response(empty);
+    
+    EXPECT_FALSE(result.has_value());
+}

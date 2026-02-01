@@ -59,9 +59,6 @@ enum class PayloadType : std::uint16_t {
     DiagnosticMessageNegativeAck = 0x8003,
 };
 
-/// @brief Convert payload type to string
-[[nodiscard]] std::string_view payload_type_string(PayloadType type);
-
 /// @brief Generic NACK codes
 enum class NackCode : std::uint8_t {
     IncorrectPatternFormat = 0x00,
@@ -108,6 +105,35 @@ enum class PowerMode : std::uint8_t {
     NotReady = 0x01,       ///< ECU is not ready (e.g., booting, busy)
     NotSupported = 0x02,   ///< Power mode not supported by ECU
 };
+
+/// @brief Routing activation types (ISO 13400-2)
+enum class ActivationType : std::uint8_t {
+    Default = 0x00,                  ///< Default activation (diagnostic communication)
+    WWHObd = 0x01,                   ///< World Wide Harmonized OBD activation
+    CentralSecurityUnlock = 0x02,    ///< Central security unlock
+    ReservedForFutureExpansion = 0x03, ///< Reserved
+    ManufacturerSpecificStart = 0xE0,  ///< Manufacturer-specific range start
+    ManufacturerSpecificEnd = 0xFE,    ///< Manufacturer-specific range end
+    InputOutputControlIdentifier = 0xFF, ///< Input/output control
+};
+
+/// @brief DoIP entity types
+enum class EntityType : std::uint8_t {
+    Gateway = 0x00,   ///< DoIP gateway device
+    Node = 0x01,      ///< DoIP node (ECU)
+};
+
+/// @brief Convert payload type to string
+[[nodiscard]] std::string_view payload_type_string(PayloadType type);
+
+/// @brief Convert activation type to string
+[[nodiscard]] std::string_view activation_type_string(ActivationType type);
+
+/// @brief Convert entity type to string
+[[nodiscard]] std::string_view entity_type_string(EntityType type);
+
+/// @brief Convert power mode to string
+[[nodiscard]] std::string_view power_mode_string(PowerMode mode);
 
 /// @brief VIN (Vehicle Identification Number) - 17 characters
 using VIN = std::array<char, 17>;
@@ -229,6 +255,24 @@ public:
     /// @brief Parse vehicle identification response
     [[nodiscard]] static std::optional<VehicleIdentificationResponse>
     parse_vehicle_identification_response(std::span<const std::byte> payload);
+
+    /// @brief Parse diagnostic power mode response
+    [[nodiscard]] static std::optional<PowerMode> parse_diagnostic_power_mode(
+        std::span<const std::byte> payload);
+
+    /// @brief Parse entity status response
+    /// Returns a tuple of: (node_type, max_concurrent_sockets, current_concurrent_sockets, max_connections)
+    [[nodiscard]] static std::optional<std::tuple<std::uint8_t, std::uint8_t, std::uint8_t, std::uint16_t>>
+    parse_entity_status(std::span<const std::byte> payload);
+
+    /// @brief Parse generic NACK message
+    /// Returns a tuple of: (nack_code, unknown_payload_type)
+    [[nodiscard]] static std::optional<std::tuple<NackCode, std::uint16_t>>
+    parse_generic_nack(std::span<const std::byte> payload);
+
+    /// @brief Parse alive check response
+    [[nodiscard]] static std::optional<std::uint16_t> parse_alive_check_response(
+        std::span<const std::byte> payload);
 
 private:
     Options options_;
