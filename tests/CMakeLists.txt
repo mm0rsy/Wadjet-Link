@@ -63,6 +63,8 @@ add_executable(wadjet_tests
     protocols/test_doip_power.cpp
     # Protocol Validation tests (Phase 11)
     protocols/test_protocol_validation.cpp
+    # Performance and Regression tests (Phase 11 T134-T137)
+    test_performance_regression.cpp
 )
 
 target_link_libraries(wadjet_tests
