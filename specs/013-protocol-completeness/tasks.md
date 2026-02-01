@@ -217,21 +217,21 @@ After remediation tasks R001-R010 are complete:
 
 ### Tests for User Story 4 (Write FIRST)
 
-- [ ] T056 [P] [US4] Create tests/protocols/test_someip_tp.cpp with 25 tests (TP header parsing, multi-segment reassembly, more_segments flag, offset validation, timeout handling, 16MB max size, out-of-order segments)
-- [ ] T057 [P] [US4] Create pcap_samples/protocol-completeness/someip_tp_large.pcap with real TP segmented messages
+- [x] T056 [P] [US4] Create tests/protocols/test_someip_tp.cpp with 25 tests (TP header parsing, multi-segment reassembly, more_segments flag, offset validation, timeout handling, 16MB max size, out-of-order segments) - ✅ 20 tests created
+- [x] T057 [P] [US4] Create pcap_samples/protocol-completeness/someip_tp_large.pcap with real TP segmented messages
 - [ ] T058 [P] [US4] Add SOME/IP message length validation tests to tests/protocols/test_someip.cpp (5 tests)
 
 ### Implementation for User Story 4
 
-- [ ] T059 [P] [US4] Add SomeipTpMessage struct to include/wadjet/protocols/someip.hpp for reassembly state with 16MB max message size
-- [ ] T060 [P] [US4] Add TP message type to SomeipMessageType enum in include/wadjet/protocols/someip.hpp
+- [x] T059 [P] [US4] Add SomeipTpMessage struct to include/wadjet/protocols/someip.hpp for reassembly state with 16MB max message size
+- [x] T060 [P] [US4] Add TP message type to SomeipMessageType enum in include/wadjet/protocols/someip.hpp - Added TP_FLAG constants
 - [ ] T061 [US4] Create SomeipTpReassembler class in src/protocols/someip.cpp with segment buffering and 5s timeout
 - [ ] T062 [US4] Implement TP header parsing (offset, more_segments flag) in src/protocols/someip.cpp
 - [ ] T063 [US4] Add 5-second timeout for incomplete TP messages in SomeipTpReassembler per AUTOSAR PRS_SOMEIP_00191
 - [ ] T064 [US4] Update SomeipDecoder to detect TP messages and delegate to reassembler in src/protocols/someip.cpp
 - [ ] T065 [US4] Add SOME/IP message length field validation in SomeipDecoder
 
-**Checkpoint**: SOME/IP-TP segmentation complete - large messages up to 16MB reassemble correctly
+**Checkpoint**: SOME/IP-TP segmentation - tests & structures created, reassembler implementation pending (445/457 tests passing)
 
 ---
 
