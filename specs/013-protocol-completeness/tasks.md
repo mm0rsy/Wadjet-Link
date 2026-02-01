@@ -443,14 +443,14 @@ After remediation tasks R018-R028:
 - [X] T103 [P] [US8] ✅ ALREADY DONE - `TlvType` enum in `gptp_types.hpp` with 15+ types (ORGANIZATION_EXTENSION, PATH_TRACE, OrganizationExtensionPropagate, CumulativeScaledRateOffset, etc.)
 - [X] T104 [P] [US8] ✅ ALREADY DONE - `FollowUpTlv` struct in `gptp_messages.hpp` with `cumulative_scaled_rate_offset`, `gm_time_base_indicator`
 - [X] T105 [P] [US8] ✅ ALREADY DONE - `Tlv` generic struct in `gptp_messages.hpp` (Organization Extension uses generic Tlv + FollowUpTlv specialization)
-- [ ] T106 [P] [US8] Add GptpTlv variant type to include/wadjet/protocols/gptp.hpp (for polymorphic TLV handling) - OPTIONAL
+- [X] T106 [P] [US8] ✅ DONE - Add GptpTlv variant type to include/wadjet/protocols/gptp/gptp_messages.hpp (for polymorphic TLV handling with std::visit)
 - [X] T107 [US8] ✅ DONE - Implement parseGptpTlv() in src/protocols/gptp_decoder.cpp with TLV length validation (Tlv::parse function)
 - [X] T108 [US8] ✅ DONE - Implement FollowUpTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
 - [X] T109 [US8] ✅ DONE - Implement PathTraceTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
 - [X] T110 [US8] ✅ DONE - Add unknown TLV handling with graceful fallback (log warning, skip TLV, continue parsing) in src/protocols/gptp_decoder.cpp
 - [X] T111 [US8] ✅ DONE - Update GptpDecoder to parse TLV arrays in Announce and Follow_Up messages in src/protocols/gptp_decoder.cpp
 
-**Checkpoint**: gPTP TLV parsing - data structures ✅ DONE, parse functions ✅ DONE (T107-T111), PCAP samples ✅ DONE (T102)
+**Checkpoint**: gPTP TLV parsing - ALL COMPLETE (T102-T111)
 
 ---
 
