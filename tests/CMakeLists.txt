@@ -43,6 +43,15 @@ add_executable(wadjet_tests
     protocols/test_uds_doip_integration.cpp
     protocols/test_flash_sequence.cpp
     protocols/test_dtc_manager.cpp
+    # IPv4 tests (Phase 3)
+    protocols/test_ipv4.cpp
+    protocols/test_ipv4_options.cpp
+    protocols/test_ipv4_fragmentation.cpp
+    protocols/test_ipv4_minimal.cpp
+    # TCP tests (Phase 4)
+    protocols/test_tcp_state.cpp
+    protocols/test_tcp_options.cpp
+    protocols/test_tcp_retransmission.cpp
 )
 
 target_link_libraries(wadjet_tests

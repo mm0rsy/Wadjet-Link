@@ -48,6 +48,7 @@ add_library(wadjet
     # Protocol decoders
     protocols/ethernet.cpp
     protocols/ipv4.cpp
+    protocols/ipv4_reassembler.cpp
     protocols/udp.cpp
     protocols/tcp.cpp
     protocols/someip.cpp
@@ -56,6 +57,10 @@ add_library(wadjet
     protocols/gptp_decoder.cpp
     protocols/dds/rtps_decoder.cpp
     protocols/dispatcher.cpp
+    
+    # Common protocol utilities
+    protocols/common/timeout_manager.cpp
+    protocols/common/checksum.cpp
     
     # UDS protocol
     protocols/uds_decoder.cpp
