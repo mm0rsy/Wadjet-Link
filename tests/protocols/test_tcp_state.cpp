@@ -268,7 +268,8 @@ TEST_F(TcpStateMachineTest, ResetFromFinWait) {
 TEST_F(TcpStateMachineTest, IncompleteConnectionTimeout) {
     // Incomplete connections (SYN_SENT, SYN_RECEIVED) timeout after 2 minutes
     conn_->state = TcpState::SynSent;
-    auto timeout = std::chrono::minutes(2);
+    // Note: timeout is conceptually 2 minutes, but we just test state transition
+    // auto timeout = std::chrono::minutes(2);
 
     EXPECT_EQ(conn_->state, TcpState::SynSent);
     // Simulate timeout
@@ -279,7 +280,8 @@ TEST_F(TcpStateMachineTest, IncompleteConnectionTimeout) {
 TEST_F(TcpStateMachineTest, EstablishedConnectionLongTimeout) {
     // Established connections remain open (user responsibility)
     conn_->state = TcpState::Established;
-    auto long_elapsed = std::chrono::hours(1);
+    // Note: conceptually long_elapsed time, but we just verify state stability
+    // auto long_elapsed = std::chrono::hours(1);
 
     EXPECT_EQ(conn_->state, TcpState::Established);
 }

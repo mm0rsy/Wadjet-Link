@@ -22,7 +22,7 @@ std::uint16_t Checksum::ipv4_checksum(const std::vector<std::uint8_t>& header) {
         // Skip checksum field (bytes 10-11)
         if (i == 10) continue;
         
-        std::uint16_t word = (static_cast<std::uint16_t>(header[i]) << 8);
+        std::uint16_t word = static_cast<std::uint16_t>(static_cast<std::uint16_t>(header[i]) << 8);
         if (i + 1 < header.size()) {
             word |= static_cast<std::uint16_t>(header[i + 1]);
         }
@@ -73,7 +73,7 @@ std::uint16_t Checksum::transport_checksum(
     // Process header + payload as 16-bit words
     auto process_buffer = [&sum](const std::vector<std::uint8_t>& buf) {
         for (std::size_t i = 0; i < buf.size(); i += 2) {
-            std::uint16_t word = (static_cast<std::uint16_t>(buf[i]) << 8);
+            std::uint16_t word = static_cast<std::uint16_t>(static_cast<std::uint16_t>(buf[i]) << 8);
             if (i + 1 < buf.size()) {
                 word |= static_cast<std::uint16_t>(buf[i + 1]);
             }
