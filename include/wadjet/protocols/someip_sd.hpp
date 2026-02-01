@@ -99,6 +99,63 @@ struct SdOption {
 /// @brief Variant for SD entries
 using SdEntry = std::variant<ServiceEntry, EventgroupEntry>;
 
+/// @brief Array of SD entries with count
+struct SdEntryArray {
+    std::vector<SdEntry> entries;
+
+    /// @brief Get entry count
+    [[nodiscard]] std::size_t size() const { return entries.size(); }
+
+    /// @brief Check if empty
+    [[nodiscard]] bool empty() const { return entries.empty(); }
+
+    /// @brief Add entry to array
+    void push_back(const SdEntry& entry) { entries.push_back(entry); }
+
+    /// @brief Get entry at index
+    [[nodiscard]] const SdEntry& operator[](std::size_t index) const { return entries[index]; }
+
+    /// @brief Get mutable entry at index
+    SdEntry& operator[](std::size_t index) { return entries[index]; }
+};
+
+/// @brief Array of SD options with count
+struct SdOptionArray {
+    std::vector<SdOption> options;
+
+    /// @brief Get option count
+    [[nodiscard]] std::size_t size() const { return options.size(); }
+
+    /// @brief Check if empty
+    [[nodiscard]] bool empty() const { return options.empty(); }
+
+    /// @brief Add option to array
+    void push_back(const SdOption& option) { options.push_back(option); }
+
+    /// @brief Get option at index
+    [[nodiscard]] const SdOption& operator[](std::size_t index) const { return options[index]; }
+
+    /// @brief Get mutable option at index
+    SdOption& operator[](std::size_t index) { return options[index]; }
+
+    /// @brief Get options for a specific entry by index range
+    [[nodiscard]] std::vector<SdOption> get_options_for_entry(std::uint8_t index1,
+                                                              std::uint8_t num_options_1,
+                                                              std::uint8_t index2,
+                                                              std::uint8_t num_options_2) const {
+        std::vector<SdOption> result;
+        // First option range
+        for (std::size_t i = index1; i < index1 + num_options_1 && i < options.size(); ++i) {
+            result.push_back(options[i]);
+        }
+        // Second option range
+        for (std::size_t i = index2; i < index2 + num_options_2 && i < options.size(); ++i) {
+            result.push_back(options[i]);
+        }
+        return result;
+    }
+};
+
 /// @brief Decoded SOME/IP-SD header and content
 struct SomeIpSdHeader : public IDecodedHeader {
     std::uint8_t flags = 0;            ///< SD flags
