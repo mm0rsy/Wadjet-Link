@@ -10,6 +10,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <memory>
+#include <chrono>
 
 namespace wadjet::protocols::ipv4 {
 
@@ -157,6 +159,43 @@ public:
 
 private:
     Options options_;
+};
+
+/// @brief IPv4 fragment reassembler for handling fragmented IPv4 datagrams
+/// @details Reassembles IPv4 fragments identified by (src_ip, dst_ip, protocol, identification)
+/// with 30-second timeout. Handles out-of-order and overlapping fragments.
+class Ipv4FragmentReassembler {
+public:
+    /// @brief Configuration for fragment reassembly
+    struct Config {
+        std::chrono::seconds timeout = std::chrono::seconds(30);  ///< Maximum time to hold incomplete fragments
+    };
+
+    /// @brief Constructor with optional configuration (default: 30s timeout)
+    explicit Ipv4FragmentReassembler(const Config& cfg);
+
+    /// @brief Add a fragment and attempt reassembly
+    /// @param frag Fragment to add
+    /// @return Complete reassembled payload if all fragments received, std::nullopt otherwise
+    [[nodiscard]] std::optional<std::vector<std::uint8_t>> add_fragment(const IPv4Header::Ipv4Fragment& frag);
+
+    /// @brief Clean up expired fragment caches
+    void cleanup_expired();
+
+    /// @brief Clear all cached fragments
+    void clear();
+
+    /// @brief Get number of incomplete fragment groups being tracked
+    [[nodiscard]] std::size_t size() const;
+
+    /// @brief Destructor
+    ~Ipv4FragmentReassembler();
+
+private:
+    Config config_;
+    // Implementation details hidden (see ipv4_reassembler.cpp)
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Global IPv4 decoder instance
