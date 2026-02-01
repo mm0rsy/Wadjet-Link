@@ -16,13 +16,14 @@ TEST(IPv4OptionsTest, ParseNopAndEol) {
 }
 
 TEST(IPv4OptionsTest, ParseRecordRoute) {
-    // Option kind=7, length=7, data=4 bytes (example)
-    std::vector<std::byte> raw = {std::byte{7}, std::byte{7}, std::byte{4}, std::byte{0}, std::byte{127}, std::byte{1}};
+    // Option kind=7, length=7, data=5 bytes (7 - 2 for kind and length)
+    std::vector<std::byte> raw = {std::byte{7},   std::byte{7}, std::byte{4}, std::byte{0},
+                                  std::byte{127}, std::byte{1}, std::byte{2}};
     auto res = IPv4Header::parseIpv4Options(raw);
     ASSERT_FALSE(res.malformed);
     ASSERT_EQ(res.options.size(), 1);
     EXPECT_EQ(res.options[0].type, 7);
-    EXPECT_EQ(res.options[0].data.size(), 4);
+    EXPECT_EQ(res.options[0].data.size(), 5);
 }
 
 TEST(IPv4OptionsTest, ParseTimestamp) {
