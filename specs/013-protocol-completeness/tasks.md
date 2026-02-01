@@ -507,13 +507,13 @@ After remediation tasks R018-R028:
 
 **Purpose**: Finalize implementation with comprehensive documentation and examples
 
-- [ ] T138 [P] [US1] Update docs/protocols/ipv4.md with options, fragmentation, ToS/DSCP documentation
-- [ ] T139 [P] [US2] Update docs/protocols/tcp.md with state machine, connection tracking documentation
-- [ ] T140 [P] [US4] Update docs/protocols/someip.md with TP segmentation documentation
-- [ ] T141 [P] [US5] Update docs/protocols/someip_sd.md with complete entry/option documentation
-- [ ] T142 [P] [US6] Update docs/protocols/doip.md with diagnostic power mode documentation
-- [ ] T143 [P] [US7] Update docs/protocols/uds.md with complete NRC reference table
-- [ ] T144 [P] [US8] Update docs/protocols/gptp.md with TLV documentation
+- [X] T138 [P] [US1] Update docs/protocols/ipv4.md with options, fragmentation, ToS/DSCP documentation
+- [X] T139 [P] [US2] Update docs/protocols/tcp.md with state machine, connection tracking documentation
+- [X] T140 [P] [US4] Update docs/protocols/someip.md with TP segmentation documentation
+- [X] T141 [P] [US5] Update docs/protocols/someip_sd.md with complete entry/option documentation
+- [X] T142 [P] [US6] Update docs/protocols/doip.md with diagnostic power mode documentation
+- [X] T143 [P] [US7] Update docs/protocols/uds.md with complete NRC reference table
+- [X] T144 [P] [US8] Update docs/protocols/gptp.md with TLV documentation
 - [X] T145 [P] ✅ DONE - Create examples/protocol_validation.cpp demonstrating cross-layer validation
 - [X] T146 [P] ✅ DONE - Update README.md with M13 completion status
 - [X] T147 [P] ✅ DONE - Add Doxygen comments to all new public APIs

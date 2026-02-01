@@ -1,5 +1,9 @@
 # UDS (ISO 14229) Protocol Support
 
+**Status**: ✅ Complete (M13)  
+**Standard**: [ISO 14229-1](https://www.iso.org/standard/72439.html)  
+**Implementation**: `include/wadjet/protocols/uds/`
+
 ## Overview
 
 Wadjet-Link provides comprehensive support for decoding and analyzing UDS (Unified Diagnostic Services) messages as defined in ISO 14229. UDS is the standard diagnostic protocol used in automotive ECUs for diagnostics, flash programming, and security access.
@@ -48,6 +52,199 @@ UDS is essential for:
 |  SID   |  Sub-Function    |
 | 1 byte |   + Parameters   |
 +--------+------------------+
+```
+
+## Negative Response Codes (NRC)
+
+UDS defines complete set of NRC values for error reporting. Each NRC indicates specific issue requiring different recovery.
+
+### NRC Categories
+
+#### General Errors (0x00-0x0F)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x00 | — | — | Not used | — |
+| 0x10 | generalReject | Temporary | Generic error condition | Retry request |
+| 0x11 | serviceNotSupported | Permanent | Service not implemented | Use different service |
+| 0x12 | subFunctionNotSupported | Permanent | Sub-function invalid | Check sub-function code |
+| 0x13 | incorrectMessageLengthOrInvalidFormat | Permanent | Message format wrong | Verify request format |
+| 0x14 | responseTooBig | Temporary | Response too large for channel | Request partial data |
+| 0x21 | busyRepeatRequest | Temporary | ECU busy processing | Retry after delay |
+| 0x24 | conditionsNotCorrect | Temporary | Request conditions not met | Wait and retry |
+| 0x25 | requestSequenceError | Temporary | Wrong request order | Reorder requests |
+| 0x26 | noAccessToSubnet | Permanent | No network access | Check routing |
+| 0x31 | requestOutOfRange | Permanent | Request parameter invalid | Check ranges |
+| 0x33 | securityAccessDenied | Permanent | Authentication failed | Verify credentials |
+
+#### Session/State Errors (0x20-0x3F)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x22 | conditionsNotCorrect | Temporary | Current state prevents operation | Change session/state |
+| 0x24 | requestSequenceError | Temporary | Requests out of sequence | Follow correct sequence |
+| 0x25 | noAccessToSubnet | Permanent | No access to requested subnet | Verify network access |
+| 0x26 | invalidKey | Permanent | Security key rejected | Provide correct key |
+| 0x27 | exceedNumberOfAttempts | Permanent | Too many auth attempts | Wait for timeout |
+| 0x28 | requiredTimeDelayNotExpired | Temporary | Minimum time not elapsed | Wait longer |
+
+#### Data Errors (0x30-0x3F)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x31 | requestOutOfRange | Permanent | Address/data invalid | Verify ranges |
+| 0x32 | securityAccessDenied | Permanent | Not authenticated | Perform security access |
+| 0x33 | invalidDataFormat | Permanent | Data format wrong | Check format |
+| 0x34 | dataLengthTooLong | Permanent | Data exceeds max length | Send smaller data |
+| 0x35 | dataLengthTooShort | Permanent | Data too short | Send complete data |
+
+#### Storage/Memory Errors (0x40-0x4F)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x40 | generalProgrammingFailure | Permanent | Flash write failed | Erase and retry |
+| 0x41 | wrongBlockSequenceCounter | Temporary | Data block out of order | Resend blocks in order |
+| 0x42 | requestBlockTransferSuspended | Temporary | Transfer paused | Resume transfer |
+| 0x43 | illegalBlockTransferType | Permanent | Invalid transfer type | Use correct type |
+| 0x44 | blockTransferDataChecksumError | Temporary | Checksum mismatch | Resend block |
+| 0x45 | requestCorrectlyReceivedButResponsePending | Temporary | Processing ongoing | Retry later |
+| 0x46 | subFunctionNotSupportedInActiveSession | Permanent | Invalid for this session | Switch sessions |
+| 0x47 | serviceNotSupportedInActiveSession | Permanent | Service not in session | Enter correct session |
+| 0x48 | addressAndDataLengthFormatIdentifierInvalid | Permanent | Format identifier invalid | Use correct format |
+| 0x49 | addressAndLengthFormatIdentifierNotSupported | Permanent | Format not supported | Use supported format |
+| 0x4A | subFunctionNotSupportedInCurrentPhysicalState | Temporary | State incompatible | Change physical state |
+| 0x4C | requestSequenceErrorOrNoProgressIndicator | Temporary | Progress indicator issue | Provide/update indicator |
+| 0x4D | requestVehicleManufacturerECUSoftwareNumber | Permanent | Invalid software number | Verify software version |
+| 0x4E | requestVehicleManufacturerECUSoftwareVersionNumber | Permanent | Invalid version format | Check version format |
+
+#### Security Errors (0x50-0x5F)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x50 | enableRxAndTx | — | Message flow enable | — |
+| 0x51 | enableRxAndDisableTx | — | Message flow control | — |
+| 0x52 | disableRxAndEnableTx | — | Message flow control | — |
+| 0x53 | disableRxAndTx | — | Message flow disable | — |
+| 0x61 | unsupportedNegativeResponseCode | Permanent | Response not supported | Use standard codes |
+| 0x62 | securityAccessRequestNumberOutOfSequence | Temporary | Auth sequence invalid | Start auth from beginning |
+| 0x63 | lengthOfSecurityAccessDataRecordTooLong | Permanent | Auth data too large | Use valid length |
+| 0x64 | authenticationFailed | Permanent | Auth verification failed | Retry with correct key |
+| 0x70 | uploadDownloadNotAccepted | Temporary | Transfer not allowed now | Retry later |
+| 0x71 | transferDataStartedWithoutRequestDownload | Permanent | Sequence error | Start with RequestDownload |
+| 0x72 | transferDataLengthDoesNotMatchLengthSpecifier | Permanent | Length mismatch | Match specified length |
+| 0x73 | transferDataStartedWithoutRequestUpload | Permanent | Sequence error | Start with RequestUpload |
+| 0x74 | requestTransferExitWithoutActiveTransfer | Permanent | No active transfer | Start transfer first |
+| 0x75 | requestTransferExitNegativeResponseNotAllowed | Permanent | Exit not allowed in error | Complete transfer properly |
+| 0x76 | requestFileDataDoesNotExist | Permanent | File not found | Check filename |
+
+#### Common Codes (0x80+)
+
+| Code | Name | Classification | Meaning | Recovery |
+|------|------|---|---------|----------|
+| 0x92 | failedToEnablRxTx | Temporary | Communication enable failed | Retry enable |
+| 0x93 | failedToDisableRxTx | Temporary | Communication disable failed | Retry disable |
+| 0x94 | failedToEnableRxAndDisableTx | Temporary | Flow control failed | Retry command |
+| 0x95 | failedToDisableRxAndEnableTx | Temporary | Flow control failed | Retry command |
+| 0x96 | failedToDisableRxAndTx | Temporary | Communication disable failed | Retry command |
+| 0xF0 | temporaryNegativeResponse | Temporary | Transient condition | Retry request |
+| 0xF1 | tempFailureServiceSpecificToUdsService | Temporary | Service-specific timeout | Retry request |
+| 0xF2 | permFailureServiceSpecificToUdsService | Permanent | Service failed | Contact manufacturer |
+
+### NRC Classification Examples
+
+**Temporary NRCs** (can recover by retrying):
+- 0x10: generalReject
+- 0x21: busyRepeatRequest
+- 0x22: conditionsNotCorrect
+- 0x24: requestSequenceError
+- 0x25: requiredTimeDelayNotExpired
+- 0x41: wrongBlockSequenceCounter
+- 0x44: blockTransferDataChecksumError
+- 0x45: requestCorrectlyReceivedButResponsePending
+- 0xF0: temporaryNegativeResponse
+
+**Permanent NRCs** (retry won't help):
+- 0x11: serviceNotSupported
+- 0x12: subFunctionNotSupported
+- 0x13: incorrectMessageLengthOrInvalidFormat
+- 0x31: requestOutOfRange
+- 0x32: securityAccessDenied
+- 0x33: invalidDataFormat
+- 0x40: generalProgrammingFailure
+- 0x62: securityAccessRequestNumberOutOfSequence
+- 0x64: authenticationFailed
+
+### NRC Handling Strategy
+
+| NRC Type | Action | Timeout | Retry |
+|----------|--------|---------|-------|
+| Temporary | Wait and retry | 100ms-1s | Yes (3-5×) |
+| Permanent | Log error | — | No |
+| Security | Check credentials | — | After delay |
+| State | Change state/session | — | Conditional |
+| Transfer | Resume transfer | Per spec | Yes |
+
+## Code Examples
+
+### Parsing UDS Message with NRC
+
+```cpp
+#include <wadjet/protocols/uds/uds.hpp>
+using namespace wadjet::protocols::uds;
+
+auto result = UdsDecoder::decode(packet_data);
+if (result) {
+    const auto& msg = result.value();
+    
+    if (msg.is_negative_response()) {
+        uint8_t nrc = msg.nrc_code();
+        std::cout << "Error: " << nrc_string(nrc) << " (" 
+                  << nrc_description(nrc) << ")\n";
+        
+        if (is_temporary_nrc(nrc)) {
+            std::cout << "Retryable - waiting...\n";
+        } else {
+            std::cout << "Fatal error\n";
+        }
+    }
+}
+```
+
+### NRC Classification
+
+```cpp
+uint8_t nrc = received_response[1];
+
+if (is_temporary_nrc(nrc)) {
+    // Implement exponential backoff
+    retry_after_delay(100ms * (1 << retry_count));
+} else if (is_security_nrc(nrc)) {
+    // Request new security key
+    perform_security_access();
+} else {
+    // Permanent error - log and abort
+    log_permanent_error(nrc);
+}
+```
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `include/wadjet/protocols/uds/uds.hpp` | Main header (includes all) |
+| `include/wadjet/protocols/uds/uds_types.hpp` | Core type definitions |
+| `include/wadjet/protocols/uds/uds_nrc.hpp` | NRC definitions and helpers |
+| `include/wadjet/protocols/uds/uds_services.hpp` | Service request/response structures |
+| `src/protocols/uds_decoder.cpp` | Decoder implementation |
+| `tests/protocols/test_uds.cpp` | Unit tests |
+
+## References
+
+- ISO 14229-1: Unified Diagnostic Services (UDS) - Part 1: Application layer
+- ISO 14229-3: UDS on CAN implementation (UDSonCAN)
+- ISO 14229-5: UDS on IP implementation (UDSonIP)
+- ISO 13400-2: DoIP transport protocol
+- ISO 15765-2: Network layer services (CAN Transport Protocol)
 ```
 
 **Positive Response Format:**
