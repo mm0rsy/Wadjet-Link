@@ -23,6 +23,81 @@ std::string SomeIpHeader::to_string() const {
     return oss.str();
 }
 
+bool SomeipTpReassembler::add_segment(std::uint32_t message_id, std::uint32_t request_id,
+                                      const SomeipTpSegment& segment,
+                                      const std::uint8_t* data, std::size_t data_size) {
+    // Validate offset is within bounds
+    if (segment.offset > MAX_MESSAGE_SIZE) {
+        return false;
+    }
+
+    // Validate segment doesn't exceed max size
+    if (segment.offset + data_size > MAX_MESSAGE_SIZE) {
+        return false;
+    }
+
+    // Create key for this message
+    auto key = std::make_pair(message_id, request_id);
+
+    // Find or create message
+    auto it = messages_.find(key);
+    if (it == messages_.end()) {
+        // First segment - initialize message
+        auto& msg = messages_[key];
+        msg.message_id = message_id;
+        msg.request_id = request_id;
+        msg.total_length = segment.offset + static_cast<std::uint32_t>(data_size);
+        msg.last_update_time = 0;  // Timestamp will be set by caller if needed
+        msg.add_segment(segment.offset, data, data_size);
+    } else {
+        // Subsequent segment - add to existing message
+        auto& msg = it->second;
+        
+        // Update total_length if this segment extends further
+        std::uint32_t segment_end = segment.offset + static_cast<std::uint32_t>(data_size);
+        if (segment_end > msg.total_length) {
+            msg.total_length = segment_end;
+        }
+        
+        msg.last_update_time = 0;  // Reset/update timestamp if needed
+        msg.add_segment(segment.offset, data, data_size);
+    }
+
+    // Check if message is complete
+    return messages_[key].is_complete();
+}
+
+const SomeipTpMessage* SomeipTpReassembler::get_message(std::uint32_t message_id, std::uint32_t request_id) const {
+    auto key = std::make_pair(message_id, request_id);
+    auto it = messages_.find(key);
+    
+    if (it != messages_.end() && it->second.is_complete()) {
+        return &it->second;
+    }
+    
+    return nullptr;
+}
+
+void SomeipTpReassembler::remove_message(std::uint32_t message_id, std::uint32_t request_id) {
+    auto key = std::make_pair(message_id, request_id);
+    messages_.erase(key);
+}
+
+void SomeipTpReassembler::cleanup_timed_out(std::uint64_t current_time_ms) {
+    // Remove messages that have exceeded the timeout
+    for (auto it = messages_.begin(); it != messages_.end();) {
+        auto& msg = it->second;
+        
+        // Check if message has timed out
+        if (current_time_ms > msg.last_update_time &&
+            (current_time_ms - msg.last_update_time) > TIMEOUT_MS) {
+            it = messages_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+}
+
 SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const {
     // Check minimum size
     if (!ctx.has_bytes(HEADER_SIZE)) {
