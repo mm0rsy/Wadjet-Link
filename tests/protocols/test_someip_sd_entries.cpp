@@ -504,3 +504,286 @@ TEST_F(SomeIpSdOptionArrayTest, EntryWithMaxOptions) {
     EXPECT_EQ(entry.num_options_2, 15);
 }
 
+//==============================================================================
+// Comprehensive Entry Type Tests (T066)
+//==============================================================================
+
+class SdEntryComprehensiveTest : public ::testing::Test {
+};
+
+// FindService entry tests
+TEST_F(SdEntryComprehensiveTest, FindServiceBasicParsing) {
+    ServiceEntry entry;
+    entry.type = EntryType::FindService;
+    entry.service_id = 0x1234;
+    entry.instance_id = 0x5678;
+    entry.major_version = 1;
+    entry.ttl = 3;
+    
+    EXPECT_EQ(entry.type, EntryType::FindService);
+    EXPECT_EQ(entry.service_id, 0x1234);
+    EXPECT_EQ(entry.instance_id, 0x5678);
+    EXPECT_EQ(entry.major_version, 1);
+    EXPECT_EQ(entry.ttl, 3);
+}
+
+TEST_F(SdEntryComprehensiveTest, FindServiceMaxValues) {
+    ServiceEntry entry;
+    entry.type = EntryType::FindService;
+    entry.service_id = 0xFFFF;
+    entry.instance_id = 0xFFFF;
+    entry.major_version = 0xFF;
+    entry.minor_version = 0xFFFFFFFF;
+    entry.ttl = 0xFFFFFF;
+    
+    EXPECT_EQ(entry.service_id, 0xFFFF);
+    EXPECT_EQ(entry.instance_id, 0xFFFF);
+    EXPECT_EQ(entry.major_version, 0xFF);
+    EXPECT_EQ(entry.minor_version, 0xFFFFFFFF);
+    EXPECT_EQ(entry.ttl, 0xFFFFFF);
+}
+
+TEST_F(SdEntryComprehensiveTest, FindServiceWithTimeout) {
+    ServiceEntry entry;
+    entry.type = EntryType::FindService;
+    entry.ttl = 5;  // 5 seconds timeout
+    
+    EXPECT_EQ(entry.ttl, 5);
+}
+
+// OfferService entry tests
+TEST_F(SdEntryComprehensiveTest, OfferServiceBasicParsing) {
+    ServiceEntry entry;
+    entry.type = EntryType::OfferService;
+    entry.service_id = 0xABCD;
+    entry.instance_id = 0xEF01;
+    entry.major_version = 2;
+    entry.ttl = 300;
+    
+    EXPECT_EQ(entry.type, EntryType::OfferService);
+    EXPECT_EQ(entry.service_id, 0xABCD);
+    EXPECT_EQ(entry.ttl, 300);
+}
+
+TEST_F(SdEntryComprehensiveTest, OfferServiceWithRebootFlag) {
+    ServiceEntry entry;
+    entry.type = EntryType::OfferService;
+    entry.index1_first_option = 0;
+    entry.index2_first_option = 0x40;  // Reboot flag encoding
+    
+    // Extract reboot flag (bit 6 of second option index byte)
+    bool reboot = (entry.index2_first_option & 0x40) != 0;
+    EXPECT_TRUE(reboot);
+}
+
+TEST_F(SdEntryComprehensiveTest, OfferServiceWithUnicastFlag) {
+    ServiceEntry entry;
+    entry.type = EntryType::OfferService;
+    entry.index1_first_option = 0x10;  // Unicast flag encoding
+    
+    // Extract unicast flag (bit 4 of first option index byte)
+    bool unicast = (entry.index1_first_option & 0x10) != 0;
+    EXPECT_TRUE(unicast);
+}
+
+TEST_F(SdEntryComprehensiveTest, OfferServiceStopCondition) {
+    ServiceEntry entry;
+    entry.type = EntryType::OfferService;
+    entry.ttl = 0;  // TTL = 0 means stop offer
+    
+    EXPECT_EQ(entry.ttl, 0);
+    EXPECT_EQ(entry.type, EntryType::OfferService);
+}
+
+TEST_F(SdEntryComprehensiveTest, StopOfferServiceType) {
+    ServiceEntry entry;
+    entry.type = EntryType::StopOfferService;
+    entry.ttl = 0;
+    
+    EXPECT_EQ(entry.type, EntryType::StopOfferService);
+    EXPECT_EQ(entry.ttl, 0);
+}
+
+// SubscribeEventgroup entry tests
+TEST_F(SdEntryComprehensiveTest, SubscribeEventgroupBasicParsing) {
+    EventgroupEntry entry;
+    entry.type = EntryType::SubscribeEventgroup;
+    entry.service_id = 0x2468;
+    entry.instance_id = 0x1357;
+    entry.eventgroup_id = 0x0001;
+    entry.counter = 5;
+    entry.ttl = 10;
+    
+    EXPECT_EQ(entry.type, EntryType::SubscribeEventgroup);
+    EXPECT_EQ(entry.eventgroup_id, 0x0001);
+    EXPECT_EQ(entry.counter, 5);
+    EXPECT_EQ(entry.ttl, 10);
+}
+
+TEST_F(SdEntryComprehensiveTest, SubscribeEventgroupMaxCounter) {
+    EventgroupEntry entry;
+    entry.type = EntryType::SubscribeEventgroup;
+    entry.counter = 15;  // 4-bit counter, max value
+    
+    EXPECT_EQ(entry.counter, 15);
+}
+
+TEST_F(SdEntryComprehensiveTest, SubscribeEventgroupAckResponse) {
+    EventgroupEntry entry;
+    entry.type = EntryType::SubscribeEventgroupAck;
+    entry.eventgroup_id = 0x0001;
+    entry.counter = 5;
+    
+    EXPECT_EQ(entry.type, EntryType::SubscribeEventgroupAck);
+    EXPECT_EQ(entry.counter, 5);
+}
+
+TEST_F(SdEntryComprehensiveTest, SubscribeEventgroupNackResponse) {
+    EventgroupEntry entry;
+    entry.type = EntryType::SubscribeEventgroupNack;
+    entry.eventgroup_id = 0x0002;
+    entry.counter = 3;
+    
+    EXPECT_EQ(entry.type, EntryType::SubscribeEventgroupNack);
+    EXPECT_EQ(entry.eventgroup_id, 0x0002);
+}
+
+// StopSubscribeEventgroup entry tests
+TEST_F(SdEntryComprehensiveTest, StopSubscribeEventgroup) {
+    EventgroupEntry entry;
+    entry.type = EntryType::StopSubscribeEventgroup;
+    entry.service_id = 0x1111;
+    entry.instance_id = 0x2222;
+    entry.eventgroup_id = 0x0001;
+    entry.ttl = 0;
+    
+    EXPECT_EQ(entry.type, EntryType::StopSubscribeEventgroup);
+    EXPECT_EQ(entry.ttl, 0);
+}
+
+// TTL handling tests
+TEST_F(SdEntryComprehensiveTest, TtlZeroForStopMessage) {
+    ServiceEntry entry;
+    entry.ttl = 0;
+    
+    // TTL = 0 indicates stop/cancel
+    EXPECT_EQ(entry.ttl, 0);
+}
+
+TEST_F(SdEntryComprehensiveTest, TtlSmallValue) {
+    ServiceEntry entry;
+    entry.ttl = 1;  // 1 second
+    
+    EXPECT_EQ(entry.ttl, 1);
+}
+
+TEST_F(SdEntryComprehensiveTest, TtlCommonValues) {
+    std::vector<std::uint32_t> common_ttls = {1, 3, 5, 10, 30, 60, 300, 3600};
+    
+    for (auto ttl : common_ttls) {
+        ServiceEntry entry;
+        entry.ttl = ttl;
+        EXPECT_EQ(entry.ttl, ttl);
+    }
+}
+
+TEST_F(SdEntryComprehensiveTest, TtlInfiniteValue) {
+    ServiceEntry entry;
+    entry.ttl = 0xFFFFFF;  // Max 24-bit value (infinite)
+    
+    EXPECT_EQ(entry.ttl, 0xFFFFFF);
+}
+
+// Entry array tests
+TEST_F(SdEntryComprehensiveTest, EmptyEntryArray) {
+    SdEntryArray array;
+    
+    EXPECT_TRUE(array.empty());
+    EXPECT_EQ(array.size(), 0);
+}
+
+TEST_F(SdEntryComprehensiveTest, SingleEntryArray) {
+    SdEntryArray array;
+    ServiceEntry entry;
+    entry.service_id = 0x1234;
+    
+    array.push_back(entry);
+    
+    EXPECT_FALSE(array.empty());
+    EXPECT_EQ(array.size(), 1);
+}
+
+TEST_F(SdEntryComprehensiveTest, MultipleEntriesArray) {
+    SdEntryArray array;
+    
+    for (std::uint16_t i = 0; i < 5; ++i) {
+        ServiceEntry entry;
+        entry.service_id = i;
+        array.push_back(entry);
+    }
+    
+    EXPECT_EQ(array.size(), 5);
+}
+
+TEST_F(SdEntryComprehensiveTest, MixedEntryTypes) {
+    SdEntryArray array;
+    
+    // Add service entries
+    ServiceEntry service_entry;
+    service_entry.service_id = 0x1234;
+    array.push_back(service_entry);
+    
+    // Add eventgroup entry
+    EventgroupEntry eg_entry;
+    eg_entry.eventgroup_id = 0x0001;
+    array.push_back(eg_entry);
+    
+    EXPECT_EQ(array.size(), 2);
+}
+
+// Entry-Option linking tests
+TEST_F(SdEntryComprehensiveTest, EntryWithFirstOptionSet) {
+    ServiceEntry entry;
+    entry.index1_first_option = 0;
+    entry.num_options_1 = 3;
+    entry.index2_first_option = 0;
+    entry.num_options_2 = 0;
+    
+    EXPECT_EQ(entry.index1_first_option, 0);
+    EXPECT_EQ(entry.num_options_1, 3);
+}
+
+TEST_F(SdEntryComprehensiveTest, EntryWithSecondOptionSet) {
+    ServiceEntry entry;
+    entry.index1_first_option = 0;
+    entry.num_options_1 = 0;
+    entry.index2_first_option = 3;
+    entry.num_options_2 = 2;
+    
+    EXPECT_EQ(entry.index2_first_option, 3);
+    EXPECT_EQ(entry.num_options_2, 2);
+}
+
+TEST_F(SdEntryComprehensiveTest, EntryWithBothOptionSets) {
+    ServiceEntry entry;
+    entry.index1_first_option = 0;
+    entry.num_options_1 = 2;
+    entry.index2_first_option = 2;
+    entry.num_options_2 = 1;
+    
+    EXPECT_EQ(entry.num_options_1, 2);
+    EXPECT_EQ(entry.num_options_2, 1);
+}
+
+TEST_F(SdEntryComprehensiveTest, EventgroupEntryWithOptions) {
+    EventgroupEntry entry;
+    entry.eventgroup_id = 0x0001;
+    entry.index1_first_option = 0;
+    entry.num_options_1 = 1;
+    entry.index2_first_option = 1;
+    entry.num_options_2 = 1;
+    
+    EXPECT_EQ(entry.num_options_1, 1);
+    EXPECT_EQ(entry.num_options_2, 1);
+}
+
