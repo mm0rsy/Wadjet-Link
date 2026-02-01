@@ -209,7 +209,7 @@ After remediation tasks R001-R010 are complete:
 
 ---
 
-## Phase 6: User Story 4 - SOME/IP Message Segmentation (Priority: P1) 🎯
+## Phase 6: User Story 4 - SOME/IP Message Segmentation (Priority: P1) ✅ COMPLETE
 
 **Goal**: SOME/IP-TP (Transport Protocol) support for large message segmentation up to 16 MB
 
@@ -219,19 +219,19 @@ After remediation tasks R001-R010 are complete:
 
 - [x] T056 [P] [US4] Create tests/protocols/test_someip_tp.cpp with 25 tests (TP header parsing, multi-segment reassembly, more_segments flag, offset validation, timeout handling, 16MB max size, out-of-order segments) - ✅ 20 tests created
 - [x] T057 [P] [US4] Create pcap_samples/protocol-completeness/someip_tp_large.pcap with real TP segmented messages
-- [ ] T058 [P] [US4] Add SOME/IP message length validation tests to tests/protocols/test_someip.cpp (5 tests)
+- [x] T058 [P] [US4] Add SOME/IP message length validation tests to tests/protocols/test_decoders.cpp (5 tests) - ✅ 5 tests added
 
 ### Implementation for User Story 4
 
 - [x] T059 [P] [US4] Add SomeipTpMessage struct to include/wadjet/protocols/someip.hpp for reassembly state with 16MB max message size
 - [x] T060 [P] [US4] Add TP message type to SomeipMessageType enum in include/wadjet/protocols/someip.hpp - Added TP_FLAG constants
-- [ ] T061 [US4] Create SomeipTpReassembler class in src/protocols/someip.cpp with segment buffering and 5s timeout
-- [ ] T062 [US4] Implement TP header parsing (offset, more_segments flag) in src/protocols/someip.cpp
-- [ ] T063 [US4] Add 5-second timeout for incomplete TP messages in SomeipTpReassembler per AUTOSAR PRS_SOMEIP_00191
-- [ ] T064 [US4] Update SomeipDecoder to detect TP messages and delegate to reassembler in src/protocols/someip.cpp
-- [ ] T065 [US4] Add SOME/IP message length field validation in SomeipDecoder
+- [x] T061 [US4] Create SomeipTpReassembler class in src/protocols/someip.cpp with segment buffering and 5s timeout - ✅ Full implementation with add_segment, get_message, remove_message, cleanup_timed_out
+- [x] T062 [US4] Implement TP header parsing (offset, more_segments flag) in src/protocols/someip.cpp - ✅ SomeipTpSegment::parse() parses TP header correctly
+- [x] T063 [US4] Add 5-second timeout for incomplete TP messages in SomeipTpReassembler per AUTOSAR PRS_SOMEIP_00191 - ✅ TIMEOUT_MS = 5000, cleanup_timed_out() implemented
+- [x] T064 [US4] Update SomeipDecoder to detect TP messages and delegate to reassembler in src/protocols/someip.cpp - ✅ TP flag detection, segment reassembly integration
+- [x] T065 [US4] Add SOME/IP message length field validation in SomeipDecoder - ✅ Comprehensive length validation with TP-specific checks
 
-**Checkpoint**: SOME/IP-TP segmentation - tests & structures created, reassembler implementation pending (445/457 tests passing)
+**Checkpoint**: SOME/IP-TP segmentation COMPLETE - Full implementation with reassembly, timeout handling, and validation (449/461 tests passing, 12 skipped)
 
 ---
 
