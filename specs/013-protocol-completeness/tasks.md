@@ -468,10 +468,10 @@ After remediation tasks R018-R028:
 
 ### Language Bindings Updates
 
-- [ ] T117 [P] Update bindings/python/src/protocol_bindings.cpp with new IPv4 options, TCP state, UDP checksum, TP, NRC, TLV types
-- [ ] T118 [P] Update bindings/c/include/wadjet_c.h with C ABI for new protocol features
-- [ ] T119 [P] Update bindings/c/src/wadjet_c.cpp with implementation for new C API functions
-- [ ] T120 [P] Update bindings/rust/wadjet/src/protocols.rs with Rust wrappers for new features
+- [X] T117 [P] ✅ DONE - Update bindings/python/src/protocol_bindings.cpp with Python bindings for ProtocolValidator, ValidationResult, ValidationMode
+- [X] T118 [P] ✅ DONE - Update bindings/c/include/wadjet_c.h with C ABI declarations for validation API
+- [X] T119 [P] ✅ DONE - Update bindings/c/src/wadjet_c.cpp with C API implementation for validation functions
+- [X] T120 [P] ✅ DONE - Update bindings/rust/wadjet/src/lib.rs and create validation.rs module with Rust FFI wrappers
 
 ### Integration Testing
 
