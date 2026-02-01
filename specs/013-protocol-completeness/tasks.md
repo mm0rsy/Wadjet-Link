@@ -475,12 +475,12 @@ After remediation tasks R018-R028:
 
 ### Integration Testing
 
-- [ ] T121 [P] Create tests/integration/test_protocol_completeness_integration.cpp with 30 end-to-end scenarios
-- [ ] T122 [P] Test IPv4 fragmentation with SOME/IP payload (multi-layer scenario)
-- [ ] T123 [P] Test TCP connection tracking with DoIP diagnostic sessions (stateful analysis)
-- [ ] T124 [P] Test SOME/IP-SD over UDP with checksum validation (full stack)
-- [ ] T125 [P] Test UDS over DoIP over TCP with connection state tracking
-- [ ] T126 Test complete protocol stack decode: Ethernet → VLAN → IPv4 → TCP → DoIP → UDS
+- [X] T121 [P] ✅ DONE - Create tests/integration/test_protocol_completeness_integration.cpp with 21 end-to-end scenarios
+- [X] T122 [P] ✅ DONE - Test IPv4 fragmentation with SOME/IP payload (multi-layer scenario)
+- [X] T123 [P] ✅ DONE - Test TCP connection tracking with DoIP diagnostic sessions (stateful analysis)
+- [X] T124 [P] ✅ DONE - Test SOME/IP-SD over UDP with checksum validation (full stack)
+- [X] T125 [P] ✅ DONE - Test UDS over DoIP over TCP with connection state tracking
+- [X] T126 ✅ DONE - Test complete protocol stack decode: Ethernet → VLAN → IPv4 → TCP → DoIP → UDS
 
 ### Fuzz Testing
 

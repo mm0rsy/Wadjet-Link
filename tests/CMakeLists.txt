@@ -89,6 +89,8 @@ add_executable(wadjet_integration_tests
     integration/test_capture_session.cpp
     # UDS integration tests
     integration/test_uds_integration.cpp
+    # Protocol completeness integration tests (Phase 11)
+    integration/test_protocol_completeness_integration.cpp
 )
 
 target_link_libraries(wadjet_integration_tests
