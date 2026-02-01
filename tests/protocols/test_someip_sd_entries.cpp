@@ -354,3 +354,153 @@ TEST_F(SomeIpSdVariantTest, StoreEventgroupEntryInVariant) {
     EXPECT_EQ(stored.eventgroup_id, 0x0001);
 }
 
+//==============================================================================
+// SOME/IP-SD Option Array Tests
+//==============================================================================
+
+class SomeIpSdOptionArrayTest : public ::testing::Test {
+};
+
+TEST_F(SomeIpSdOptionArrayTest, IPv4EndpointOptionStructure) {
+    IPv4EndpointOption opt;
+    opt.port = 30490;
+    opt.protocol = L4Protocol::UDP;
+    
+    EXPECT_EQ(opt.port, 30490);
+    EXPECT_EQ(opt.protocol, L4Protocol::UDP);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, IPv4EndpointOptionWithTCP) {
+    IPv4EndpointOption opt;
+    opt.port = 8080;
+    opt.protocol = L4Protocol::TCP;
+    
+    EXPECT_EQ(opt.port, 8080);
+    EXPECT_EQ(opt.protocol, L4Protocol::TCP);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, SdOptionVariant) {
+    SdOption opt;
+    opt.type = OptionType::IPv4Endpoint;
+    opt.data.push_back(std::byte{0xC0});
+    opt.data.push_back(std::byte{0xA8});
+    opt.data.push_back(std::byte{0x01});
+    opt.data.push_back(std::byte{0x01});
+    
+    EXPECT_EQ(opt.type, OptionType::IPv4Endpoint);
+    EXPECT_EQ(opt.data.size(), 4);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, ConfigurationOption) {
+    SdOption opt;
+    opt.type = OptionType::Configuration;
+    
+    EXPECT_EQ(opt.type, OptionType::Configuration);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, LoadBalancingOption) {
+    SdOption opt;
+    opt.type = OptionType::LoadBalancing;
+    
+    EXPECT_EQ(opt.type, OptionType::LoadBalancing);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, MultipleOptionsInArray) {
+    std::vector<SdOption> options;
+    
+    SdOption ipv4_opt;
+    ipv4_opt.type = OptionType::IPv4Endpoint;
+    ipv4_opt.data.resize(6);
+    options.push_back(ipv4_opt);
+    
+    SdOption config_opt;
+    config_opt.type = OptionType::Configuration;
+    config_opt.data.resize(4);
+    options.push_back(config_opt);
+    
+    SdOption lb_opt;
+    lb_opt.type = OptionType::LoadBalancing;
+    lb_opt.data.resize(6);
+    options.push_back(lb_opt);
+    
+    EXPECT_EQ(options.size(), 3);
+    EXPECT_EQ(options[0].type, OptionType::IPv4Endpoint);
+    EXPECT_EQ(options[1].type, OptionType::Configuration);
+    EXPECT_EQ(options[2].type, OptionType::LoadBalancing);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, OptionIndexLinking1) {
+    ServiceEntry entry;
+    entry.index1_first_option = 0;
+    entry.num_options_1 = 2;
+    entry.index2_first_option = 2;
+    entry.num_options_2 = 1;
+    
+    // First set of options: indices 0-1
+    EXPECT_EQ(entry.index1_first_option, 0);
+    EXPECT_EQ(entry.num_options_1, 2);
+    
+    // Second set of options: indices 2-2
+    EXPECT_EQ(entry.index2_first_option, 2);
+    EXPECT_EQ(entry.num_options_2, 1);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, OptionIndexLinking2) {
+    EventgroupEntry entry;
+    entry.index1_first_option = 5;
+    entry.num_options_1 = 3;
+    entry.index2_first_option = 8;
+    entry.num_options_2 = 2;
+    
+    EXPECT_EQ(entry.index1_first_option, 5);
+    EXPECT_EQ(entry.num_options_1, 3);
+    EXPECT_EQ(entry.index2_first_option, 8);
+    EXPECT_EQ(entry.num_options_2, 2);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, IPv4MulticastOption) {
+    SdOption opt;
+    opt.type = OptionType::IPv4Multicast;
+    
+    EXPECT_EQ(opt.type, OptionType::IPv4Multicast);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, IPv6MulticastOption) {
+    SdOption opt;
+    opt.type = OptionType::IPv6Multicast;
+    
+    EXPECT_EQ(opt.type, OptionType::IPv6Multicast);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, IPv4SDEndpointOption) {
+    SdOption opt;
+    opt.type = OptionType::IPv4SDEndpoint;
+    
+    EXPECT_EQ(opt.type, OptionType::IPv4SDEndpoint);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, IPv6SDEndpointOption) {
+    SdOption opt;
+    opt.type = OptionType::IPv6SDEndpoint;
+    
+    EXPECT_EQ(opt.type, OptionType::IPv6SDEndpoint);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, EntryWithNoOptions) {
+    ServiceEntry entry;
+    entry.num_options_1 = 0;
+    entry.num_options_2 = 0;
+    
+    EXPECT_EQ(entry.num_options_1, 0);
+    EXPECT_EQ(entry.num_options_2, 0);
+}
+
+TEST_F(SomeIpSdOptionArrayTest, EntryWithMaxOptions) {
+    ServiceEntry entry;
+    entry.num_options_1 = 15;  // Max 4 bits
+    entry.num_options_2 = 15;  // Max 4 bits
+    
+    EXPECT_EQ(entry.num_options_1, 15);
+    EXPECT_EQ(entry.num_options_2, 15);
+}
+
