@@ -219,16 +219,16 @@ public:
     /// @brief Decode SOME/IP-SD content
     [[nodiscard]] Result decode_impl(const DecodeContext& ctx) const;
 
-private:
-    /// @brief Parse entry from data
+    /// @brief Parse entry from data (public for helper functions)
     [[nodiscard]] static std::optional<SdEntry> parse_entry(const DecodeContext& ctx,
                                                             std::size_t offset);
 
-    /// @brief Parse option from data
+    /// @brief Parse option from data (public for helper functions)
     [[nodiscard]] static std::optional<SdOption> parse_option(const DecodeContext& ctx,
                                                               std::size_t offset,
                                                               std::size_t& consumed);
 
+private:
     Options options_;
 };
 
@@ -236,6 +236,56 @@ private:
 inline const SomeIpSdDecoder& someip_sd_decoder() {
     static SomeIpSdDecoder decoder;
     return decoder;
+}
+
+// ============================================================================
+// Helper Functions for Entry/Option Parsing
+// ============================================================================
+
+/// @brief Helper function to parse entries from binary data
+/// @param data Span of binary entry data (multiple 16-byte entries)
+/// @param num_entries Number of entries to parse
+/// @return Vector of parsed SD entries
+[[nodiscard]] inline SdEntryArray parse_sd_entries(std::span<const std::byte> data,
+                                                   std::size_t num_entries) {
+    SdEntryArray result;
+    DecodeContext ctx;
+    ctx.data = data;
+    ctx.original_offset = 0;
+
+    for (std::size_t i = 0; i < num_entries && i * ENTRY_SIZE < data.size(); ++i) {
+        if (auto entry = SomeIpSdDecoder::parse_entry(ctx, i * ENTRY_SIZE)) {
+            result.push_back(*entry);
+        }
+    }
+    return result;
+}
+
+/// @brief Helper function to parse options from binary data
+/// @param data Span of binary option data
+/// @param num_options Maximum number of options to parse
+/// @return Vector of parsed SD options
+[[nodiscard]] inline SdOptionArray parse_sd_options(std::span<const std::byte> data,
+                                                    std::size_t num_options = 1000) {
+    SdOptionArray result;
+    DecodeContext ctx;
+    ctx.data = data;
+    ctx.original_offset = 0;
+
+    std::size_t offset = 0;
+    std::size_t count = 0;
+    while (offset < data.size() && count < num_options) {
+        std::size_t consumed = 0;
+        if (auto opt = SomeIpSdDecoder::parse_option(ctx, offset, consumed)) {
+            result.push_back(*opt);
+        }
+        if (consumed == 0) {
+            break;
+        }
+        offset += consumed;
+        ++count;
+    }
+    return result;
 }
 
 }  // namespace wadjet::protocols::someip_sd
