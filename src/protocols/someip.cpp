@@ -138,7 +138,8 @@ SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const
     header.interface_version = static_cast<std::uint8_t>(ctx.data[13]);
 
     // Message type (byte 14)
-    header.message_type = static_cast<MessageType>(static_cast<std::uint8_t>(ctx.data[14]));
+    std::uint8_t message_type_byte = static_cast<std::uint8_t>(ctx.data[14]);
+    header.message_type = static_cast<MessageType>(message_type_byte);
 
     // Return code (byte 15)
     header.return_code = static_cast<ReturnCode>(static_cast<std::uint8_t>(ctx.data[15]));
@@ -147,6 +148,31 @@ SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const
     if (header.length < 8) {
         return make_error(DecodeErrorCode::InvalidLength,
                           "SOME/IP length too small: " + std::to_string(header.length));
+    }
+
+    // Check for TP flag (0x20) in message type byte
+    if (options_.enable_tp_reassembly && (message_type_byte & TP_FLAG) != 0) {
+        // This is a TP message - check if we have the TP header (4 bytes)
+        if (!ctx.has_bytes(HEADER_SIZE + 4)) {
+            return make_error(DecodeErrorCode::BufferTooSmall, "SOME/IP-TP header too small");
+        }
+
+        // Parse TP header
+        SomeipTpSegment tp_segment = SomeipTpSegment::parse(ctx.data.data() + HEADER_SIZE);
+
+        // Get message IDs
+        std::uint32_t message_id = (static_cast<std::uint32_t>(header.service_id) << 16) |
+                                   static_cast<std::uint32_t>(header.method_id);
+        std::uint32_t request_id = (static_cast<std::uint32_t>(header.client_id) << 16) |
+                                   static_cast<std::uint32_t>(header.session_id);
+
+        // Get payload (skip SOME/IP header + TP header)
+        const std::uint8_t* payload = reinterpret_cast<const std::uint8_t*>(ctx.data.data()) + HEADER_SIZE + 4;
+        std::size_t payload_size = header.length > 12 ? header.length - 12 : 0;
+
+        // Add segment to reassembler
+        [[maybe_unused]] bool complete = tp_reassembler_.add_segment(message_id, request_id, tp_segment, payload, payload_size);
+        // Note: complete flag indicates if the message is fully reassembled
     }
 
     // Create context for payload

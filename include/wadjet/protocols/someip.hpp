@@ -285,7 +285,8 @@ public:
     struct Options {
         bool validate_protocol_version;  ///< Check protocol version is 1
         bool allow_invalid_version;      ///< Continue even if version invalid
-        Options() : validate_protocol_version(true), allow_invalid_version(false) {}
+        bool enable_tp_reassembly;       ///< Enable SOME/IP-TP message reassembly
+        Options() : validate_protocol_version(true), allow_invalid_version(false), enable_tp_reassembly(true) {}
     };
 
     explicit SomeIpDecoder(Options opts = Options()) : options_(opts) {}
@@ -303,6 +304,7 @@ public:
 
 private:
     Options options_;
+    mutable SomeipTpReassembler tp_reassembler_;  ///< TP message reassembler (mutable for const decode)
 };
 
 /// @brief Global SOME/IP decoder instance
