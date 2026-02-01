@@ -193,19 +193,19 @@ After remediation tasks R001-R010 are complete:
 
 ### Tests for User Story 3 (Write FIRST)
 
-- [ ] T048 [P] [US3] Create tests/protocols/test_udp_checksum.cpp with 10 tests (valid checksum, invalid checksum, zero checksum for IPv4, warning-only mode, strict mode, disabled mode)
-- [ ] T049 [P] [US3] Create pcap_samples/protocol-completeness/udp_checksum_valid.pcap
-- [ ] T050 [P] [US3] Create pcap_samples/protocol-completeness/udp_checksum_invalid.pcap (synthetic corrupted packets)
+- [x] T048 [P] [US3] Create tests/protocols/test_udp_checksum.cpp with 10 tests (valid checksum, invalid checksum, zero checksum for IPv4, warning-only mode, strict mode, disabled mode)
+- [x] T049 [P] [US3] Create pcap_samples/protocol-completeness/udp_checksum_valid.pcap
+- [x] T050 [P] [US3] Create pcap_samples/protocol-completeness/udp_checksum_invalid.pcap (synthetic corrupted packets)
 
 ### Implementation for User Story 3
 
-- [ ] T051 [P] [US3] Add UdpChecksumValidator class to include/wadjet/protocols/udp.hpp with validation modes (strict/warning/disabled)
-- [ ] T052 [US3] Implement UDP checksum calculation in src/protocols/udp.cpp using IPv4 pseudo-header
-- [ ] T053 [US3] Add checksum validation flag to UdpDecoder::decode() in src/protocols/udp.cpp with warning-only mode as default
-- [ ] T054 [US3] Handle UDP zero checksum case (allowed for IPv4, forbidden for IPv6) in src/protocols/udp.cpp
-- [ ] T055 [US3] Add checksum validation result to UdpHeader struct in include/wadjet/protocols/udp.hpp
+- [x] T051 [P] [US3] Add UdpChecksumValidator class to include/wadjet/protocols/udp.hpp with validation modes (strict/warning/disabled)
+- [x] T052 [US3] Implement UDP checksum calculation in src/protocols/udp.cpp using IPv4 pseudo-header
+- [x] T053 [US3] Add checksum validation flag to UdpDecoder::decode() in src/protocols/udp.cpp with warning-only mode as default
+- [x] T054 [US3] Handle UDP zero checksum case (allowed for IPv4, forbidden for IPv6) in src/protocols/udp.cpp
+- [x] T055 [US3] Add checksum validation result to UdpHeader struct in include/wadjet/protocols/udp.hpp
 
-**Checkpoint**: UDP checksum validation working with all edge cases and configurable modes
+**Checkpoint**: UDP checksum validation working with all edge cases and configurable modes ✅ COMPLETE (9 new tests: 425/437 passing)
 
 ---
 
