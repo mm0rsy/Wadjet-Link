@@ -56,6 +56,10 @@ add_executable(wadjet_tests
     protocols/test_udp_checksum.cpp
     # SOME/IP-TP tests (Phase 6)
     protocols/test_someip_tp.cpp
+    # SOME/IP-SD tests (Phase 7)
+    protocols/test_someip_sd_entries.cpp
+    # DoIP Power Mode tests (Phase 8)
+    protocols/test_doip_power.cpp
 )
 
 target_link_libraries(wadjet_tests
