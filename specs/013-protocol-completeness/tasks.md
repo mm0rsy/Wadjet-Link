@@ -436,21 +436,21 @@ After remediation tasks R018-R028:
 ### Tests for User Story 8 (Write FIRST)
 
 - [X] T101 [P] [US8] ✅ PARTIALLY DONE - 14 gPTP TLV tests added in test_gptp.cpp during Phase 8.1 (GptpRateRatioTest, GptpTlvTypeTest, GptpFollowUpTlvTest, GptpPathTraceTlvTest, GptpTlvConstantsTest)
-- [ ] T102 [P] [US8] Create pcap_samples/protocol-completeness/gptp_tlv_rich.pcap with all TLV types
+- [X] T102 [P] [US8] ✅ DONE - Created pcap_samples/protocol-completeness/gptp_tlv_rich.pcap with all TLV types (7 packets: Follow_Up with rate offsets, Announce with path traces, multiple TLVs)
 
 ### Implementation for User Story 8
 
 - [X] T103 [P] [US8] ✅ ALREADY DONE - `TlvType` enum in `gptp_types.hpp` with 15+ types (ORGANIZATION_EXTENSION, PATH_TRACE, OrganizationExtensionPropagate, CumulativeScaledRateOffset, etc.)
 - [X] T104 [P] [US8] ✅ ALREADY DONE - `FollowUpTlv` struct in `gptp_messages.hpp` with `cumulative_scaled_rate_offset`, `gm_time_base_indicator`
 - [X] T105 [P] [US8] ✅ ALREADY DONE - `Tlv` generic struct in `gptp_messages.hpp` (Organization Extension uses generic Tlv + FollowUpTlv specialization)
-- [ ] T106 [P] [US8] Add GptpTlv variant type to include/wadjet/protocols/gptp.hpp (for polymorphic TLV handling)
-- [ ] T107 [US8] Implement parseGptpTlv() in src/protocols/gptp_decoder.cpp with TLV length validation
-- [ ] T108 [US8] Implement FollowUpTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
-- [ ] T109 [US8] Implement PathTraceTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
-- [ ] T110 [US8] Add unknown TLV handling with graceful fallback (log warning, skip TLV, continue parsing) in src/protocols/gptp_decoder.cpp
-- [ ] T111 [US8] Update GptpDecoder to parse TLV arrays in Announce and Follow_Up messages in src/protocols/gptp_decoder.cpp
+- [ ] T106 [P] [US8] Add GptpTlv variant type to include/wadjet/protocols/gptp.hpp (for polymorphic TLV handling) - OPTIONAL
+- [X] T107 [US8] ✅ DONE - Implement parseGptpTlv() in src/protocols/gptp_decoder.cpp with TLV length validation (Tlv::parse function)
+- [X] T108 [US8] ✅ DONE - Implement FollowUpTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
+- [X] T109 [US8] ✅ DONE - Implement PathTraceTlv::parse() in src/protocols/gptp_decoder.cpp (declared but not implemented)
+- [X] T110 [US8] ✅ DONE - Add unknown TLV handling with graceful fallback (log warning, skip TLV, continue parsing) in src/protocols/gptp_decoder.cpp
+- [X] T111 [US8] ✅ DONE - Update GptpDecoder to parse TLV arrays in Announce and Follow_Up messages in src/protocols/gptp_decoder.cpp
 
-**Checkpoint**: gPTP TLV parsing - data structures ✅ DONE, parse functions still needed (T107-T111)
+**Checkpoint**: gPTP TLV parsing - data structures ✅ DONE, parse functions ✅ DONE (T107-T111), PCAP samples ✅ DONE (T102)
 
 ---
 
