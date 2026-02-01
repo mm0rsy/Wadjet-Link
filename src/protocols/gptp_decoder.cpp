@@ -73,6 +73,36 @@ namespace {
 
 }  // anonymous namespace
 
+/// @brief Parse TLV array with unknown TLV handling
+/// @param ptr Pointer to TLV data
+/// @param remaining Bytes remaining in buffer
+/// @return Vector of parsed TLVs
+static std::vector<Tlv> parse_tlv_array(const std::byte* ptr, std::size_t remaining) {
+    std::vector<Tlv> tlvs;
+
+    while (remaining >= TLV_HEADER_SIZE) {
+        auto result = Tlv::parse(ptr, remaining);
+
+        if (!result) {
+            // Incomplete TLV - log warning and stop
+            // Could add logging here if needed
+            break;
+        }
+
+        auto [tlv, bytes_consumed] = result.value();
+
+        // Handle unknown TLV types with graceful fallback
+        // Unknown TLVs are still stored but their specific meaning is not interpreted
+        tlvs.push_back(tlv);
+
+        // Move to next TLV
+        ptr += bytes_consumed;
+        remaining -= bytes_consumed;
+    }
+
+    return tlvs;
+}
+
 // GptpHeader::to_string implementation
 std::string GptpHeader::to_string() const {
     std::ostringstream oss;
@@ -202,7 +232,29 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
             }
             FollowUpMessage follow_up;
             follow_up.precise_origin_timestamp = read_timestamp(data);
-            // TLV parsing can be added later if needed
+
+            // Parse TLVs after the timestamp (10 bytes body + any additional TLVs)
+            if (len > FOLLOW_UP_MESSAGE_SIZE) {
+                const std::byte* tlv_data = data + FOLLOW_UP_MESSAGE_SIZE;
+                std::size_t tlv_remaining = len - FOLLOW_UP_MESSAGE_SIZE;
+
+                // Parse TLV array
+                auto tlvs = parse_tlv_array(tlv_data, tlv_remaining);
+
+                // Extract Follow_Up info TLV if present
+                for (const auto& tlv : tlvs) {
+                    if (tlv.type == TlvType::ORGANIZATION_EXTENSION) {
+                        if (auto fu_tlv = FollowUpTlv::parse(tlv.value)) {
+                            follow_up.follow_up_info = fu_tlv.value();
+                        }
+                    } else if (tlv.type != TlvType::Management && 
+                               tlv.type != TlvType::ManagementErrorStatus) {
+                        // Store other TLVs
+                        follow_up.tlvs.push_back(tlv);
+                    }
+                }
+            }
+
             return follow_up;
         }
 
@@ -255,6 +307,28 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
             announce.grandmaster_identity = read_clock_identity(data + 19);
             announce.steps_removed = read_be16(data + 27);
             announce.time_source = static_cast<TimeSource>(data[29]);
+
+            // Parse TLVs after the body (30 bytes body + any additional TLVs)
+            if (len > ANNOUNCE_MESSAGE_SIZE) {
+                const std::byte* tlv_data = data + ANNOUNCE_MESSAGE_SIZE;
+                std::size_t tlv_remaining = len - ANNOUNCE_MESSAGE_SIZE;
+
+                // Parse TLV array
+                auto tlvs = parse_tlv_array(tlv_data, tlv_remaining);
+
+                // Extract Path Trace TLV if present
+                for (const auto& tlv : tlvs) {
+                    if (tlv.type == TlvType::PATH_TRACE) {
+                        if (auto path_trace = PathTraceTlv::parse(tlv.value)) {
+                            announce.path_trace = path_trace.value();
+                        }
+                    } else {
+                        // Store other TLVs
+                        announce.tlvs.push_back(tlv);
+                    }
+                }
+            }
+
             return announce;
         }
 
