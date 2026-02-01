@@ -57,6 +57,7 @@ add_library(wadjet
     protocols/gptp_decoder.cpp
     protocols/dds/rtps_decoder.cpp
     protocols/dispatcher.cpp
+    protocols/validation.cpp
     
     # Common protocol utilities
     protocols/common/timeout_manager.cpp

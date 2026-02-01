@@ -61,6 +61,8 @@ add_executable(wadjet_tests
     protocols/test_someip_sd.cpp
     # DoIP Power Mode tests (Phase 8)
     protocols/test_doip_power.cpp
+    # Protocol Validation tests (Phase 11)
+    protocols/test_protocol_validation.cpp
 )
 
 target_link_libraries(wadjet_tests
