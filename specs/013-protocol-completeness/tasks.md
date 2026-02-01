@@ -243,21 +243,21 @@ After remediation tasks R001-R010 are complete:
 
 ### Tests for User Story 5 (Write FIRST)
 
-- [ ] T066 [P] [US5] Create tests/protocols/test_someip_sd_entries.cpp with 30 tests (all entry types: FindService, OfferService, SubscribeEventgroup, StopSubscribe; entry arrays; TTL handling; Reboot/Unicast flags)
-- [ ] T067 [P] [US5] Add SD option array tests to tests/protocols/test_someip_sd.cpp (15 tests for IPv4 Endpoint, Multicast, SD Endpoint, Configuration, LoadBalancing options with Index1/Index2/NumOpt1/NumOpt2 linking)
-- [ ] T068 [P] [US5] Create pcap_samples/protocol-completeness/someip_sd_complex.pcap with multi-entry/option messages
+- [X] T066 [P] [US5] Create tests/protocols/test_someip_sd_entries.cpp with 30 tests (all entry types: FindService, OfferService, SubscribeEventgroup, StopSubscribe; entry arrays; TTL handling; Reboot/Unicast flags)
+- [X] T067 [P] [US5] Add SD option array tests to tests/protocols/test_someip_sd.cpp (15 tests for IPv4 Endpoint, Multicast, SD Endpoint, Configuration, LoadBalancing options with Index1/Index2/NumOpt1/NumOpt2 linking)
+- [X] T068 [P] [US5] Create pcap_samples/protocol-completeness/someip_sd_complex.pcap with multi-entry/option messages
 
 ### Implementation for User Story 5
 
-- [ ] T069 [P] [US5] Add all SD entry types to include/wadjet/protocols/someip_sd.hpp (FindService, OfferService, SubscribeEventgroup, StopSubscribeEventgroup)
-- [ ] T070 [P] [US5] Add all SD option types to include/wadjet/protocols/someip_sd.hpp (Configuration, LoadBalancing, IPv4Endpoint, IPv4Multicast, IPv4SdEndpoint)
-- [ ] T071 [P] [US5] Add SdEntryArray struct to include/wadjet/protocols/someip_sd.hpp
-- [ ] T072 [P] [US5] Add SdOptionArray struct to include/wadjet/protocols/someip_sd.hpp
-- [ ] T073 [US5] Implement parseSdEntries() in src/protocols/someip_sd.cpp with entry count validation
-- [ ] T074 [US5] Implement parseSdOptions() in src/protocols/someip_sd.cpp with option linking logic (Index1, Index2, NumOpt1, NumOpt2)
-- [ ] T075 [US5] Add SD Reboot and Unicast flag parsing in src/protocols/someip_sd.cpp
-- [ ] T076 [US5] Implement SD TTL field handling (0 = StopOffer/Unsubscribe, 0xFFFFFF = infinite) in src/protocols/someip_sd.cpp
-- [ ] T077 [US5] Update SomeipSdDecoder to validate entry/option counts match in src/protocols/someip_sd.cpp
+- [X] T069 [P] [US5] Add all SD entry types to include/wadjet/protocols/someip_sd.hpp (FindService, OfferService, SubscribeEventgroup, StopSubscribeEventgroup)
+- [X] T070 [P] [US5] Add all SD option types to include/wadjet/protocols/someip_sd.hpp (Configuration, LoadBalancing, IPv4Endpoint, IPv4Multicast, IPv4SdEndpoint)
+- [X] T071 [P] [US5] Add SdEntryArray struct to include/wadjet/protocols/someip_sd.hpp
+- [X] T072 [P] [US5] Add SdOptionArray struct to include/wadjet/protocols/someip_sd.hpp
+- [X] T073 [US5] Implement parseSdEntries() in src/protocols/someip_sd.cpp with entry count validation
+- [X] T074 [US5] Implement parseSdOptions() in src/protocols/someip_sd.cpp with option linking logic (Index1, Index2, NumOpt1, NumOpt2)
+- [X] T075 [US5] Add SD Reboot and Unicast flag parsing in src/protocols/someip_sd.cpp
+- [X] T076 [US5] Implement SD TTL field handling (0 = StopOffer/Unsubscribe, 0xFFFFFF = infinite) in src/protocols/someip_sd.cpp
+- [X] T077 [US5] Update SomeipSdDecoder to validate entry/option counts match in src/protocols/someip_sd.cpp
 
 **Checkpoint**: SOME/IP-SD entry/option parsing complete - all types supported with proper validation
 
