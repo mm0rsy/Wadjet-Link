@@ -101,8 +101,8 @@ Complete all protocol implementations to 100% specification compliance. This mil
 - [X] T034 [P] [US2] Create tests/protocols/test_tcp_state.cpp with 30 tests for all TCP states (CLOSED, SYN_SENT, ESTABLISHED, FIN_WAIT, TIME_WAIT, connection timeout, out-of-order buffering)
 - [X] T035 [P] [US2] Create tests/protocols/test_tcp_options.cpp with 15 tests for all TCP options (MSS, Window Scale, SACK, Timestamps, NOP, EOL)
 - [X] T036 [P] [US2] Add TCP retransmission detection tests to tests/protocols/test_tcp.cpp (20 tests for duplicate packets, sequence number validation)
-- [ ] T037 [P] [US2] Create pcap_samples/protocol-completeness/tcp_handshake.pcap with complete 3-way handshake
-- [ ] T038 [P] [US2] Create pcap_samples/protocol-completeness/tcp_teardown.pcap with FIN/ACK teardown
+- [X] T037 [P] [US2] Create pcap_samples/protocol-completeness/tcp_handshake.pcap with complete 3-way handshake
+- [X] T038 [P] [US2] Create pcap_samples/protocol-completeness/tcp_teardown.pcap with FIN/ACK teardown
 
 ### Implementation for User Story 2
 
@@ -155,8 +155,8 @@ Complete all protocol implementations to 100% specification compliance. This mil
 
 ### Phase 4 TCP PCAP Samples (Deferred but Documented)
 
-- [ ] R011 [OPTIONAL] Create `pcap_samples/protocol-completeness/tcp_handshake.pcap`
-- [ ] R012 [OPTIONAL] Create `pcap_samples/protocol-completeness/tcp_teardown.pcap`
+- [X] R011 [OPTIONAL] Create `pcap_samples/protocol-completeness/tcp_handshake.pcap`
+- [X] R012 [OPTIONAL] Create `pcap_samples/protocol-completeness/tcp_teardown.pcap`
 
 ### Verification Checklist
 
