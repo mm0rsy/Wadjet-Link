@@ -102,6 +102,13 @@ enum class DiagnosticNackCode : std::uint8_t {
     TransportProtocolError = 0x08,
 };
 
+/// @brief DoIP power mode states (ISO 13400-2)
+enum class PowerMode : std::uint8_t {
+    Ready = 0x00,          ///< ECU is ready for diagnostics
+    NotReady = 0x01,       ///< ECU is not ready (e.g., booting, busy)
+    NotSupported = 0x02,   ///< Power mode not supported by ECU
+};
+
 /// @brief VIN (Vehicle Identification Number) - 17 characters
 using VIN = std::array<char, 17>;
 
