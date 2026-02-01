@@ -72,6 +72,7 @@ struct IPv4Header : public IDecodedHeader {
         LOOSE_SOURCE_ROUTE = 131,
         STREAM_ID = 136,
         STRICT_SOURCE_ROUTE = 137,
+        ROUTER_ALERT = 148,  ///< Router Alert (RFC 2113)
     };
 
     /// Result of parsing IPv4 options
