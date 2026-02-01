@@ -1,5 +1,4 @@
 #include "wadjet/protocols/ipv4.hpp"
-// TimeoutManager usage removed; using internal timestamp for expirations
 
 #include <unordered_map>
 #include <map>
@@ -30,11 +29,11 @@ struct FragmentKeyHash {
     }
 };
 
-class Ipv4FragmentReassembler {
+/// Implementation class for IPv4 fragment reassembly (Pimpl pattern)
+class Ipv4FragmentReassembler::Impl {
 public:
-    Ipv4FragmentReassembler(std::chrono::seconds timeout = std::chrono::seconds(30)) : timeout_(timeout) {}
+    explicit Impl(Config cfg) : config_(cfg) {}
 
-    // Add fragment and attempt reassembly; returns reassembled payload if complete
     std::optional<std::vector<std::uint8_t>> add_fragment(const IPv4Header::Ipv4Fragment& frag) {
         cleanup_expired();
         FragmentKey key{frag.src_ip, frag.dst_ip, frag.protocol, frag.identification};
@@ -47,6 +46,7 @@ public:
             entry.seen_last = true;
             entry.total_size = frag.offset + frag.payload.size();
         }
+        
         // Quick completeness check: if we have seen last and total bytes covered
         if (entry.seen_last) {
             // compute accumulated size
@@ -71,26 +71,59 @@ public:
         return std::nullopt;
     }
 
+    void cleanup_expired() {
+        auto now = std::chrono::steady_clock::now();
+        for (auto it = cache_.begin(); it != cache_.end();) {
+            auto age = std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update);
+            if (age > config_.timeout) {
+                it = cache_.erase(it);
+            } else {
+                ++it;
+            }
+        }
+    }
+
+    void clear() {
+        cache_.clear();
+    }
+
+    std::size_t size() const {
+        return cache_.size();
+    }
+
 private:
     struct Entry {
         std::map<std::size_t, std::vector<std::uint8_t>> fragments;
         bool seen_last = false;
         std::size_t total_size = 0;
-        std::chrono::steady_clock::time_point last_update; // for timeout cleanup
+        std::chrono::steady_clock::time_point last_update;
     };
 
+    Config config_;
     std::unordered_map<FragmentKey, Entry, FragmentKeyHash> cache_;
-    std::chrono::seconds timeout_;
-
-    // Cleanup expired entries before adding a new fragment
-    void cleanup_expired() {
-        auto now = std::chrono::steady_clock::now();
-        for (auto it = cache_.begin(); it != cache_.end();) {
-            auto age = std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update);
-            if (age > timeout_) it = cache_.erase(it);
-            else ++it;
-        }
-    }
 };
+
+// Public class implementation
+
+Ipv4FragmentReassembler::Ipv4FragmentReassembler(const Config& cfg)
+    : config_(cfg), impl_(std::make_unique<Impl>(cfg)) {}
+
+std::optional<std::vector<std::uint8_t>> Ipv4FragmentReassembler::add_fragment(const IPv4Header::Ipv4Fragment& frag) {
+    return impl_->add_fragment(frag);
+}
+
+void Ipv4FragmentReassembler::cleanup_expired() {
+    impl_->cleanup_expired();
+}
+
+void Ipv4FragmentReassembler::clear() {
+    impl_->clear();
+}
+
+std::size_t Ipv4FragmentReassembler::size() const {
+    return impl_->size();
+}
+
+Ipv4FragmentReassembler::~Ipv4FragmentReassembler() = default;
 
 } // namespace wadjet::protocols::ipv4

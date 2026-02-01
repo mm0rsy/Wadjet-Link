@@ -204,4 +204,240 @@ TcpDecoder::Result TcpDecoder::decode_impl(const DecodeContext& ctx) const {
     return make_success(std::move(header), std::move(next_ctx));
 }
 
+// ===== TcpConnectionTracker Implementation =====
+
+TcpConnection* TcpConnectionTracker::get_connection(std::uint32_t local_ip, std::uint32_t remote_ip,
+                                                    std::uint16_t local_port,
+                                                    std::uint16_t remote_port,
+                                                    bool create_if_missing) {
+    ConnectionKey key{local_ip, remote_ip, local_port, remote_port};
+
+    auto it = connections_.find(key);
+    if (it != connections_.end()) {
+        return &it->second;
+    }
+
+    if (!create_if_missing) {
+        return nullptr;
+    }
+
+    // Create new connection
+    TcpConnection conn;
+    conn.local_ip = local_ip;
+    conn.remote_ip = remote_ip;
+    conn.local_port = local_port;
+    conn.remote_port = remote_port;
+    conn.state = TcpState::Closed;
+    conn.last_seen = std::chrono::steady_clock::now();
+
+    auto result = connections_.emplace(key, std::move(conn));
+    return &result.first->second;
+}
+
+void TcpConnectionTracker::update_connection(TcpConnection& conn, const TcpHeader& header,
+                                             std::chrono::steady_clock::time_point now) {
+    conn.last_seen = now;
+
+    // Update sequence numbers
+    if (header.flags.syn) {
+        conn.remote_seq = header.seq_num;
+        if (header.flags.ack) {
+            conn.remote_ack = header.ack_num;
+        }
+    } else if (header.flags.ack) {
+        conn.remote_ack = header.ack_num;
+    }
+
+    // Extract MSS from options
+    if (auto mss = header.get_mss(); mss) {
+        conn.remote_mss = *mss;
+    }
+
+    // Extract window scale
+    if (auto wscale = header.get_window_scale(); wscale) {
+        conn.remote_window_scale = *wscale;
+    }
+
+    // Check for SACK permitted
+    for (const auto& opt : header.options) {
+        if (opt.kind == TcpOptionKind::SackPermitted) {
+            conn.has_sack_perm = true;
+            break;
+        }
+    }
+
+    // Update window size
+    conn.remote_window = header.window;
+
+    // State machine transitions based on flags
+    switch (conn.state) {
+        case TcpState::Closed:
+            if (header.flags.syn && !header.flags.ack) {
+                // Received SYN (passive open)
+                conn.state = TcpState::SynReceived;
+            }
+            break;
+
+        case TcpState::Listen:
+            if (header.flags.syn && !header.flags.ack) {
+                conn.state = TcpState::SynReceived;
+            }
+            break;
+
+        case TcpState::SynSent:
+            if (header.flags.syn && header.flags.ack) {
+                // Received SYN-ACK
+                conn.state = TcpState::Established;
+            } else if (header.flags.syn) {
+                // Simultaneous open
+                conn.state = TcpState::SynReceived;
+            }
+            break;
+
+        case TcpState::SynReceived:
+            if (header.flags.ack && !header.flags.syn) {
+                // Received final ACK
+                conn.state = TcpState::Established;
+            }
+            break;
+
+        case TcpState::Established:
+            if (header.flags.fin) {
+                conn.state = TcpState::CloseWait;
+            } else if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::FinWait1:
+            if (header.flags.fin && header.flags.ack) {
+                // Received both FIN and ACK
+                conn.state = TcpState::TimeWait;
+            } else if (header.flags.fin) {
+                // Received FIN without ACK (simultaneous close)
+                conn.state = TcpState::Closing;
+            } else if (header.flags.ack) {
+                // Received ACK of our FIN
+                conn.state = TcpState::FinWait2;
+            } else if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::FinWait2:
+            if (header.flags.fin) {
+                conn.state = TcpState::TimeWait;
+            } else if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::Closing:
+            if (header.flags.ack) {
+                conn.state = TcpState::TimeWait;
+            } else if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::CloseWait:
+            if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::LastAck:
+            if (header.flags.ack) {
+                conn.state = TcpState::Closed;
+            } else if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+
+        case TcpState::TimeWait:
+            if (header.flags.rst) {
+                conn.state = TcpState::Closed;
+            }
+            break;
+    }
+}
+
+bool TcpConnectionTracker::is_retransmission(const TcpConnection& conn,
+                                             const TcpHeader& header) const {
+    // Retransmission is detected when:
+    // 1. Connection is in a state where data can be exchanged
+    // 2. Sequence number matches or is less than previously seen (indicates duplicate)
+    // 3. ACK number indicates no new acknowledgment
+
+    if (conn.state != TcpState::Established && conn.state != TcpState::FinWait1 &&
+        conn.state != TcpState::FinWait2 && conn.state != TcpState::CloseWait &&
+        conn.state != TcpState::Closing && conn.state != TcpState::LastAck) {
+        return false;
+    }
+
+    // For non-SYN, non-FIN packets
+    if (!header.flags.syn && !header.flags.fin) {
+        // Check if sequence number is not advancing (retransmission indicator)
+        // We compare against the last ACK we've sent (remote_seq)
+        if (header.seq_num <= conn.remote_seq) {
+            return true;  // Sequence number not advancing = retransmission
+        }
+    }
+
+    return false;
+}
+
+void TcpConnectionTracker::cleanup_expired(std::chrono::steady_clock::time_point now) {
+    std::vector<decltype(connections_)::iterator> to_erase;
+
+    for (auto it = connections_.begin(); it != connections_.end(); ++it) {
+        auto& conn = it->second;
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - conn.last_seen);
+
+        bool should_erase = false;
+        switch (conn.state) {
+            case TcpState::Closed:
+                should_erase = true;  // Immediately remove CLOSED connections
+                break;
+            case TcpState::TimeWait:
+                // 30 seconds in tests, 2 minutes in production
+                should_erase = elapsed.count() >= 30;
+                break;
+            case TcpState::SynSent:
+            case TcpState::SynReceived:
+                // Incomplete connections timeout after 2 minutes
+                should_erase = elapsed.count() >= 120;
+                break;
+            default:
+                // Other states remain open (user responsibility to close)
+                break;
+        }
+
+        if (should_erase) {
+            to_erase.push_back(it);
+        }
+    }
+
+    for (auto it : to_erase) {
+        connections_.erase(it);
+    }
+}
+
+void TcpConnectionTracker::clear() {
+    connections_.clear();
+}
+
+std::size_t TcpConnectionTracker::size() const {
+    return connections_.size();
+}
+
+std::size_t TcpConnectionTracker::ConnectionKeyHash::operator()(const ConnectionKey& key) const {
+    // Hash function combining all 5-tuple elements
+    std::size_t h1 = std::hash<std::uint32_t>{}(key.local_ip);
+    std::size_t h2 = std::hash<std::uint32_t>{}(key.remote_ip);
+    std::size_t h3 = std::hash<std::uint16_t>{}(key.local_port);
+    std::size_t h4 = std::hash<std::uint16_t>{}(key.remote_port);
+
+    return h1 ^ (h2 << 1) ^ (h3 << 2) ^ (h4 << 3);
+}
 }  // namespace wadjet::protocols::tcp
