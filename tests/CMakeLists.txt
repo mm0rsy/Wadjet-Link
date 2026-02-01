@@ -52,6 +52,8 @@ add_executable(wadjet_tests
     protocols/test_tcp_state.cpp
     protocols/test_tcp_options.cpp
     protocols/test_tcp_retransmission.cpp
+    # UDP tests (Phase 5)
+    protocols/test_udp_checksum.cpp
 )
 
 target_link_libraries(wadjet_tests
