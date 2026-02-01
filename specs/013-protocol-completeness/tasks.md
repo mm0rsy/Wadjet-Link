@@ -460,11 +460,11 @@ After remediation tasks R018-R028:
 
 ### Cross-Protocol Validation Implementation
 
-- [ ] T112 [P] Implement ProtocolValidator::validateLayering() in src/protocols/validation.cpp (Ethernet → IPv4 → UDP/TCP → Application)
-- [ ] T113 [P] Implement ProtocolValidator::validateLengths() in src/protocols/validation.cpp (detect inconsistencies across layers)
-- [ ] T114 [P] Implement ProtocolValidator::validateChecksums() in src/protocols/validation.cpp (IPv4, UDP, TCP chain)
-- [ ] T115 Add strict/lenient error handling modes to ProtocolValidator in include/wadjet/protocols/validation.hpp
-- [ ] T116 Create tests/protocols/test_protocol_validation.cpp with 20 tests for cross-layer validation scenarios
+- [X] T112 [P] ✅ DONE - Implement ProtocolValidator::validateLayering() in src/protocols/validation.cpp (Ethernet → IPv4 → UDP/TCP → Application)
+- [X] T113 [P] ✅ DONE - Implement ProtocolValidator::validateLengths() in src/protocols/validation.cpp (detect inconsistencies across layers)
+- [X] T114 [P] ✅ DONE - Implement ProtocolValidator::validateChecksums() in src/protocols/validation.cpp (IPv4, UDP, TCP chain)
+- [X] T115 ✅ DONE - Add strict/lenient error handling modes to ProtocolValidator in include/wadjet/protocols/validation.hpp
+- [X] T116 ✅ DONE - Create tests/protocols/test_protocol_validation.cpp with 27 tests for cross-layer validation scenarios
 
 ### Language Bindings Updates
 
