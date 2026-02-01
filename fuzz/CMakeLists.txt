@@ -54,6 +54,26 @@ target_link_libraries(fuzz_ipv4
         wadjet_fuzzer_options
 )
 
+# IPv4 options fuzz target (T127)
+add_executable(fuzz_ipv4_options
+    fuzz_ipv4_options.cpp
+)
+target_link_libraries(fuzz_ipv4_options
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
+# IPv4 fragmentation fuzz target
+add_executable(fuzz_ipv4_fragmentation
+    fuzz_ipv4_fragmentation.cpp
+)
+target_link_libraries(fuzz_ipv4_fragmentation
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
 # UDP decoder fuzz target
 add_executable(fuzz_udp
     fuzz_udp.cpp
@@ -74,6 +94,16 @@ target_link_libraries(fuzz_tcp
         wadjet_fuzzer_options
 )
 
+# TCP options fuzz target (T128)
+add_executable(fuzz_tcp_options
+    fuzz_tcp_options.cpp
+)
+target_link_libraries(fuzz_tcp_options
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
 # SOME/IP decoder fuzz target
 add_executable(fuzz_someip
     fuzz_someip.cpp
@@ -84,11 +114,31 @@ target_link_libraries(fuzz_someip
         wadjet_fuzzer_options
 )
 
+# SOME/IP-TP segmentation fuzz target (T129)
+add_executable(fuzz_someip_tp
+    fuzz_someip_tp.cpp
+)
+target_link_libraries(fuzz_someip_tp
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
 # SOME/IP-SD decoder fuzz target
 add_executable(fuzz_someip_sd
     fuzz_someip_sd.cpp
 )
 target_link_libraries(fuzz_someip_sd
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
+# SOME/IP-SD entries and options fuzz target (T130)
+add_executable(fuzz_someip_sd_entries
+    fuzz_someip_sd_entries.cpp
+)
+target_link_libraries(fuzz_someip_sd_entries
     PRIVATE
         wadjet
         wadjet_fuzzer_options
@@ -109,6 +159,16 @@ add_executable(fuzz_gptp
     fuzz_gptp.cpp
 )
 target_link_libraries(fuzz_gptp
+    PRIVATE
+        wadjet
+        wadjet_fuzzer_options
+)
+
+# gPTP TLV fuzz target (T131)
+add_executable(fuzz_gptp_tlv
+    fuzz_gptp_tlv.cpp
+)
+target_link_libraries(fuzz_gptp_tlv
     PRIVATE
         wadjet
         wadjet_fuzzer_options
@@ -148,12 +208,18 @@ add_custom_target(fuzz_help
     COMMAND ${CMAKE_COMMAND} -E echo "Available fuzz targets:"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_ethernet   - Ethernet decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_ipv4       - IPv4 decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_ipv4_options - IPv4 options parsing (T127)"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_ipv4_fragmentation - IPv4 fragmentation"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_udp        - UDP decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_tcp        - TCP decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_tcp_options - TCP options parsing (T128)"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip     - SOME/IP decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip_tp  - SOME/IP-TP segmentation (T129)"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip_sd  - SOME/IP-SD decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_someip_sd_entries - SOME/IP-SD entries/options (T130)"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_doip       - DoIP decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_gptp       - gPTP (IEEE 802.1AS) decoder"
+    COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_gptp_tlv   - gPTP TLV parsing (T131)"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_uds        - UDS (ISO 14229) decoder"
     COMMAND ${CMAKE_COMMAND} -E echo "  fuzz_dispatcher - Full protocol stack"
     COMMAND ${CMAKE_COMMAND} -E echo ""
