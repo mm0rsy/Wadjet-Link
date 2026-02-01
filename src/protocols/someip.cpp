@@ -144,35 +144,67 @@ SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const
     // Return code (byte 15)
     header.return_code = static_cast<ReturnCode>(static_cast<std::uint8_t>(ctx.data[15]));
 
-    // Validate length field
+    // Validate length field - minimum is 8 bytes (Request ID onwards)
     if (header.length < 8) {
         return make_error(DecodeErrorCode::InvalidLength,
-                          "SOME/IP length too small: " + std::to_string(header.length));
+                          "SOME/IP length too small: " + std::to_string(header.length) +
+                          " (minimum: 8 bytes)");
     }
 
     // Check for TP flag (0x20) in message type byte
-    if (options_.enable_tp_reassembly && (message_type_byte & TP_FLAG) != 0) {
-        // This is a TP message - check if we have the TP header (4 bytes)
-        if (!ctx.has_bytes(HEADER_SIZE + 4)) {
-            return make_error(DecodeErrorCode::BufferTooSmall, "SOME/IP-TP header too small");
+    bool is_tp_message = (message_type_byte & TP_FLAG) != 0;
+    
+    if (is_tp_message) {
+        // TP message - validate TP-specific length constraints
+        // TP header is 4 bytes, so minimum TP message length is 12 (8 + 4)
+        if (header.length < 12) {
+            return make_error(DecodeErrorCode::InvalidLength,
+                              "SOME/IP-TP length too small: " + std::to_string(header.length) +
+                              " (minimum: 12 bytes for TP overhead)");
+        }
+        
+        // TP messages can be up to 16 MB total
+        if (header.length > SomeipTpReassembler::MAX_MESSAGE_SIZE) {
+            return make_error(DecodeErrorCode::InvalidLength,
+                              "SOME/IP-TP message exceeds maximum size: " +
+                              std::to_string(header.length) + " bytes (max: 16 MB)");
         }
 
-        // Parse TP header
-        SomeipTpSegment tp_segment = SomeipTpSegment::parse(ctx.data.data() + HEADER_SIZE);
+        if (options_.enable_tp_reassembly) {
+            // Check if we have the TP header (4 bytes)
+            if (!ctx.has_bytes(HEADER_SIZE + 4)) {
+                return make_error(DecodeErrorCode::BufferTooSmall, "SOME/IP-TP header too small");
+            }
 
-        // Get message IDs
-        std::uint32_t message_id = (static_cast<std::uint32_t>(header.service_id) << 16) |
-                                   static_cast<std::uint32_t>(header.method_id);
-        std::uint32_t request_id = (static_cast<std::uint32_t>(header.client_id) << 16) |
-                                   static_cast<std::uint32_t>(header.session_id);
+            // Parse TP header
+            SomeipTpSegment tp_segment = SomeipTpSegment::parse(ctx.data.data() + HEADER_SIZE);
 
-        // Get payload (skip SOME/IP header + TP header)
-        const std::uint8_t* payload = reinterpret_cast<const std::uint8_t*>(ctx.data.data()) + HEADER_SIZE + 4;
-        std::size_t payload_size = header.length > 12 ? header.length - 12 : 0;
+            // Get message IDs
+            std::uint32_t message_id = (static_cast<std::uint32_t>(header.service_id) << 16) |
+                                       static_cast<std::uint32_t>(header.method_id);
+            std::uint32_t request_id = (static_cast<std::uint32_t>(header.client_id) << 16) |
+                                       static_cast<std::uint32_t>(header.session_id);
 
-        // Add segment to reassembler
-        [[maybe_unused]] bool complete = tp_reassembler_.add_segment(message_id, request_id, tp_segment, payload, payload_size);
-        // Note: complete flag indicates if the message is fully reassembled
+            // Get payload (skip SOME/IP header + TP header)
+            const std::uint8_t* payload = reinterpret_cast<const std::uint8_t*>(ctx.data.data()) + HEADER_SIZE + 4;
+            std::size_t payload_size = header.length > 12 ? header.length - 12 : 0;
+
+            // Validate payload size doesn't exceed 16 MB
+            if (tp_segment.offset + payload_size > SomeipTpReassembler::MAX_MESSAGE_SIZE) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "SOME/IP-TP segment offset exceeds maximum: " +
+                                  std::to_string(tp_segment.offset + payload_size) + " bytes");
+            }
+
+            // Add segment to reassembler
+            [[maybe_unused]] bool complete = tp_reassembler_.add_segment(message_id, request_id, tp_segment, payload, payload_size);
+            // Note: complete flag indicates if the message is fully reassembled
+        }
+    } else {
+        // Non-TP message - standard length validation
+        // Note: Full validation of payload size depends on UDP packet size from lower layer
+        // Here we just validate the length field itself is in valid range
+        // Length is uint32_t, so any value is technically valid within that range
     }
 
     // Create context for payload
