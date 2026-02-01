@@ -37,6 +37,11 @@ add_executable(uds_validator uds_validator.cpp)
 target_link_libraries(uds_validator PRIVATE wadjet)
 target_compile_features(uds_validator PRIVATE cxx_std_20)
 
+# Protocol Validation Example (T145)
+add_executable(protocol_validation protocol_validation.cpp)
+target_link_libraries(protocol_validation PRIVATE wadjet)
+target_compile_features(protocol_validation PRIVATE cxx_std_20)
+
 # PCAP Regression Testing (requires GoogleTest)
 if(TARGET GTest::gtest AND TARGET GTest::gmock)
     add_executable(pcap_regression pcap_regression.cpp)
