@@ -493,6 +493,65 @@ TEST_F(SomeIpDecoderTest, HeaderToString) {
     EXPECT_TRUE(str.find("0x1234") != std::string::npos);
 }
 
+TEST_F(SomeIpDecoderTest, RejectMinimumLengthTooSmall) {
+    // SOME/IP length field must be at least 8 (for Request ID and subsequent fields)
+    std::array<std::uint8_t, 16> bad_length = {
+        0x12, 0x34, 0x80, 0x01, 0x00, 0x00, 0x00, 0x07,  // Length: 7 (below minimum)
+        0x00, 0x01, 0x00, 0x0A, 0x01, 0x01, 0x02, 0x00};
+    auto ctx = make_context(bad_length);
+    auto result = decoder.decode(ctx);
+
+    EXPECT_FALSE(result);
+    EXPECT_EQ(result.error().code, DecodeErrorCode::InvalidLength);
+}
+
+TEST_F(SomeIpDecoderTest, AcceptMinimumValidLength) {
+    // SOME/IP length = 8 is the minimum (no payload)
+    std::array<std::uint8_t, 16> min_length = {
+        0x12, 0x34, 0x80, 0x01, 0x00, 0x00, 0x00, 0x08,  // Length: 8 (minimum valid)
+        0x00, 0x01, 0x00, 0x0A, 0x01, 0x01, 0x02, 0x00};
+    auto ctx = make_context(min_length);
+    auto result = decoder.decode(ctx);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(result->length, 8);
+}
+
+TEST_F(SomeIpDecoderTest, AcceptMaximumLength) {
+    // Maximum SOME/IP message size is 16MB (0xFFFFFF + 8 for header)
+    // Create a message with length field = 0xFFFFFF (16777215)
+    std::array<std::uint8_t, 16> max_length = {
+        0x12, 0x34, 0x80, 0x01, 0xFF, 0xFF, 0xFF, 0xFF,  // Length: 0xFFFFFFFF (max uint32)
+        0x00, 0x01, 0x00, 0x0A, 0x01, 0x01, 0x02, 0x00};
+    auto ctx = make_context(max_length);
+    auto result = decoder.decode(ctx);
+
+    // Note: This should succeed with the length field, actual buffer validation is separate
+    EXPECT_TRUE(result);
+    EXPECT_EQ(result->length, 0xFFFFFFFF);
+}
+
+TEST_F(SomeIpDecoderTest, PayloadSizeMatchesLength) {
+    // Test that payload size matches the length field (length = 8 + payload_size)
+    std::array<std::uint8_t, 24> correct_payload = {
+        0x12, 0x34,              // Service ID
+        0x80, 0x01,              // Method ID
+        0x00, 0x00, 0x00, 0x10,  // Length: 16 (8 header + 8 payload)
+        0x00, 0x01,              // Client ID
+        0x00, 0x0A,              // Session ID
+        0x01,                    // Protocol version
+        0x01,                    // Interface version
+        0x02,                    // Message type
+        0x00,                    // Return code
+        0xDE, 0xAD, 0xBE, 0xEF,  // Payload (8 bytes)
+        0xCA, 0xFE, 0xBA, 0xBE};
+    auto ctx = make_context(correct_payload);
+    auto result = decoder.decode(ctx);
+
+    EXPECT_TRUE(result);
+    EXPECT_EQ(result->length, 16);
+}
+
 //==============================================================================
 // DoIP Decoder Tests
 //==============================================================================
