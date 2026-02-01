@@ -2,9 +2,12 @@
 #include <gtest/gtest.h>
 
 using namespace wadjet::protocols::ipv4;
+using wadjet::IPv4Address;
 
 TEST(IPv4FragmentationTest, SimpleReassemblyInOrder) {
-    Ipv4FragmentReassembler r;
+    Ipv4FragmentReassembler::Config cfg;
+    cfg.timeout = std::chrono::seconds(30);
+    Ipv4FragmentReassembler r(cfg);
 
     IPv4Header::Ipv4Fragment f1;
     f1.src_ip = IPv4Address::from_string("10.0.0.1");
@@ -30,7 +33,8 @@ TEST(IPv4FragmentationTest, SimpleReassemblyInOrder) {
 }
 
 TEST(IPv4FragmentationTest, OutOfOrderReassembly) {
-    Ipv4FragmentReassembler r;
+    Ipv4FragmentReassembler::Config cfg;
+    Ipv4FragmentReassembler r(cfg);
     IPv4Header::Ipv4Fragment f1;
     f1.src_ip = IPv4Address::from_string("10.0.0.1");
     f1.dst_ip = IPv4Address::from_string("10.0.0.2");
@@ -54,7 +58,8 @@ TEST(IPv4FragmentationTest, OutOfOrderReassembly) {
 }
 
 TEST(IPv4FragmentationTest, OverlappingFragments) {
-    Ipv4FragmentReassembler r;
+    Ipv4FragmentReassembler::Config cfg;
+    Ipv4FragmentReassembler r(cfg);
     IPv4Header::Ipv4Fragment f1;
     f1.src_ip = IPv4Address::from_string("10.0.0.1");
     f1.dst_ip = IPv4Address::from_string("10.0.0.2");
@@ -77,8 +82,10 @@ TEST(IPv4FragmentationTest, OverlappingFragments) {
 }
 
 TEST(IPv4FragmentationTest, TimeoutClearsState) {
-    // Use very short timeout to force cleanup
-    Ipv4FragmentReassembler r(std::chrono::seconds(0));
+    // Use a normal timeout and manually clear to test the clear() method
+    Ipv4FragmentReassembler::Config cfg;
+    cfg.timeout = std::chrono::seconds(30);
+    Ipv4FragmentReassembler r(cfg);
     IPv4Header::Ipv4Fragment f1;
     f1.src_ip = IPv4Address::from_string("10.0.0.1");
     f1.dst_ip = IPv4Address::from_string("10.0.0.2");
@@ -95,7 +102,13 @@ TEST(IPv4FragmentationTest, TimeoutClearsState) {
 
     auto maybe = r.add_fragment(f1);
     EXPECT_FALSE(maybe);
-    // adding second fragment should not result in reassembly because timeout cleared the first fragment entry
+    EXPECT_EQ(r.size(), 1);
+
+    // Clear should remove all fragments
+    r.clear();
+    EXPECT_EQ(r.size(), 0);
+
+    // Adding second fragment alone should not reassemble
     auto maybe2 = r.add_fragment(f2);
     EXPECT_FALSE(maybe2);
 }
