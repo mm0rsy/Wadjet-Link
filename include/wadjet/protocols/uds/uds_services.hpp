@@ -657,6 +657,16 @@ struct NegativeResponseMessage {
         return ::wadjet::protocols::uds::nrc_description(negative_response_code);
     }
 
+    /// @brief Get service-specific NRC description
+    ///
+    /// Provides context-aware NRC description based on which service was rejected.
+    /// For example, RequestOutOfRange (0x31) has different meanings for
+    /// ReadDataByIdentifier vs WriteDataByIdentifier.
+    [[nodiscard]] std::string_view service_specific_description() const {
+        return service_specific_nrc_description(static_cast<std::uint8_t>(rejected_service_id),
+                                                negative_response_code);
+    }
+
     /// @brief Get service ID (for response SID - always 0x7F)
     [[nodiscard]] static constexpr std::uint8_t response_sid() { return NEGATIVE_RESPONSE_SID; }
 
