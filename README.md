@@ -33,7 +33,6 @@
 <!-- Badges Row 5: Community -->
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://github.com/mm0rsy/Wadjet-Link/graphs/commit-activity)
-[![Made with Love](https://img.shields.io/badge/Made%20with-❤️-red.svg)]()
 
 <p align="center">
   <img src="identity-photo.jpg" alt="Wadjet-Link Logo" width="300"/>
@@ -46,35 +45,6 @@
 **Wadjet-Link** is an open-source Automotive Ethernet validation framework for live packet capture, protocol decoding, and automated testing with GoogleTest.
 
 Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstructs the complete truth of automotive network traffic — without interfering with the stream.
-
-### 🚀 Current Milestone: M13 Protocol Completeness
-
-**Status**: ✅ COMPLETED  
-**Branch**: `milestone/013-protocol-completeness`  
-**Goal**: Achieve 100% specification compliance across all protocol decoders
-
-This milestone completes critical protocol implementations including:
-- **TCP State Machine** — Full connection tracking with all 11 RFC 793 states (2min/30s timeouts)
-- **IPv4 Fragmentation** — Complete reassembly with 30s timeout, support for all 8 option types
-- **UDP Checksum Validation** — Configurable validation modes (strict/warning/disabled)
-- **SOME/IP-TP Segmentation** — Large message support up to 16 MB with 5s timeout
-- **SOME/IP-SD Entry Arrays** — Complete service discovery parsing for all entry types
-- **DoIP Power Mode Tracking** — Enhanced diagnostic session management
-- **UDS NRC Classification** — Temporary vs permanent negative response code handling
-- **gPTP TLV Parsing** — All Time-Sensitive Networking message types
-- **Cross-Protocol Validation** — Layer-aware validation with strict/lenient modes
-- **Language Bindings** — Complete C, Python, and Rust FFI interfaces
-- **Comprehensive Testing** — 970+ unit tests, 21 integration tests, 5 fuzz harnesses
-
-**Specification**: [specs/013-protocol-completeness/spec.md](specs/013-protocol-completeness/spec.md)  
-**Progress**: ✅ Complete — All phases delivered with full specification compliance
-
-**Key Deliverables**:
-- Protocol validation framework with cross-layer checks
-- Complete language bindings (C/Python/Rust) with full API coverage
-- Comprehensive test suite with 970+ passing tests
-- Example programs demonstrating all validation scenarios
-- Complete protocol documentation with field references
 
 ## Key Features
 
