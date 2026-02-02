@@ -109,14 +109,77 @@ commands:
           name: Build
           command: cmake --build build --parallel 4
 
-  run-tests:
-    description: "Run tests"
+  run-unit-tests:
+    description: "Run unit tests"
     steps:
       - run:
-          name: Run C++ tests
+          name: Run unit tests
           command: |
             cd build
-            ctest --output-on-failure --parallel $(nproc) || true
+            ./tests/wadjet_tests --gtest_output=xml:test-results/unit-tests.xml
+      - store_test_results:
+          path: build/test-results
+
+  run-protocol-tests:
+    description: "Run protocol decoder tests"
+    parameters:
+      filter:
+        type: string
+        default: "*"
+    steps:
+      - run:
+          name: Run protocol tests (<< parameters.filter >>)
+          command: |
+            cd build
+            ./tests/wadjet_tests --gtest_filter="<< parameters.filter >>" --gtest_output=xml:test-results/protocol-tests.xml
+      - store_test_results:
+          path: build/test-results
+
+  run-integration-tests:
+    description: "Run integration tests"
+    steps:
+      - run:
+          name: Run integration tests
+          command: |
+            cd build
+            ./tests/wadjet_integration_tests --gtest_output=xml:test-results/integration-tests.xml || true
+      - store_test_results:
+          path: build/test-results
+
+  run-testing-framework-tests:
+    description: "Run testing framework tests"
+    steps:
+      - run:
+          name: Run testing framework tests
+          command: |
+            cd build
+            ./tests/wadjet_testing_framework_tests --gtest_output=xml:test-results/testing-framework-tests.xml || true
+      - store_test_results:
+          path: build/test-results
+
+  run-scenario-tests:
+    description: "Run scenario tests"
+    steps:
+      - run:
+          name: Run scenario tests
+          command: |
+            cd build
+            if [ -f ./tests/wadjet_scenario_tests ]; then
+              ./tests/wadjet_scenario_tests --gtest_output=xml:test-results/scenario-tests.xml
+            else
+              echo "Scenario tests not built"
+            fi
+      - store_test_results:
+          path: build/test-results
+
+  run-performance-tests:
+    description: "Run performance regression tests"
+    steps:
+      - run:
+          name: Run performance tests
+          command: |
+            cd build
+            ./tests/wadjet_tests --gtest_filter="*Performance*:*Benchmark*" --gtest_output=xml:test-results/performance-tests.xml
       - store_test_results:
           path: build/test-results
 
@@ -125,7 +188,28 @@ commands:
 # ============================================================================
 jobs:
   # --------------------------------------------------------------------------
-  # Build & Test with GCC
+  # Lint & Format Check
+  # --------------------------------------------------------------------------
+  lint:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - run:
+          name: Install clang-format
+          command: |
+            # Add LLVM APT repository for clang-format-18
+            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
+            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
+            sudo apt-get update
+            sudo apt-get install -y clang-format-18
+      - run:
+          name: Check code formatting
+          command: |
+            find include src tests -name '*.cpp' -o -name '*.hpp' | \
+              xargs clang-format-18 --dry-run --Werror
+
+  # --------------------------------------------------------------------------
+  # Build Jobs (GCC)
   # --------------------------------------------------------------------------
   build-gcc-debug:
     executor: linux-gcc
@@ -137,11 +221,12 @@ jobs:
           build_type: "Debug"
           sanitizers: true
       - build-project
-      - run-tests
       - persist_to_workspace:
           root: .
           paths:
             - build
+            - include
+            - pcap_samples
 
   build-gcc-release:
     executor: linux-gcc
@@ -153,10 +238,15 @@ jobs:
           build_type: "Release"
           sanitizers: false
       - build-project
-      - run-tests
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - include
+            - pcap_samples
 
   # --------------------------------------------------------------------------
-  # Build & Test with Clang
+  # Build Jobs (Clang)
   # --------------------------------------------------------------------------
   build-clang-debug:
     executor: linux-clang
@@ -168,7 +258,12 @@ jobs:
           build_type: "Debug"
           sanitizers: true
       - build-project
-      - run-tests
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - include
+            - pcap_samples
 
   build-clang-release:
     executor: linux-clang
@@ -180,7 +275,122 @@ jobs:
           build_type: "Release"
           sanitizers: false
       - build-project
-      - run-tests
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - include
+            - pcap_samples
+
+  # --------------------------------------------------------------------------
+  # Unit Test Jobs
+  # --------------------------------------------------------------------------
+  test-unit-gcc-debug:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-unit-tests
+
+  test-unit-clang-debug:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-unit-tests
+
+  # --------------------------------------------------------------------------
+  # Protocol Test Jobs (Split by protocol stack)
+  # --------------------------------------------------------------------------
+  test-protocols-network-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-protocol-tests:
+          filter: "*IPv4*:*Tcp*:*Udp*:*Ethernet*"
+
+  test-protocols-automotive-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-protocol-tests:
+          filter: "*SomeIp*:*DoIP*:*Uds*:*Gptp*:*Dds*:*Rtps*"
+
+  test-protocols-network-clang:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-protocol-tests:
+          filter: "*IPv4*:*Tcp*:*Udp*:*Ethernet*"
+
+  test-protocols-automotive-clang:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-protocol-tests:
+          filter: "*SomeIp*:*DoIP*:*Uds*:*Gptp*:*Dds*:*Rtps*"
+
+  # --------------------------------------------------------------------------
+  # Integration Test Jobs
+  # --------------------------------------------------------------------------
+  test-integration-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-integration-tests
+
+  test-integration-clang:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-integration-tests
+
+  # --------------------------------------------------------------------------
+  # Testing Framework Test Jobs
+  # --------------------------------------------------------------------------
+  test-framework-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-testing-framework-tests
+
+  # --------------------------------------------------------------------------
+  # Scenario Test Jobs
+  # --------------------------------------------------------------------------
+  test-scenario-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-scenario-tests
+
+  # --------------------------------------------------------------------------
+  # Performance Test Jobs (Nightly)
+  # --------------------------------------------------------------------------
+  test-performance-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-performance-tests
 
   # --------------------------------------------------------------------------
   # Build with Bindings
@@ -210,38 +420,41 @@ jobs:
               -DWADJET_BUILD_C_BINDINGS=ON \
               -DWADJET_BUILD_PYTHON_BINDINGS=ON
       - build-project
-      - run:
-          name: Run C++ tests
-          command: |
-            cd build
-            ctest --output-on-failure --parallel $(nproc) -E python || true
-      - run:
-          name: Run Python tests
-          command: |
-            . .venv/bin/activate
-            cd bindings/python
-            PYTHONPATH=../../build/bindings/python pytest tests/ -v || true
+      - persist_to_workspace:
+          root: .
+          paths:
+            - build
+            - bindings
+            - .venv
 
-  # --------------------------------------------------------------------------
-  # Lint & Format Check
-  # --------------------------------------------------------------------------
-  lint:
+  test-bindings-cpp:
     executor: linux-gcc
     steps:
       - checkout
+      - attach_workspace:
+          at: .
       - run:
-          name: Install clang-format
+          name: Run C++ binding tests
           command: |
-            # Add LLVM APT repository for clang-format-18
-            wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /etc/apt/trusted.gpg.d/apt.llvm.org.asc
-            echo "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-18 main" | sudo tee /etc/apt/sources.list.d/llvm-18.list
-            sudo apt-get update
-            sudo apt-get install -y clang-format-18
+            cd build
+            ctest --output-on-failure --parallel $(nproc) -E python || true
+      - store_test_results:
+          path: build/test-results
+
+  test-bindings-python:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
       - run:
-          name: Check code formatting
+          name: Run Python binding tests
           command: |
-            find include src tests -name '*.cpp' -o -name '*.hpp' | \
-              xargs clang-format-18 --dry-run --Werror
+            . .venv/bin/activate
+            cd bindings/python
+            PYTHONPATH=../../build/bindings/python pytest tests/ -v --junitxml=../../build/test-results/python-tests.xml || true
+      - store_test_results:
+          path: build/test-results
 
   # --------------------------------------------------------------------------
   # Static Analysis
@@ -277,33 +490,112 @@ jobs:
 # Workflows
 # ============================================================================
 workflows:
-  version: 2
-
   # Main CI workflow
   ci:
     when:
       not:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
+      # Stage 1: Lint
       - lint
+
+      # Stage 2: Build (parallel GCC and Clang)
       - build-gcc-debug:
-          requires:
-            - lint
-      - build-gcc-release:
           requires:
             - lint
       - build-clang-debug:
           requires:
             - lint
-      - build-clang-release:
+
+      # Stage 3: Unit Tests (parallel)
+      - test-unit-gcc-debug:
           requires:
-            - lint
-      - build-with-bindings:
+            - build-gcc-debug
+      - test-unit-clang-debug:
           requires:
-            - build-gcc-release
+            - build-clang-debug
+
+      # Stage 4: Protocol Tests (parallel by stack)
+      - test-protocols-network-gcc:
+          requires:
+            - build-gcc-debug
+      - test-protocols-automotive-gcc:
+          requires:
+            - build-gcc-debug
+      - test-protocols-network-clang:
+          requires:
+            - build-clang-debug
+      - test-protocols-automotive-clang:
+          requires:
+            - build-clang-debug
+
+      # Stage 5: Integration Tests
+      - test-integration-gcc:
+          requires:
+            - test-unit-gcc-debug
+            - test-protocols-network-gcc
+            - test-protocols-automotive-gcc
+      - test-integration-clang:
+          requires:
+            - test-unit-clang-debug
+            - test-protocols-network-clang
+            - test-protocols-automotive-clang
+
+      # Stage 6: Testing Framework & Scenario Tests
+      - test-framework-gcc:
+          requires:
+            - build-gcc-debug
+      - test-scenario-gcc:
+          requires:
+            - build-gcc-debug
+
+      # Stage 7: Static Analysis (parallel with tests)
       - static-analysis:
           requires:
             - lint
+
+  # Release build workflow (runs on main/master merges)
+  release:
+    when:
+      not:
+        equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
+    jobs:
+      - build-gcc-release:
+          filters:
+            branches:
+              only:
+                - master
+                - main
+      - build-clang-release:
+          filters:
+            branches:
+              only:
+                - master
+                - main
+      - build-with-bindings:
+          requires:
+            - build-gcc-release
+          filters:
+            branches:
+              only:
+                - master
+                - main
+      - test-bindings-cpp:
+          requires:
+            - build-with-bindings
+          filters:
+            branches:
+              only:
+                - master
+                - main
+      - test-bindings-python:
+          requires:
+            - build-with-bindings
+          filters:
+            branches:
+              only:
+                - master
+                - main
 
   # Nightly full test suite
   nightly:
@@ -312,9 +604,67 @@ workflows:
         - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
         - equal: [ "nightly", << pipeline.schedule.name >> ]
     jobs:
+      # Full build matrix
       - build-gcc-debug
       - build-gcc-release
       - build-clang-debug
       - build-clang-release
-      - build-with-bindings
+
+      # All unit tests
+      - test-unit-gcc-debug:
+          requires:
+            - build-gcc-debug
+      - test-unit-clang-debug:
+          requires:
+            - build-clang-debug
+
+      # All protocol tests
+      - test-protocols-network-gcc:
+          requires:
+            - build-gcc-debug
+      - test-protocols-automotive-gcc:
+          requires:
+            - build-gcc-debug
+      - test-protocols-network-clang:
+          requires:
+            - build-clang-debug
+      - test-protocols-automotive-clang:
+          requires:
+            - build-clang-debug
+
+      # All integration tests
+      - test-integration-gcc:
+          requires:
+            - build-gcc-debug
+      - test-integration-clang:
+          requires:
+            - build-clang-debug
+
+      # Testing framework tests
+      - test-framework-gcc:
+          requires:
+            - build-gcc-debug
+
+      # Scenario tests
+      - test-scenario-gcc:
+          requires:
+            - build-gcc-debug
+
+      # Performance tests (nightly only)
+      - test-performance-gcc:
+          requires:
+            - build-gcc-release
+
+      # Bindings
+      - build-with-bindings:
+          requires:
+            - build-gcc-release
+      - test-bindings-cpp:
+          requires:
+            - build-with-bindings
+      - test-bindings-python:
+          requires:
+            - build-with-bindings
+
+      # Static analysis
       - static-analysis
