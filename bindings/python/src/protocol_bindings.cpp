@@ -12,6 +12,7 @@
 #include "wadjet/protocols/tcp.hpp"
 #include "wadjet/protocols/udp.hpp"
 #include "wadjet/protocols/uds/uds.hpp"
+#include "wadjet/protocols/validation.hpp"
 
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -587,4 +588,92 @@ void bind_protocols(py::module_& m) {
     m.def(
         "uds_nrc_description", [](uds::NRC nrc) { return std::string(uds::nrc_description(nrc)); },
         py::arg("nrc"), "Get NRC description");
+
+    // =========================================================================
+    // Cross-Protocol Validation
+    // =========================================================================
+    py::enum_<ValidationMode>(m, "ValidationMode",
+        "Error handling mode for protocol validation")
+        .value("Strict", ValidationMode::Strict,
+            "Fail on first validation error")
+        .value("Lenient", ValidationMode::Lenient,
+            "Log warnings but continue validation")
+        .export_values();
+
+    py::class_<ProtocolLayer>(m, "ProtocolLayer",
+        "Protocol layer information for validation")
+        .def(py::init<>())
+        .def_readwrite("name", &ProtocolLayer::name,
+            "Layer name (e.g., 'IPv4', 'TCP')")
+        .def_readwrite("offset", &ProtocolLayer::offset,
+            "Offset in packet where layer starts")
+        .def_readwrite("header_length", &ProtocolLayer::header_length,
+            "Length of this layer's header")
+        .def_readwrite("payload_length", &ProtocolLayer::payload_length,
+            "Length of payload carried by this layer")
+        .def_readwrite("ethertype", &ProtocolLayer::ethertype,
+            "EtherType or protocol number (optional)")
+        .def_readwrite("checksum", &ProtocolLayer::checksum,
+            "Checksum value (if applicable, 0 if none)")
+        .def_readwrite("has_checksum", &ProtocolLayer::has_checksum,
+            "Whether this layer has a checksum field")
+        .def("__repr__", [](const ProtocolLayer& layer) {
+            return "<ProtocolLayer " + layer.name + 
+                   " offset=" + std::to_string(layer.offset) +
+                   " header=" + std::to_string(layer.header_length) +
+                   " payload=" + std::to_string(layer.payload_length) + ">";
+        });
+
+    py::class_<ValidationResult>(m, "ValidationResult",
+        "Validation result containing all errors found")
+        .def(py::init<>())
+        .def(py::init<ValidationMode>())
+        .def_readonly("is_valid", &ValidationResult::is_valid,
+            "True if all validations passed")
+        .def_readonly("mode", &ValidationResult::mode,
+            "Mode used for validation")
+        .def_readonly("errors", &ValidationResult::errors,
+            "All validation errors found")
+        .def("add_error", &ValidationResult::add_error,
+            py::arg("code"), py::arg("offset"), py::arg("message") = "",
+            "Add an error to the result")
+        .def("error_count", &ValidationResult::error_count,
+            "Get error count")
+        .def("__bool__", [](const ValidationResult& result) {
+            return static_cast<bool>(result);
+        }, "Check if validation passed (implicit operator bool)")
+        .def("__repr__", [](const ValidationResult& result) {
+            return "<ValidationResult valid=" + 
+                   std::string(result.is_valid ? "true" : "false") +
+                   " errors=" + std::to_string(result.error_count()) + ">";
+        });
+
+    py::class_<ProtocolValidator>(m, "ProtocolValidator",
+        "Cross-protocol validator for packet analysis")
+        .def(py::init<ValidationMode>(), py::arg("mode") = ValidationMode::Strict,
+            "Create a validator with the specified mode")
+        .def("validate_layering", &ProtocolValidator::validateLayering,
+            py::arg("layers"),
+            "Validate protocol stack layering integrity\n"
+            "Checks: Valid protocol progression, proper frame type matching\n"
+            "Returns: ValidationResult with any errors found")
+        .def("validate_lengths", &ProtocolValidator::validateLengths,
+            py::arg("layers"), py::arg("total_packet_length"),
+            "Validate length consistency across layers\n"
+            "Checks: Header+payload=total, no gaps/overlaps\n"
+            "Returns: ValidationResult with any errors found")
+        .def("validate_checksums", &ProtocolValidator::validateChecksums,
+            py::arg("packet_data"), py::arg("layers"),
+            "Validate checksums across protocol layers\n"
+            "Checks: IPv4, UDP, TCP checksums with pseudo-header\n"
+            "Returns: ValidationResult with any checksum errors")
+        .def("set_mode", &ProtocolValidator::set_mode,
+            py::arg("mode"),
+            "Set validation mode")
+        .def("get_mode", &ProtocolValidator::get_mode,
+            "Get current validation mode")
+        .def("__repr__", [](const ProtocolValidator& validator) {
+            const char* mode_str = validator.get_mode() == ValidationMode::Strict ? "Strict" : "Lenient";
+            return "<ProtocolValidator mode=" + std::string(mode_str) + ">";
+        });
 }

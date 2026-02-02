@@ -6,7 +6,9 @@
 #include "wadjet/core/types.hpp"
 #include "wadjet/protocols/decoder.hpp"
 
+#include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -48,8 +50,50 @@ struct IPv4Header : public IDecodedHeader {
     std::uint16_t checksum = 0;         ///< Header checksum
     IPv4Address src_ip;                 ///< Source IP address
     IPv4Address dst_ip;                 ///< Destination IP address
-    std::vector<std::byte> options;     ///< IP options (if present)
+    std::vector<std::byte> options;     ///< IP options (raw bytes, if present)
     bool checksum_valid = false;        ///< Whether checksum was validated
+
+    /// Parsed IPv4 options (populated by parseIpv4Options)
+    struct Option {
+        std::uint8_t type;
+        std::vector<std::uint8_t> data;
+    };
+    using OptionsList = std::vector<Option>;
+    OptionsList parsed_options;
+    bool options_malformed = false;  ///< Whether option parsing encountered malformed data
+
+    /// Known IPv4 option types (IANA)
+    enum class OptionType : std::uint8_t {
+        EOL = 0,
+        NOP = 1,
+        RECORD_ROUTE = 7,
+        TIMESTAMP = 68,
+        SECURITY = 130,
+        LOOSE_SOURCE_ROUTE = 131,
+        STREAM_ID = 136,
+        STRICT_SOURCE_ROUTE = 137,
+        ROUTER_ALERT = 148,  ///< Router Alert (RFC 2113)
+    };
+
+    /// Result of parsing IPv4 options
+    struct ParseOptionsResult {
+        OptionsList options;
+        bool malformed = false;
+    };
+
+    /// Parse raw options into structured list and detect malformed options
+    [[nodiscard]] static ParseOptionsResult parseIpv4Options(const std::vector<std::byte>& raw);
+
+    /// Fragment info (if packet is a fragment)
+    struct Ipv4Fragment {
+        IPv4Address src_ip;
+        IPv4Address dst_ip;
+        std::uint8_t protocol = 0;
+        std::uint16_t identification = 0;
+        std::uint16_t offset = 0;  // in bytes
+        bool mf = false;           // more fragments flag
+        std::vector<std::uint8_t> payload;
+    };
 
     // IDecodedHeader interface
     [[nodiscard]] std::string_view protocol_name() const override { return "IPv4"; }
@@ -115,6 +159,45 @@ public:
 
 private:
     Options options_;
+};
+
+/// @brief IPv4 fragment reassembler for handling fragmented IPv4 datagrams
+/// @details Reassembles IPv4 fragments identified by (src_ip, dst_ip, protocol, identification)
+/// with 30-second timeout. Handles out-of-order and overlapping fragments.
+class Ipv4FragmentReassembler {
+public:
+    /// @brief Configuration for fragment reassembly
+    struct Config {
+        std::chrono::seconds timeout =
+            std::chrono::seconds(30);  ///< Maximum time to hold incomplete fragments
+    };
+
+    /// @brief Constructor with optional configuration (default: 30s timeout)
+    explicit Ipv4FragmentReassembler(const Config& cfg);
+
+    /// @brief Add a fragment and attempt reassembly
+    /// @param frag Fragment to add
+    /// @return Complete reassembled payload if all fragments received, std::nullopt otherwise
+    [[nodiscard]] std::optional<std::vector<std::uint8_t>> add_fragment(
+        const IPv4Header::Ipv4Fragment& frag);
+
+    /// @brief Clean up expired fragment caches
+    void cleanup_expired();
+
+    /// @brief Clear all cached fragments
+    void clear();
+
+    /// @brief Get number of incomplete fragment groups being tracked
+    [[nodiscard]] std::size_t size() const;
+
+    /// @brief Destructor
+    ~Ipv4FragmentReassembler();
+
+private:
+    Config config_;
+    // Implementation details hidden (see ipv4_reassembler.cpp)
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Global IPv4 decoder instance

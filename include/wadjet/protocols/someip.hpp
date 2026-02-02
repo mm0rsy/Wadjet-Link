@@ -6,7 +6,10 @@
 #include "wadjet/protocols/decoder.hpp"
 
 #include <cstdint>
+#include <cstring>
+#include <map>
 #include <string>
+#include <vector>
 
 namespace wadjet::protocols::someip {
 
@@ -185,6 +188,97 @@ struct SomeIpHeader : public IDecodedHeader {
     [[nodiscard]] bool is_event() const { return (method_id & 0x8000) != 0; }
 };
 
+/// @brief SOME/IP Transport Protocol (TP) header flags
+constexpr std::uint8_t TP_FLAG = 0x20;           ///< TP flag in message type byte
+constexpr std::uint8_t TP_MORE_SEGMENTS = 0x01;  ///< More segments flag in TP header
+
+/// @brief SOME/IP-TP (Transport Protocol) segment information
+struct SomeipTpSegment {
+    std::uint32_t offset = 0;    ///< Segment offset in bytes
+    bool more_segments = false;  ///< True if more segments follow
+
+    /// @brief Parse TP header from raw bytes
+    [[nodiscard]] static SomeipTpSegment parse(const void* tp_data) {
+        SomeipTpSegment seg;
+        const auto* ptr = static_cast<const std::uint8_t*>(tp_data);
+
+        // First byte: reserved (7 bits) + more_segments flag (1 bit)
+        seg.more_segments = (ptr[0] & TP_MORE_SEGMENTS) != 0;
+
+        // Offset in 4-byte units (3 bytes, big-endian)
+        std::uint32_t offset_units = (static_cast<std::uint32_t>(ptr[1]) << 16) |
+                                     (static_cast<std::uint32_t>(ptr[2]) << 8) | ptr[3];
+        seg.offset = offset_units * 4;
+
+        return seg;
+    }
+};
+
+/// @brief SOME/IP-TP reassembly state for a message
+struct SomeipTpMessage {
+    std::uint32_t message_id = 0;        ///< Combined (service_id << 16) | method_id
+    std::uint32_t request_id = 0;        ///< Combined (client_id << 16) | session_id
+    std::uint32_t total_length = 0;      ///< Total message length (from first segment)
+    std::vector<std::uint8_t> data;      ///< Reassembled message data
+    std::uint64_t last_update_time = 0;  ///< Timestamp of last segment received
+
+    /// @brief Check if message is complete
+    [[nodiscard]] bool is_complete() const {
+        return data.size() >= total_length && total_length > 0;
+    }
+
+    /// @brief Add segment to reassembly buffer
+    void add_segment(std::uint32_t offset, const std::uint8_t* segment_data,
+                     std::size_t segment_size) {
+        // Ensure buffer is large enough
+        if (offset + segment_size > data.size()) {
+            data.resize(offset + segment_size);
+        }
+
+        // Copy segment data
+        std::memcpy(data.data() + offset, segment_data, segment_size);
+    }
+};
+
+/// @brief SOME/IP-TP (Transport Protocol) reassembler for large messages
+class SomeipTpReassembler {
+public:
+    /// @brief Maximum message size (16 MB)
+    static constexpr std::uint32_t MAX_MESSAGE_SIZE = 16 * 1024 * 1024;
+
+    /// @brief Timeout for incomplete messages (5 seconds)
+    static constexpr std::uint64_t TIMEOUT_MS = 5000;
+
+    /// @brief Process a TP segment
+    /// @param message_id Combined service/method ID
+    /// @param request_id Combined client/session ID
+    /// @param segment TP segment information (offset, more_segments)
+    /// @param data Segment payload data
+    /// @param data_size Segment payload size
+    /// @return true if message is complete after adding segment
+    [[nodiscard]] bool add_segment(std::uint32_t message_id, std::uint32_t request_id,
+                                   const SomeipTpSegment& segment, const std::uint8_t* data,
+                                   std::size_t data_size);
+
+    /// @brief Get completed message
+    /// @param message_id Combined service/method ID
+    /// @param request_id Combined client/session ID
+    /// @return Pointer to completed message, or nullptr if not complete
+    [[nodiscard]] const SomeipTpMessage* get_message(std::uint32_t message_id,
+                                                     std::uint32_t request_id) const;
+
+    /// @brief Remove completed message
+    void remove_message(std::uint32_t message_id, std::uint32_t request_id);
+
+    /// @brief Clear timed-out messages
+    /// @param current_time_ms Current time in milliseconds
+    void cleanup_timed_out(std::uint64_t current_time_ms);
+
+private:
+    // Key: (message_id, request_id)
+    std::map<std::pair<std::uint32_t, std::uint32_t>, SomeipTpMessage> messages_;
+};
+
 /// @brief SOME/IP decoder
 class SomeIpDecoder : public DecoderBase<SomeIpDecoder, SomeIpHeader> {
 public:
@@ -192,7 +286,11 @@ public:
     struct Options {
         bool validate_protocol_version;  ///< Check protocol version is 1
         bool allow_invalid_version;      ///< Continue even if version invalid
-        Options() : validate_protocol_version(true), allow_invalid_version(false) {}
+        bool enable_tp_reassembly;       ///< Enable SOME/IP-TP message reassembly
+        Options()
+            : validate_protocol_version(true),
+              allow_invalid_version(false),
+              enable_tp_reassembly(true) {}
     };
 
     explicit SomeIpDecoder(Options opts = Options()) : options_(opts) {}
@@ -210,6 +308,8 @@ public:
 
 private:
     Options options_;
+    mutable SomeipTpReassembler
+        tp_reassembler_;  ///< TP message reassembler (mutable for const decode)
 };
 
 /// @brief Global SOME/IP decoder instance

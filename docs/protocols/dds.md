@@ -322,6 +322,48 @@ enum class SubmessageKind : std::uint8_t {
 };
 ```
 
+## Practical Examples
+
+### Example: Monitoring Heartbeats
+
+```cpp
+#include <wadjet/protocols/dds/rtps_analyzer.hpp>
+
+void on_heartbeat(const RTPSHeartbeat& hb) {
+    if (hb.final_flag && hb.liveliness_flag) {
+        std::cout << "Liveliness check from " << hb.writer_id.to_string() << "\n";
+    }
+}
+
+// ... in your main loop
+RtpsAnalyzer analyzer;
+analyzer.register_callback<RTPSHeartbeat>(on_heartbeat);
+analyzer.process_packet(payload);
+```
+
+### Example: Parsing Discovery Data
+
+```cpp
+#include <wadjet/protocols/dds/rtps_decoder.hpp>
+#include <wadjet/protocols/dds/rtps_discovery.hpp>
+
+void decode_discovery(std::span<const std::byte> data) {
+    auto submessage = RtpsDecoder::decode_submessage(data);
+    if (submessage.header.type == SubmessageType::DATA) {
+        auto data_msg = std::get<RTPSData>(submessage.body);
+        // Check if it's a ParameterList (common in discovery)
+        if (data_msg.has_inline_qos) {
+            auto params = RtpsDecoder::parse_parameter_list(data_msg.inline_qos);
+            for (const auto& param : params) {
+                if (param.id == ParameterId::PID_TOPIC_NAME) {
+                    std::cout << "Discovered Topic: " << param.as_string() << "\n";
+                }
+            }
+        }
+    }
+}
+```
+
 ## See Also
 
 - [OMG RTPS Specification v2.4](https://www.omg.org/spec/DDSI-RTPS/2.4)

@@ -372,5 +372,109 @@ TEST(GptpFilterTest, GptpDomain) {
     EXPECT_FALSE(domain0_filter(result));
 }
 
+// =============================================================================
+// Phase 8.1 Remediation: gPTP Rate Ratio and TLV Tests (FR-044 to FR-049)
+// =============================================================================
+
+// Test rate ratio calculation from cumulative_scaled_rate_offset (FR-045)
+TEST(GptpRateRatioTest, ZeroOffset) {
+    // Zero offset should give rate ratio of exactly 1.0
+    auto ratio = calculate_rate_ratio(0);
+    EXPECT_DOUBLE_EQ(ratio, 1.0);
+}
+
+TEST(GptpRateRatioTest, PositiveOffset) {
+    // Positive offset means faster clock
+    // rateRatio = 1 + (offset / 2^41)
+    std::int32_t offset = 1 << 20;  // ~1 ppm offset
+    auto ratio = calculate_rate_ratio(offset);
+    EXPECT_GT(ratio, 1.0);
+    // Expected: 1 + (2^20 / 2^41) = 1 + 2^(-21) ≈ 1.000000476837
+    EXPECT_NEAR(ratio, 1.0 + (1.0 / (1ULL << 21)), 1e-12);
+}
+
+TEST(GptpRateRatioTest, NegativeOffset) {
+    // Negative offset means slower clock
+    std::int32_t offset = -(1 << 20);
+    auto ratio = calculate_rate_ratio(offset);
+    EXPECT_LT(ratio, 1.0);
+    EXPECT_NEAR(ratio, 1.0 - (1.0 / (1ULL << 21)), 1e-12);
+}
+
+TEST(GptpRateRatioTest, MaxPositiveOffset) {
+    // Maximum positive offset (INT32_MAX)
+    auto ratio = calculate_rate_ratio(INT32_MAX);
+    EXPECT_GT(ratio, 1.0);
+    // Should be approximately 1 + (2^31 / 2^41) = 1 + 2^(-10) ≈ 1.0009765625
+    EXPECT_NEAR(ratio, 1.0 + (static_cast<double>(INT32_MAX) / (1ULL << 41)), 1e-12);
+}
+
+TEST(GptpRateRatioTest, MaxNegativeOffset) {
+    // Maximum negative offset (INT32_MIN)
+    auto ratio = calculate_rate_ratio(INT32_MIN);
+    EXPECT_LT(ratio, 1.0);
+}
+
+TEST(GptpRateRatioTest, TypicalAutomotiveOffset) {
+    // Typical automotive clock drift: ~100 ppm = 100e-6
+    // offset = ppm * 2^41 / 1e6
+    // offset = 100 * 2199023255552 / 1e6 = 219902325.5552
+    std::int32_t offset = 219902326;  // ~100 ppm
+    auto ratio = calculate_rate_ratio(offset);
+    // Should be approximately 1.0001 (100 ppm)
+    double ppm = (ratio - 1.0) * 1e6;
+    EXPECT_NEAR(ppm, 100.0, 0.1);
+}
+
+// Test TLV type enum values (FR-044, FR-047)
+TEST(GptpTlvTypeTest, StandardTlvTypes) {
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::Management), 0x0001);
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::ManagementErrorStatus), 0x0002);
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::ORGANIZATION_EXTENSION), 0x0003);
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::PATH_TRACE), 0x0008);
+}
+
+TEST(GptpTlvTypeTest, GptpSpecificTlvTypes) {
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::OrganizationExtensionPropagate), 0x4000);
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::OrganizationExtensionDoNotPropagate), 0x8000);
+    EXPECT_EQ(static_cast<std::uint16_t>(TlvType::CumulativeScaledRateOffset), 0x8007);
+}
+
+// Test FollowUpTlv structure (FR-044, FR-045, FR-046)
+TEST(GptpFollowUpTlvTest, IeeeOui) {
+    // IEEE 802.1 OUI should be 00:80:C2
+    EXPECT_EQ(FollowUpTlv::IEEE_802_1_OUI[0], 0x00);
+    EXPECT_EQ(FollowUpTlv::IEEE_802_1_OUI[1], 0x80);
+    EXPECT_EQ(FollowUpTlv::IEEE_802_1_OUI[2], 0xC2);
+}
+
+TEST(GptpFollowUpTlvTest, SubtypeFollowUp) {
+    EXPECT_EQ(FollowUpTlv::SUBTYPE_FOLLOW_UP, 1);
+}
+
+TEST(GptpFollowUpTlvTest, DefaultValues) {
+    FollowUpTlv tlv;
+    EXPECT_EQ(tlv.cumulative_scaled_rate_offset, 0);
+    EXPECT_EQ(tlv.gm_time_base_indicator, 0);
+    EXPECT_EQ(tlv.last_gm_phase_change_ns_msb, 0);
+    EXPECT_EQ(tlv.last_gm_phase_change_ns_lsb, 0);
+    EXPECT_EQ(tlv.scaled_last_gm_freq_change, 0);
+}
+
+// Test PathTraceTlv structure (FR-047)
+TEST(GptpPathTraceTlvTest, EmptyPath) {
+    PathTraceTlv tlv;
+    EXPECT_TRUE(tlv.path_sequence.empty());
+}
+
+// Test TLV parsing constants
+TEST(GptpTlvConstantsTest, HeaderSize) {
+    EXPECT_EQ(TLV_HEADER_SIZE, 4);  // Type (2) + Length (2)
+}
+
+TEST(GptpTlvConstantsTest, FollowUpTlvSize) {
+    EXPECT_EQ(FOLLOW_UP_TLV_SIZE, 28);  // Without TLV header
+}
+
 }  // namespace
 }  // namespace wadjet::protocols::gptp

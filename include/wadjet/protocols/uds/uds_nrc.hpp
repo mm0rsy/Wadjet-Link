@@ -412,4 +412,221 @@ enum class NRCCategory {
     return nrc >= 0x95 && nrc <= 0xEF;
 }
 
+// Forward declaration for ServiceID (defined in uds_types.hpp)
+// Using raw values to avoid circular dependency
+namespace detail {
+
+/// @brief Service-specific context for RequestOutOfRange (0x31)
+[[nodiscard]] constexpr std::string_view request_out_of_range_context(std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x22:  // ReadDataByIdentifier
+            return "The requested Data Identifier (DID) is not supported or does not exist";
+        case 0x23:  // ReadMemoryByAddress
+            return "The requested memory address or size is outside the valid range";
+        case 0x24:  // ReadScalingDataByIdentifier
+            return "The requested scaling DID is not supported";
+        case 0x2A:  // ReadDataByPeriodicIdentifier
+            return "The requested periodic identifier is not supported";
+        case 0x2C:  // DynamicallyDefineDataIdentifier
+            return "The DID definition parameters are invalid or out of range";
+        case 0x2E:  // WriteDataByIdentifier
+            return "The DID value to write is out of the allowed range";
+        case 0x2F:  // InputOutputControlByIdentifier
+            return "The I/O control parameter or DID is out of range";
+        case 0x31:  // RoutineControl
+            return "The routine ID or option record parameter is out of range";
+        case 0x34:  // RequestDownload
+            return "The memory address, size, or format identifier is out of range";
+        case 0x35:  // RequestUpload
+            return "The memory address, size, or format identifier is out of range";
+        case 0x36:  // TransferData
+            return "The block sequence counter or data length is invalid";
+        case 0x38:  // RequestFileTransfer
+            return "The file path, name, or parameters are invalid";
+        case 0x3D:  // WriteMemoryByAddress
+            return "The memory address or data to write is out of valid range";
+        default:
+            return "Request contains a parameter value that is out of range";
+    }
+}
+
+/// @brief Service-specific context for ConditionsNotCorrect (0x22)
+[[nodiscard]] constexpr std::string_view conditions_not_correct_context(std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x10:  // DiagnosticSessionControl
+            return "Session transition not allowed due to current vehicle/ECU state";
+        case 0x11:  // ECUReset
+            return "ECU reset not allowed - vehicle conditions not met (e.g., ignition state)";
+        case 0x27:  // SecurityAccess
+            return "Security access not allowed - preconditions not met or wrong session";
+        case 0x28:  // CommunicationControl
+            return "Communication control not allowed in current session or vehicle state";
+        case 0x2E:  // WriteDataByIdentifier
+            return "DID cannot be written - security level or session requirements not met";
+        case 0x2F:  // InputOutputControlByIdentifier
+            return "I/O control not allowed - safety conditions or prerequisites not met";
+        case 0x31:  // RoutineControl
+            return "Routine cannot execute - preconditions not met (session, security, sequence)";
+        case 0x34:  // RequestDownload
+            return "Download not allowed - programming session not active or security not unlocked";
+        case 0x35:  // RequestUpload
+            return "Upload not allowed - programming session not active or security not unlocked";
+        case 0x36:  // TransferData
+            return "Data transfer not allowed - no active download/upload session";
+        case 0x37:  // RequestTransferExit
+            return "Transfer exit not allowed - transfer not complete or not in progress";
+        case 0x85:  // ControlDTCSetting
+            return "DTC setting control not allowed in current diagnostic session";
+        default:
+            return "Conditions are not correct to perform the requested action";
+    }
+}
+
+/// @brief Service-specific context for SubFunctionNotSupported (0x12)
+[[nodiscard]] constexpr std::string_view sub_function_not_supported_context(
+    std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x10:  // DiagnosticSessionControl
+            return "The requested diagnostic session type is not supported by this ECU";
+        case 0x11:  // ECUReset
+            return "The requested reset type is not supported by this ECU";
+        case 0x19:  // ReadDTCInformation
+            return "The requested DTC report type (sub-function) is not supported";
+        case 0x27:  // SecurityAccess
+            return "The requested security access type/level is not supported";
+        case 0x28:  // CommunicationControl
+            return "The requested communication control type is not supported";
+        case 0x31:  // RoutineControl
+            return "The requested routine control type (start/stop/result) is not supported";
+        case 0x3E:  // TesterPresent
+            return "The requested sub-function for TesterPresent is not supported";
+        case 0x85:  // ControlDTCSetting
+            return "The requested DTC setting control type is not supported";
+        case 0x86:  // ResponseOnEvent
+            return "The requested event type is not supported";
+        case 0x87:  // LinkControl
+            return "The requested link control mode is not supported";
+        default:
+            return "The requested sub-function is not supported";
+    }
+}
+
+/// @brief Service-specific context for SecurityAccessDenied (0x33)
+[[nodiscard]] constexpr std::string_view security_access_denied_context(std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x22:  // ReadDataByIdentifier
+            return "Reading this DID requires a higher security level";
+        case 0x23:  // ReadMemoryByAddress
+            return "Reading this memory region requires security unlock";
+        case 0x2E:  // WriteDataByIdentifier
+            return "Writing this DID requires security authentication";
+        case 0x2F:  // InputOutputControlByIdentifier
+            return "I/O control for this identifier requires security access";
+        case 0x31:  // RoutineControl
+            return "This routine requires security unlock before execution";
+        case 0x34:  // RequestDownload
+            return "Download to this memory area requires security authentication";
+        case 0x35:  // RequestUpload
+            return "Upload from this memory area requires security authentication";
+        case 0x3D:  // WriteMemoryByAddress
+            return "Writing to this memory region requires security unlock";
+        default:
+            return "Security access was denied - authentication required";
+    }
+}
+
+/// @brief Service-specific context for ServiceNotSupported (0x11)
+[[nodiscard]] constexpr std::string_view service_not_supported_context(std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x22:
+            return "ReadDataByIdentifier service is not implemented in this ECU";
+        case 0x23:
+            return "ReadMemoryByAddress service is not implemented in this ECU";
+        case 0x2E:
+            return "WriteDataByIdentifier service is not implemented in this ECU";
+        case 0x2F:
+            return "InputOutputControlByIdentifier service is not implemented in this ECU";
+        case 0x31:
+            return "RoutineControl service is not implemented in this ECU";
+        case 0x34:
+            return "RequestDownload service is not implemented (no flash programming support)";
+        case 0x35:
+            return "RequestUpload service is not implemented (no memory upload support)";
+        case 0x36:
+            return "TransferData service is not implemented in this ECU";
+        default:
+            return "The requested service identifier is not supported";
+    }
+}
+
+/// @brief Service-specific context for TransferDataSuspended (0x71)
+[[nodiscard]] constexpr std::string_view transfer_data_suspended_context(std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x34:  // RequestDownload
+            return "Download operation has been suspended due to an error";
+        case 0x35:  // RequestUpload
+            return "Upload operation has been suspended due to an error";
+        case 0x36:  // TransferData
+            return "Data block transfer suspended - verify data integrity";
+        case 0x38:  // RequestFileTransfer
+            return "File transfer operation has been suspended";
+        default:
+            return "Data transfer has been suspended";
+    }
+}
+
+/// @brief Service-specific context for GeneralProgrammingFailure (0x72)
+[[nodiscard]] constexpr std::string_view general_programming_failure_context(
+    std::uint8_t service_id) {
+    switch (service_id) {
+        case 0x34:  // RequestDownload
+            return "Failed to initialize memory for download (erase/prepare failure)";
+        case 0x36:  // TransferData
+            return "Failed to program data block to memory (write/flash failure)";
+        case 0x37:  // RequestTransferExit
+            return "Programming verification failed - data integrity error";
+        default:
+            return "A programming operation has failed";
+    }
+}
+
+}  // namespace detail
+
+/// @brief Get service-specific NRC description
+///
+/// Provides context-aware NRC descriptions based on the rejected service.
+/// Some NRC codes have different meanings depending on which service returned them.
+///
+/// @param service_id The service that was rejected (from negative response)
+/// @param nrc The Negative Response Code
+/// @return Context-specific description string
+[[nodiscard]] constexpr std::string_view service_specific_nrc_description(std::uint8_t service_id,
+                                                                          NRC nrc) {
+    switch (nrc) {
+        case NRC::RequestOutOfRange:
+            return detail::request_out_of_range_context(service_id);
+        case NRC::ConditionsNotCorrect:
+            return detail::conditions_not_correct_context(service_id);
+        case NRC::SubFunctionNotSupported:
+            return detail::sub_function_not_supported_context(service_id);
+        case NRC::SecurityAccessDenied:
+            return detail::security_access_denied_context(service_id);
+        case NRC::ServiceNotSupported:
+            return detail::service_not_supported_context(service_id);
+        case NRC::TransferDataSuspended:
+            return detail::transfer_data_suspended_context(service_id);
+        case NRC::GeneralProgrammingFailure:
+            return detail::general_programming_failure_context(service_id);
+        default:
+            // For NRCs without service-specific context, return generic description
+            return nrc_description(nrc);
+    }
+}
+
+/// @brief Get service-specific NRC description (byte version)
+[[nodiscard]] constexpr std::string_view service_specific_nrc_description(std::uint8_t service_id,
+                                                                          std::uint8_t nrc) {
+    return service_specific_nrc_description(service_id, static_cast<NRC>(nrc));
+}
+
 }  // namespace wadjet::protocols::uds

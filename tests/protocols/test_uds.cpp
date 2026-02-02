@@ -649,5 +649,154 @@ TEST(ServiceHelpersTest, SecurityAccessHelpers) {
     EXPECT_EQ(get_security_level(0x04), 2);
 }
 
+// ===========================================================================
+// Service-Specific NRC Interpretation Tests
+// ===========================================================================
+
+TEST(ServiceSpecificNrcTest, RequestOutOfRangeByService) {
+    // ReadDataByIdentifier - DID not found context
+    auto desc_rdbi = service_specific_nrc_description(0x22, NRC::RequestOutOfRange);  // RDBI = 0x22
+    EXPECT_TRUE(desc_rdbi.find("DID") != std::string_view::npos ||
+                desc_rdbi.find("Data Identifier") != std::string_view::npos);
+
+    // WriteDataByIdentifier - value out of range context
+    auto desc_wdbi = service_specific_nrc_description(0x2E, NRC::RequestOutOfRange);  // WDBI = 0x2E
+    EXPECT_TRUE(desc_wdbi.find("DID") != std::string_view::npos ||
+                desc_wdbi.find("range") != std::string_view::npos);
+
+    // RoutineControl - routine ID context
+    auto desc_rc = service_specific_nrc_description(0x31, NRC::RequestOutOfRange);  // RC = 0x31
+    EXPECT_TRUE(desc_rc.find("routine") != std::string_view::npos);
+
+    // RequestDownload - memory address context
+    auto desc_rd = service_specific_nrc_description(0x34, NRC::RequestOutOfRange);  // RD = 0x34
+    EXPECT_TRUE(desc_rd.find("memory") != std::string_view::npos ||
+                desc_rd.find("address") != std::string_view::npos);
+
+    // Different services should return different descriptions
+    EXPECT_NE(desc_rdbi, desc_wdbi);
+    EXPECT_NE(desc_rdbi, desc_rc);
+}
+
+TEST(ServiceSpecificNrcTest, ConditionsNotCorrectByService) {
+    // DiagnosticSessionControl - session transition context
+    auto desc_dsc = service_specific_nrc_description(0x10, NRC::ConditionsNotCorrect);
+    EXPECT_TRUE(desc_dsc.find("session") != std::string_view::npos ||
+                desc_dsc.find("Session") != std::string_view::npos);
+
+    // SecurityAccess - preconditions context
+    auto desc_sa = service_specific_nrc_description(0x27, NRC::ConditionsNotCorrect);
+    EXPECT_TRUE(desc_sa.find("security") != std::string_view::npos ||
+                desc_sa.find("Security") != std::string_view::npos);
+
+    // RoutineControl - preconditions context
+    auto desc_rc = service_specific_nrc_description(0x31, NRC::ConditionsNotCorrect);
+    EXPECT_TRUE(desc_rc.find("preconditions") != std::string_view::npos ||
+                desc_rc.find("Routine") != std::string_view::npos);
+
+    // RequestDownload - programming session context
+    auto desc_rd = service_specific_nrc_description(0x34, NRC::ConditionsNotCorrect);
+    EXPECT_TRUE(desc_rd.find("programming") != std::string_view::npos ||
+                desc_rd.find("Download") != std::string_view::npos);
+}
+
+TEST(ServiceSpecificNrcTest, SubFunctionNotSupportedByService) {
+    // DiagnosticSessionControl - session type context
+    auto desc_dsc = service_specific_nrc_description(0x10, NRC::SubFunctionNotSupported);
+    EXPECT_TRUE(desc_dsc.find("session") != std::string_view::npos);
+
+    // ECUReset - reset type context
+    auto desc_reset = service_specific_nrc_description(0x11, NRC::SubFunctionNotSupported);
+    EXPECT_TRUE(desc_reset.find("reset") != std::string_view::npos);
+
+    // ReadDTCInformation - report type context
+    auto desc_rdtc = service_specific_nrc_description(0x19, NRC::SubFunctionNotSupported);
+    EXPECT_TRUE(desc_rdtc.find("DTC") != std::string_view::npos);
+}
+
+TEST(ServiceSpecificNrcTest, SecurityAccessDeniedByService) {
+    // ReadDataByIdentifier - DID requires security
+    auto desc_rdbi = service_specific_nrc_description(0x22, NRC::SecurityAccessDenied);
+    EXPECT_TRUE(desc_rdbi.find("DID") != std::string_view::npos ||
+                desc_rdbi.find("security") != std::string_view::npos);
+
+    // WriteDataByIdentifier - write requires security
+    auto desc_wdbi = service_specific_nrc_description(0x2E, NRC::SecurityAccessDenied);
+    EXPECT_TRUE(desc_wdbi.find("security") != std::string_view::npos ||
+                desc_wdbi.find("authentication") != std::string_view::npos);
+
+    // RoutineControl - routine requires security
+    auto desc_rc = service_specific_nrc_description(0x31, NRC::SecurityAccessDenied);
+    EXPECT_TRUE(desc_rc.find("routine") != std::string_view::npos ||
+                desc_rc.find("security") != std::string_view::npos);
+}
+
+TEST(ServiceSpecificNrcTest, TransferNrcsByService) {
+    // TransferDataSuspended for different services
+    auto desc_download = service_specific_nrc_description(0x34, NRC::TransferDataSuspended);
+    EXPECT_TRUE(desc_download.find("Download") != std::string_view::npos);
+
+    auto desc_upload = service_specific_nrc_description(0x35, NRC::TransferDataSuspended);
+    EXPECT_TRUE(desc_upload.find("Upload") != std::string_view::npos);
+
+    auto desc_file = service_specific_nrc_description(0x38, NRC::TransferDataSuspended);
+    EXPECT_TRUE(desc_file.find("File") != std::string_view::npos ||
+                desc_file.find("file") != std::string_view::npos);
+}
+
+TEST(ServiceSpecificNrcTest, GeneralProgrammingFailureByService) {
+    auto desc_rd = service_specific_nrc_description(0x34, NRC::GeneralProgrammingFailure);
+    EXPECT_TRUE(desc_rd.find("erase") != std::string_view::npos ||
+                desc_rd.find("initialize") != std::string_view::npos);
+
+    auto desc_td = service_specific_nrc_description(0x36, NRC::GeneralProgrammingFailure);
+    EXPECT_TRUE(desc_td.find("program") != std::string_view::npos ||
+                desc_td.find("flash") != std::string_view::npos);
+
+    auto desc_rte = service_specific_nrc_description(0x37, NRC::GeneralProgrammingFailure);
+    EXPECT_TRUE(desc_rte.find("verification") != std::string_view::npos ||
+                desc_rte.find("integrity") != std::string_view::npos);
+}
+
+TEST(ServiceSpecificNrcTest, FallbackToGenericDescription) {
+    // NRCs without service-specific context should return generic description
+    auto desc_busy = service_specific_nrc_description(0x22, NRC::BusyRepeatRequest);
+    EXPECT_EQ(desc_busy, nrc_description(NRC::BusyRepeatRequest));
+
+    auto desc_pending =
+        service_specific_nrc_description(0x22, NRC::RequestCorrectlyReceivedResponsePending);
+    EXPECT_EQ(desc_pending, nrc_description(NRC::RequestCorrectlyReceivedResponsePending));
+
+    auto desc_rpm = service_specific_nrc_description(0x31, NRC::RpmTooHigh);
+    EXPECT_EQ(desc_rpm, nrc_description(NRC::RpmTooHigh));
+}
+
+TEST(ServiceSpecificNrcTest, NegativeResponseMessageIntegration) {
+    // Test through NegativeResponseMessage struct
+    NegativeResponseMessage nrm;
+    nrm.rejected_service_id = ServiceID::ReadDataByIdentifier;
+    nrm.negative_response_code = NRC::RequestOutOfRange;
+
+    // Generic description
+    auto generic = nrm.nrc_description();
+    EXPECT_TRUE(generic.find("out of range") != std::string_view::npos);
+
+    // Service-specific description
+    auto specific = nrm.service_specific_description();
+    EXPECT_TRUE(specific.find("DID") != std::string_view::npos ||
+                specific.find("Data Identifier") != std::string_view::npos);
+
+    // Ensure they're potentially different
+    EXPECT_NE(generic, specific);
+}
+
+TEST(ServiceSpecificNrcTest, ByteOverloads) {
+    // Test byte versions work correctly
+    auto desc1 = service_specific_nrc_description(static_cast<std::uint8_t>(0x22),
+                                                  static_cast<std::uint8_t>(0x31));
+    auto desc2 = service_specific_nrc_description(0x22, NRC::RequestOutOfRange);
+    EXPECT_EQ(desc1, desc2);
+}
+
 }  // namespace
 }  // namespace wadjet::protocols::uds

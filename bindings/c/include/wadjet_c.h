@@ -97,6 +97,12 @@ typedef struct wadjet_packet* wadjet_packet_t;
 /** @brief Opaque handle to decode result */
 typedef struct wadjet_decode_result* wadjet_decode_result_t;
 
+/** @brief Opaque handle to a protocol validator */
+typedef struct wadjet_protocol_validator* wadjet_protocol_validator_t;
+
+/** @brief Opaque handle to a validation result */
+typedef struct wadjet_validation_result* wadjet_validation_result_t;
+
 /* ============================================================================
  * Data Structures
  * ============================================================================ */
@@ -1345,6 +1351,142 @@ wadjet_error_t wadjet_device_list_get(
     wadjet_device_list_t list,
     size_t index,
     wadjet_device_info_t* info);
+
+/* ============================================================================
+ * Cross-Protocol Validation API
+ * ============================================================================ */
+
+/**
+ * @brief Validation error handling modes
+ */
+typedef enum {
+    WADJET_VALIDATION_MODE_STRICT = 0,  /**< Fail on first error */
+    WADJET_VALIDATION_MODE_LENIENT = 1, /**< Continue on error */
+} wadjet_validation_mode_t;
+
+/**
+ * @brief Protocol layer information for validation
+ */
+typedef struct {
+    const char* name;           /**< Layer name (e.g., "IPv4", "TCP") */
+    size_t offset;              /**< Offset in packet where layer starts */
+    size_t header_length;       /**< Length of this layer's header */
+    size_t payload_length;      /**< Length of payload carried by this layer */
+    uint16_t ethertype;         /**< EtherType or protocol number */
+    uint16_t checksum;          /**< Checksum value (0 if none) */
+    bool has_checksum;          /**< Whether layer has checksum field */
+} wadjet_protocol_layer_t;
+
+/**
+ * @brief Validation result with error details
+ */
+typedef struct {
+    bool is_valid;              /**< True if validation passed */
+    wadjet_validation_mode_t mode;  /**< Mode used for validation */
+    size_t error_count;         /**< Number of errors found */
+    // Use wadjet_validation_result_get_error() to access individual errors
+} wadjet_validation_result_t;
+
+/**
+ * @brief Create a protocol validator
+ * @param mode Validation mode (strict or lenient)
+ * @param validator Output: validator handle
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_protocol_validator_create(
+    wadjet_validation_mode_t mode,
+    wadjet_protocol_validator_t* validator);
+
+/**
+ * @brief Destroy a protocol validator
+ * @param validator Validator handle
+ */
+void wadjet_protocol_validator_destroy(wadjet_protocol_validator_t validator);
+
+/**
+ * @brief Validate protocol stack layering integrity
+ *
+ * Checks for valid protocol progression (Ethernet → IPv4 → UDP/TCP → Application)
+ * and proper frame type matching.
+ *
+ * @param validator Validator handle
+ * @param layers Array of protocol layers
+ * @param layer_count Number of layers
+ * @param result Output: validation result
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_validate_layering(
+    wadjet_protocol_validator_t validator,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    wadjet_validation_result_t* result);
+
+/**
+ * @brief Validate length consistency across layers
+ *
+ * Checks that header + payload = total length for each layer,
+ * no gaps or overlaps between layers.
+ *
+ * @param validator Validator handle
+ * @param layers Array of protocol layers
+ * @param layer_count Number of layers
+ * @param total_packet_length Total packet length in bytes
+ * @param result Output: validation result
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_validate_lengths(
+    wadjet_protocol_validator_t validator,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    size_t total_packet_length,
+    wadjet_validation_result_t* result);
+
+/**
+ * @brief Validate checksums across protocol layers
+ *
+ * Checks IPv4, UDP, TCP checksums with pseudo-header support.
+ *
+ * @param validator Validator handle
+ * @param packet_data Complete packet data
+ * @param packet_length Packet length in bytes
+ * @param layers Array of protocol layers
+ * @param layer_count Number of layers
+ * @param result Output: validation result
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_validate_checksums(
+    wadjet_protocol_validator_t validator,
+    const uint8_t* packet_data,
+    size_t packet_length,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    wadjet_validation_result_t* result);
+
+/**
+ * @brief Set validator mode
+ * @param validator Validator handle
+ * @param mode New validation mode
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_protocol_validator_set_mode(
+    wadjet_protocol_validator_t validator,
+    wadjet_validation_mode_t mode);
+
+/**
+ * @brief Get validator mode
+ * @param validator Validator handle
+ * @param mode Output: current validation mode
+ * @return WADJET_OK on success
+ */
+wadjet_error_t wadjet_protocol_validator_get_mode(
+    wadjet_protocol_validator_t validator,
+    wadjet_validation_mode_t* mode);
+
+/**
+ * @brief Destroy a validation result
+ * @param result Result handle
+ */
+void wadjet_validation_result_destroy(wadjet_validation_result_t result);
 
 /* ============================================================================
  * Utility Functions

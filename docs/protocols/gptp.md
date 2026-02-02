@@ -217,6 +217,214 @@ auto delay = calculate_peer_delay(
 );
 ```
 
+## TLV (Type-Length-Value) Options
+
+gPTP uses TLVs to carry optional information in signaling messages. Wadjet-Link provides full TLV parsing and support.
+
+### TLV Header Format
+
+```
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|          TLV Type             |         TLV Length             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                                                               |
++                      TLV Value (variable)                      +
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+**Fields:**
+- **Type** (16-bit): Identifies the TLV type and organization
+- **Length** (16-bit): Size of TLV Value field in octets
+- **Value** (variable): TLV-type specific data
+
+### Supported TLV Types
+
+| Type | Value | Organization | Description | Used In |
+|------|-------|--------------|-------------|---------|
+| MANAGEMENT | 0x0001 | IEEE 1588 | Deprecated management messages | Management |
+| MANAGEMENT_ERROR_STATUS | 0x0002 | IEEE 1588 | Error status for management | Management |
+| ORGANIZATION_EXTENSION | 0x0004 | IEEE 1588 | Vendor-specific extensions | Any |
+| REQUEST_UNICAST_TRANSMISSION | 0x0005 | IEEE 1588 | Request unicast messaging | Signaling |
+| GRANT_UNICAST_TRANSMISSION | 0x0006 | IEEE 1588 | Grant unicast messaging | Signaling |
+| CANCEL_UNICAST_TRANSMISSION | 0x0007 | IEEE 1588 | Cancel unicast messaging | Signaling |
+| ACKNOWLEDGE_CANCEL_UNICAST | 0x0008 | IEEE 1588 | Acknowledge cancel request | Signaling |
+| PATH_TRACE | 0x0009 | IEEE 1588 | Clock hierarchy path | Announce |
+| ALTERNATE_TIME_OFFSET_INDICATOR | 0x0010 | IEEE 1588 | Alternate time offset | Announce |
+| AUTHENTICATION | 0x0020 | AUTOSAR | Automotive authentication data | Signaling |
+| ORGANIZATION_EXTENSION_PROP | 0x0080 | IEEE 1588 | Non-propagating vendor extensions | Any |
+
+### FOLLOW_UP TLV Format
+
+The Follow_Up Precise Origin Timestamp TLV contains rate information:
+
+```
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Precise Origin Timestamp                     |
+|                       Seconds (32-bit)                         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Precise Origin Timestamp                     |
+|                     Nanoseconds (32-bit)                       |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|         Cumulative Scaled Rate Offset (signed 64-bit)          |
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      Scaled Last GM Phase Change (signed 64-bit)               |
+|                                                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| GM Phase Change Indicator |   Reserved (5 bits)               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+**Fields:**
+- **Precise Origin Timestamp**: Exact time Sync message was transmitted
+- **Cumulative Scaled Rate Offset**: Clock rate error (signed, scaled by 2^-41)
+- **GM Phase Change**: Nanosecond offset if grandmaster changed
+- **Phase Change Indicator**: Flags for special conditions
+
+**Rate Ratio Calculation:**
+```
+rate_error = cumulative_scaled_rate_offset / 2^41
+rate_ratio = 1.0 + rate_error
+```
+
+Example: Rate offset of `2^40` = rate_error of 0.5, meaning clock is running 0.5% faster.
+
+### ANNOUNCEMENT TLV: PATH_TRACE
+
+PATH_TRACE contains the chain of clocks from source to receiver:
+
+```cpp
+// Example PATH_TRACE value (clock identities in hierarchy)
+// [00:11:22:FF:FE:33:44:55]  -> Grandmaster
+//   |
+//   [AA:BB:CC:FF:FE:DD:EE:FF]  -> Default Switch
+//     |
+//     [11:22:33:FF:FE:44:55:66]  -> Endpoint
+```
+
+**Grandmaster Selection (BMCA):**
+1. **Best Master Clock Algorithm** selects the best grandmaster
+2. **Priority 1** field (if set) overrides clock quality
+3. **Clock Quality** ranking: LOCKED > HO > PTP > DEFAULT
+4. **Priority 2** field breaks ties
+5. **ClockIdentity** used as final tiebreaker
+
+### REQUEST_UNICAST_TRANSMISSION TLV
+
+For requesting unicast messaging instead of multicast:
+
+```
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  Message Type | LogInterval   |      Duration (16-bit)         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+**Message Types that support unicast:**
+- Sync (0x0)
+- Announce (0xB)
+- Delay_Resp (0x9)
+- Pdelay_Resp (0x3)
+
+### TLV Parsing Algorithm
+
+```cpp
+#include <wadjet/protocols/gptp/gptp.hpp>
+
+// Parse TLVs from signaling message
+std::vector<TLV> tlvs;
+size_t offset = 0;
+
+while (offset < message_length) {
+    // 1. Read TLV header (4 bytes)
+    uint16_t type = read_uint16_be(data + offset);
+    uint16_t length = read_uint16_be(data + offset + 2);
+    offset += 4;
+    
+    // 2. Validate length
+    if (offset + length > message_length) break;
+    
+    // 3. Parse based on type
+    TLV tlv;
+    tlv.type = type;
+    tlv.length = length;
+    
+    // 4. Extract type-specific fields
+    switch (type) {
+        case 0x0005:  // REQUEST_UNICAST_TRANSMISSION
+            tlv.message_type = data[offset];
+            tlv.log_interval = data[offset + 1];
+            tlv.duration = read_uint16_be(data + offset + 2);
+            break;
+            
+        case 0x0006:  // GRANT_UNICAST_TRANSMISSION
+            tlv.message_type = data[offset];
+            tlv.log_interval = data[offset + 1];
+            tlv.duration = read_uint16_be(data + offset + 2);
+            tlv.renewal_invited = (data[offset + 4] >> 7) & 1;
+            break;
+            
+        default:
+            // Store raw value for unknown types
+            tlv.value = std::vector<uint8_t>(data + offset, 
+                                             data + offset + length);
+    }
+    
+    tlvs.push_back(tlv);
+    offset += length;
+}
+```
+
+### Common TLV Combinations
+
+**Master Clock Announcement:**
+```
+Announce + PATH_TRACE TLV
+├─ Grandmaster ID: 00:11:22:FF:FE:33:44:55
+├─ Priority1: 128
+├─ Clock Quality: LOCKED
+└─ Steps Removed: 1
+```
+
+**Unicast Request Sequence:**
+```
+Signaling (from slave to master) + REQUEST_UNICAST_TRANSMISSION
+├─ Message Type: Sync (0x0)
+├─ Log Interval: 0 (1 Hz)
+└─ Duration: 3600 (request for 1 hour)
+
+Signaling (from master to slave) + GRANT_UNICAST_TRANSMISSION
+├─ Message Type: Sync (0x0)
+├─ Log Interval: 0 (1 Hz)
+├─ Duration: 3600
+└─ Renewal Invited: 1 (can renew before expiry)
+```
+
+### Automotive Security Extensions
+
+AUTOSAR extensions add security to gPTP:
+
+```cpp
+// AUTHENTICATION TLV (0x0020)
+struct AutomotiveAuthTLV {
+    uint8_t auth_type;      // Authentication algorithm
+    uint8_t key_id;         // Key identifier
+    uint8_t auth_data[12];  // HMAC or signature (variable)
+};
+```
+
+**Authentication Types:**
+- 0x00: No authentication
+- 0x01: HMAC-MD5 (deprecated)
+- 0x02: HMAC-SHA256 (recommended)
+- 0x03: Digital signature
+
 ## Example Application
 
 See `examples/gptp_monitor.cpp` for a complete example that:

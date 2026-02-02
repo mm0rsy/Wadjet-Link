@@ -74,6 +74,7 @@ mod pcap;
 mod decode;
 mod device;
 mod types;
+mod validation;
 pub mod diagnostic;
 
 pub use error::{Error, Result};
@@ -83,6 +84,7 @@ pub use pcap::{PcapReader, PcapWriter};
 pub use decode::{DecodeResult, Protocol};
 pub use device::DeviceInfo;
 pub use types::*;
+pub use validation::{ProtocolValidator, ProtocolLayer, ValidationResult, ValidationMode};
 pub use diagnostic::{
     DiagnosticEvent, DiagnosticOptions, DiagnosticSessionManager,
     DiagnosticSessionState, DiagnosticTiming, CorrelationStatistics, SessionType,

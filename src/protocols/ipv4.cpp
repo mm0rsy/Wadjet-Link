@@ -29,7 +29,41 @@ std::string IPv4Header::to_string() const {
     oss << " }";
     return oss.str();
 }
-
+// Parse raw IPv4 options (TLV-style) into a structured list and detect malformed options
+IPv4Header::ParseOptionsResult IPv4Header::parseIpv4Options(const std::vector<std::byte>& raw) {
+    ParseOptionsResult res;
+    std::size_t i = 0;
+    while (i < raw.size()) {
+        uint8_t kind = static_cast<uint8_t>(raw[i]);
+        if (kind == 0) {  // EOL
+            res.options.push_back({kind, {}});
+            break;
+        } else if (kind == 1) {  // NOP
+            res.options.push_back({kind, {}});
+            ++i;
+            continue;
+        } else {
+            if (i + 1 >= raw.size()) {
+                res.malformed = true;
+                break;
+            }  // malformed
+            uint8_t length = static_cast<uint8_t>(raw[i + 1]);
+            if (length < 2 || i + length > raw.size()) {
+                res.malformed = true;
+                break;
+            }  // malformed
+            std::vector<uint8_t> data;
+            if (length > 2) {
+                data.reserve(length - 2);
+                for (size_t j = i + 2; j < i + length; ++j)
+                    data.push_back(static_cast<uint8_t>(raw[j]));
+            }
+            res.options.push_back({kind, data});
+            i += length;
+        }
+    }
+    return res;
+}
 std::uint16_t IPv4Decoder::calculate_checksum(std::span<const std::byte> header_data) {
     std::uint32_t sum = 0;
 
@@ -122,6 +156,10 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
     if (header_len > MIN_HEADER_SIZE) {
         auto opts = ctx.read_bytes(MIN_HEADER_SIZE, header_len - MIN_HEADER_SIZE);
         header.options.assign(opts.begin(), opts.end());
+        // Parse options into structured list (NOP/EOL/TLV)
+        auto parsed = IPv4Header::parseIpv4Options(header.options);
+        header.parsed_options = std::move(parsed.options);
+        header.options_malformed = parsed.malformed;
     }
 
     // Validate checksum
@@ -135,6 +173,19 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
         }
     } else {
         header.checksum_valid = true;  // Assume valid if not checking
+    }
+
+    // If fragmented, fill fragment helper struct for use by reassembler
+    if (header.is_fragmented()) {
+        IPv4Header::Ipv4Fragment frag;
+        frag.src_ip = header.src_ip;
+        frag.dst_ip = header.dst_ip;
+        frag.protocol = header.protocol;
+        frag.identification = header.identification;
+        frag.offset =
+            static_cast<std::uint16_t>(header.fragment_offset * 8);  // frag offset in bytes
+        frag.mf = header.flags.more_fragments;
+        // payload will be added by caller using next_ctx
     }
 
     // Validate total length

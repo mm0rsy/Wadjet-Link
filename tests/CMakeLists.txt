@@ -43,6 +43,28 @@ add_executable(wadjet_tests
     protocols/test_uds_doip_integration.cpp
     protocols/test_flash_sequence.cpp
     protocols/test_dtc_manager.cpp
+    # IPv4 tests (Phase 3)
+    protocols/test_ipv4.cpp
+    protocols/test_ipv4_options.cpp
+    protocols/test_ipv4_fragmentation.cpp
+    protocols/test_ipv4_minimal.cpp
+    # TCP tests (Phase 4)
+    protocols/test_tcp_state.cpp
+    protocols/test_tcp_options.cpp
+    protocols/test_tcp_retransmission.cpp
+    # UDP tests (Phase 5)
+    protocols/test_udp_checksum.cpp
+    # SOME/IP-TP tests (Phase 6)
+    protocols/test_someip_tp.cpp
+    # SOME/IP-SD tests (Phase 7)
+    protocols/test_someip_sd_entries.cpp
+    protocols/test_someip_sd.cpp
+    # DoIP Power Mode tests (Phase 8)
+    protocols/test_doip_power.cpp
+    # Protocol Validation tests (Phase 11)
+    protocols/test_protocol_validation.cpp
+    # Performance and Regression tests (Phase 11 T134-T137)
+    test_performance_regression.cpp
 )
 
 target_link_libraries(wadjet_tests
@@ -69,6 +91,8 @@ add_executable(wadjet_integration_tests
     integration/test_capture_session.cpp
     # UDS integration tests
     integration/test_uds_integration.cpp
+    # Protocol completeness integration tests (Phase 11)
+    integration/test_protocol_completeness_integration.cpp
 )
 
 target_link_libraries(wadjet_integration_tests

@@ -6,6 +6,7 @@
 #include "wadjet/core/byte_order.hpp"
 
 #include <sstream>
+#include <tuple>
 
 namespace wadjet::protocols::doip {
 
@@ -57,6 +58,51 @@ std::string DoIPHeader::to_string() const {
     return oss.str();
 }
 
+std::string_view activation_type_string(ActivationType type) {
+    switch (type) {
+        case ActivationType::Default:
+            return "Default";
+        case ActivationType::WWHObd:
+            return "WWH-OBD";
+        case ActivationType::CentralSecurityUnlock:
+            return "Central Security Unlock";
+        case ActivationType::ReservedForFutureExpansion:
+            return "Reserved";
+        case ActivationType::ManufacturerSpecificStart:
+            return "Manufacturer-Specific (0xE0)";
+        case ActivationType::ManufacturerSpecificEnd:
+            return "Manufacturer-Specific (0xFE)";
+        case ActivationType::InputOutputControlIdentifier:
+            return "Input/Output Control";
+        default:
+            return "Unknown";
+    }
+}
+
+std::string_view entity_type_string(EntityType type) {
+    switch (type) {
+        case EntityType::Gateway:
+            return "Gateway";
+        case EntityType::Node:
+            return "Node";
+        default:
+            return "Unknown";
+    }
+}
+
+std::string_view power_mode_string(PowerMode mode) {
+    switch (mode) {
+        case PowerMode::Ready:
+            return "Ready";
+        case PowerMode::NotReady:
+            return "Not Ready";
+        case PowerMode::NotSupported:
+            return "Not Supported";
+        default:
+            return "Unknown";
+    }
+}
+
 DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
     if (!ctx.has_bytes(HEADER_SIZE)) {
         return make_error(DecodeErrorCode::BufferTooSmall, "DoIP header requires 8 bytes");
@@ -88,6 +134,96 @@ DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
     // Check if we have the complete payload
     if (!ctx.has_bytes(HEADER_SIZE + header.payload_length)) {
         return make_error(DecodeErrorCode::BufferTooSmall, "Incomplete DoIP payload");
+    }
+
+    // Validate payload length for specific message types
+    switch (header.payload_type) {
+        case PayloadType::GenericNack:
+            // NACK requires 3 bytes minimum (1 for code, 2 for unknown payload type)
+            if (header.payload_length < 3) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "GenericNack payload requires at least 3 bytes");
+            }
+            break;
+
+        case PayloadType::DiagnosticPowerModeResponse:
+            // Power mode requires 1 byte
+            if (header.payload_length < 1) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "DiagnosticPowerModeResponse requires at least 1 byte");
+            }
+            break;
+
+        case PayloadType::DoIPEntityStatusResponse:
+            // Entity status requires at least 5 bytes
+            if (header.payload_length < 5) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "DoIPEntityStatusResponse requires at least 5 bytes");
+            }
+            break;
+
+        case PayloadType::AliveCheckResponse:
+            // Alive check response requires 2 bytes (tester source address)
+            if (header.payload_length < 2) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "AliveCheckResponse requires at least 2 bytes");
+            }
+            break;
+
+        case PayloadType::DiagnosticMessage:
+            // Diagnostic message requires at least 4 bytes (source + target addresses)
+            if (header.payload_length < 4) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "DiagnosticMessage requires at least 4 bytes");
+            }
+            break;
+
+        case PayloadType::DiagnosticMessagePositiveAck:
+        case PayloadType::DiagnosticMessageNegativeAck:
+            // Diagnostic ACK/NACK requires at least 3 bytes (source + target + code)
+            if (header.payload_length < 3) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "DiagnosticMessage ACK/NACK requires at least 3 bytes");
+            }
+            break;
+
+        case PayloadType::RoutingActivationRequest:
+            // Routing activation request requires at least 7 bytes
+            if (header.payload_length < 7) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "RoutingActivationRequest requires at least 7 bytes");
+            }
+            break;
+
+        case PayloadType::RoutingActivationResponse:
+            // Routing activation response requires at least 9 bytes
+            if (header.payload_length < 9) {
+                return make_error(DecodeErrorCode::InvalidLength,
+                                  "RoutingActivationResponse requires at least 9 bytes");
+            }
+            break;
+
+        case PayloadType::VehicleIdentificationRequest:
+        case PayloadType::VehicleIdentificationRequestWithEID:
+        case PayloadType::VehicleIdentificationRequestWithVIN:
+        case PayloadType::AliveCheckRequest:
+        case PayloadType::DiagnosticPowerModeRequest:
+        case PayloadType::DoIPEntityStatusRequest:
+            // These request messages can have 0 payload length
+            break;
+
+        case PayloadType::VehicleAnnouncementOrIdentificationResponse:
+            // Vehicle ID response requires at least 32 bytes
+            if (header.payload_length < 32) {
+                return make_error(
+                    DecodeErrorCode::InvalidLength,
+                    "VehicleAnnouncementOrIdentificationResponse requires at least 32 bytes");
+            }
+            break;
+
+        default:
+            // Unknown payload type - don't enforce validation
+            break;
     }
 
     return make_success(std::move(header), ctx.sub_context(HEADER_SIZE));
@@ -219,6 +355,79 @@ std::optional<VehicleIdentificationResponse> DoIPDecoder::parse_vehicle_identifi
     }
 
     return resp;
+}
+
+std::optional<PowerMode> DoIPDecoder::parse_diagnostic_power_mode(
+    std::span<const std::byte> payload) {
+    // Payload must contain at least 1 byte for power mode
+    if (payload.size() < 1) {
+        return std::nullopt;
+    }
+
+    auto mode = static_cast<PowerMode>(static_cast<std::uint8_t>(payload[0]));
+
+    // Validate power mode is one of the known values
+    if (mode != PowerMode::Ready && mode != PowerMode::NotReady &&
+        mode != PowerMode::NotSupported) {
+        return std::nullopt;
+    }
+
+    return mode;
+}
+
+std::optional<std::tuple<std::uint8_t, std::uint8_t, std::uint8_t, std::uint16_t>>
+DoIPDecoder::parse_entity_status(std::span<const std::byte> payload) {
+    // Payload: node_type(1) + max_concurrent(1) + current_concurrent(1) +
+    //          max_connections(2) + reserved(2) = 7 bytes minimum
+    // But the actual spec might vary, we accept 5 bytes minimum
+    if (payload.size() < 5) {
+        return std::nullopt;
+    }
+
+    const auto* data = payload.data();
+
+    std::uint8_t node_type = static_cast<std::uint8_t>(data[0]);
+    std::uint8_t max_concurrent_sockets = static_cast<std::uint8_t>(data[1]);
+    std::uint8_t current_concurrent_sockets = static_cast<std::uint8_t>(data[2]);
+
+    // Max connections (2 bytes, big-endian)
+    std::uint16_t max_connections = static_cast<std::uint16_t>(
+        (static_cast<std::uint16_t>(data[3]) << 8) | static_cast<std::uint16_t>(data[4]));
+
+    return std::make_tuple(node_type, max_concurrent_sockets, current_concurrent_sockets,
+                           max_connections);
+}
+
+std::optional<std::tuple<NackCode, std::uint16_t>> DoIPDecoder::parse_generic_nack(
+    std::span<const std::byte> payload) {
+    // Generic NACK payload contains NACK code (1 byte) + unknown payload type (2 bytes)
+    if (payload.size() < 3) {
+        return std::nullopt;
+    }
+
+    const auto* data = payload.data();
+
+    NackCode nack_code = static_cast<NackCode>(static_cast<std::uint8_t>(data[0]));
+
+    std::uint16_t unknown_payload_type = static_cast<std::uint16_t>(
+        (static_cast<std::uint16_t>(data[1]) << 8) | static_cast<std::uint16_t>(data[2]));
+
+    return std::make_tuple(nack_code, unknown_payload_type);
+}
+
+std::optional<std::uint16_t> DoIPDecoder::parse_alive_check_response(
+    std::span<const std::byte> payload) {
+    // Alive check response: tester source address (2 bytes)
+    if (payload.size() < 2) {
+        return std::nullopt;
+    }
+
+    const auto* data = payload.data();
+
+    std::uint16_t tester_source_address = static_cast<std::uint16_t>(
+        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]));
+
+    return tester_source_address;
 }
 
 }  // namespace wadjet::protocols::doip

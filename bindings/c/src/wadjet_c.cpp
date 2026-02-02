@@ -22,6 +22,7 @@
 #include <wadjet/protocols/tcp.hpp>
 #include <wadjet/protocols/udp.hpp>
 #include <wadjet/protocols/uds/uds.hpp>
+#include <wadjet/protocols/validation.hpp>
 #include <wadjet/version.hpp>
 
 #include <chrono>
@@ -96,6 +97,14 @@ struct wadjet_device_list {
 
 struct wadjet_uds_decoder {
     protocols::uds::UdsDecoder decoder;
+};
+
+struct wadjet_protocol_validator {
+    protocols::ProtocolValidator validator;
+};
+
+struct wadjet_validation_result {
+    protocols::ValidationResult result;
 };
 
 struct wadjet_uds_session {
@@ -1478,6 +1487,201 @@ size_t wadjet_diagnostic_manager_check_timeouts(wadjet_diagnostic_session_manage
     if (!manager)
         return 0;
     return manager->manager.correlator().check_timeouts();
+}
+
+/* ============================================================================
+ * Cross-Protocol Validation API
+ * ============================================================================ */
+
+wadjet_error_t wadjet_protocol_validator_create(
+    wadjet_validation_mode_t mode,
+    wadjet_protocol_validator_t* validator) {
+    if (!validator) {
+        set_last_error("Invalid argument: validator cannot be null");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+        auto mode_enum = (mode == WADJET_VALIDATION_MODE_LENIENT)
+            ? protocols::ValidationMode::Lenient
+            : protocols::ValidationMode::Strict;
+        
+        *validator = new wadjet_protocol_validator{
+            protocols::ProtocolValidator(mode_enum)
+        };
+        return WADJET_OK;
+    } catch (const std::exception& e) {
+        set_last_error(e.what());
+        return WADJET_ERR_OUT_OF_MEMORY;
+    }
+}
+
+void wadjet_protocol_validator_destroy(wadjet_protocol_validator_t validator) {
+    delete validator;
+}
+
+wadjet_error_t wadjet_validate_layering(
+    wadjet_protocol_validator_t validator,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    wadjet_validation_result_t* result) {
+    if (!validator || !layers || !result) {
+        set_last_error("Invalid argument: null pointer");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+        std::vector<protocols::ProtocolLayer> cpp_layers;
+        for (size_t i = 0; i < layer_count; ++i) {
+            cpp_layers.emplace_back(protocols::ProtocolLayer{
+                .name = layers[i].name ? std::string(layers[i].name) : "",
+                .offset = layers[i].offset,
+                .header_length = layers[i].header_length,
+                .payload_length = layers[i].payload_length,
+                .ethertype = layers[i].ethertype,
+                .checksum = layers[i].checksum,
+                .has_checksum = layers[i].has_checksum,
+            });
+        }
+
+        auto cpp_result = validator->validator.validateLayering(cpp_layers);
+        
+        if (!result) {
+            result = new wadjet_validation_result{cpp_result};
+        } else {
+            *reinterpret_cast<wadjet_validation_result*>(result) = 
+                wadjet_validation_result{cpp_result};
+        }
+        
+        return WADJET_OK;
+    } catch (const std::exception& e) {
+        set_last_error(e.what());
+        return WADJET_ERR_UNKNOWN;
+    }
+}
+
+wadjet_error_t wadjet_validate_lengths(
+    wadjet_protocol_validator_t validator,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    size_t total_packet_length,
+    wadjet_validation_result_t* result) {
+    if (!validator || !layers || !result) {
+        set_last_error("Invalid argument: null pointer");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+        std::vector<protocols::ProtocolLayer> cpp_layers;
+        for (size_t i = 0; i < layer_count; ++i) {
+            cpp_layers.emplace_back(protocols::ProtocolLayer{
+                .name = layers[i].name ? std::string(layers[i].name) : "",
+                .offset = layers[i].offset,
+                .header_length = layers[i].header_length,
+                .payload_length = layers[i].payload_length,
+                .ethertype = layers[i].ethertype,
+                .checksum = layers[i].checksum,
+                .has_checksum = layers[i].has_checksum,
+            });
+        }
+
+        auto cpp_result = validator->validator.validateLengths(cpp_layers, total_packet_length);
+        
+        if (!result) {
+            result = new wadjet_validation_result{cpp_result};
+        } else {
+            *reinterpret_cast<wadjet_validation_result*>(result) = 
+                wadjet_validation_result{cpp_result};
+        }
+        
+        return WADJET_OK;
+    } catch (const std::exception& e) {
+        set_last_error(e.what());
+        return WADJET_ERR_UNKNOWN;
+    }
+}
+
+wadjet_error_t wadjet_validate_checksums(
+    wadjet_protocol_validator_t validator,
+    const uint8_t* packet_data,
+    size_t packet_length,
+    const wadjet_protocol_layer_t* layers,
+    size_t layer_count,
+    wadjet_validation_result_t* result) {
+    if (!validator || !packet_data || !layers || !result) {
+        set_last_error("Invalid argument: null pointer");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    try {
+        std::vector<protocols::ProtocolLayer> cpp_layers;
+        for (size_t i = 0; i < layer_count; ++i) {
+            cpp_layers.emplace_back(protocols::ProtocolLayer{
+                .name = layers[i].name ? std::string(layers[i].name) : "",
+                .offset = layers[i].offset,
+                .header_length = layers[i].header_length,
+                .payload_length = layers[i].payload_length,
+                .ethertype = layers[i].ethertype,
+                .checksum = layers[i].checksum,
+                .has_checksum = layers[i].has_checksum,
+            });
+        }
+
+        auto packet_span = std::span<const std::byte>(
+            reinterpret_cast<const std::byte*>(packet_data),
+            packet_length
+        );
+        
+        auto cpp_result = validator->validator.validateChecksums(packet_span, cpp_layers);
+        
+        if (!result) {
+            result = new wadjet_validation_result{cpp_result};
+        } else {
+            *reinterpret_cast<wadjet_validation_result*>(result) = 
+                wadjet_validation_result{cpp_result};
+        }
+        
+        return WADJET_OK;
+    } catch (const std::exception& e) {
+        set_last_error(e.what());
+        return WADJET_ERR_UNKNOWN;
+    }
+}
+
+wadjet_error_t wadjet_protocol_validator_set_mode(
+    wadjet_protocol_validator_t validator,
+    wadjet_validation_mode_t mode) {
+    if (!validator) {
+        set_last_error("Invalid argument: validator cannot be null");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    auto mode_enum = (mode == WADJET_VALIDATION_MODE_LENIENT)
+        ? protocols::ValidationMode::Lenient
+        : protocols::ValidationMode::Strict;
+    
+    validator->validator.set_mode(mode_enum);
+    return WADJET_OK;
+}
+
+wadjet_error_t wadjet_protocol_validator_get_mode(
+    wadjet_protocol_validator_t validator,
+    wadjet_validation_mode_t* mode) {
+    if (!validator || !mode) {
+        set_last_error("Invalid argument: null pointer");
+        return WADJET_ERR_INVALID_ARGUMENT;
+    }
+
+    auto cpp_mode = validator->validator.get_mode();
+    *mode = (cpp_mode == protocols::ValidationMode::Lenient)
+        ? WADJET_VALIDATION_MODE_LENIENT
+        : WADJET_VALIDATION_MODE_STRICT;
+    
+    return WADJET_OK;
+}
+
+void wadjet_validation_result_destroy(wadjet_validation_result_t result) {
+    delete result;
 }
 
 }  // extern "C"

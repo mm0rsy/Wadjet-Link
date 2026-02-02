@@ -10,6 +10,20 @@
 
 Fill gaps in all existing protocol implementations to achieve production-grade robustness. This milestone addresses incomplete parsing, missing validation, edge cases, and protocol compliance issues across Ethernet, IPv4, UDP, TCP, SOME/IP, SOME/IP-SD, DoIP, gPTP, and UDS decoders. **This is the foundation for all advanced protocol features.**
 
+## Clarifications (Session 2026-01-13)
+
+**All design ambiguities resolved:**
+
+1. **IPv4 Fragment Reassembly Timeout**: 30 seconds (automotive-optimized, balances RFC 791 compliance with resource constraints)
+
+2. **TCP Connection Tracking Timeout**: 2 minutes for incomplete connections, 30 seconds for TIME_WAIT state (balances memory usage with long-running diagnostic sessions)
+
+3. **SOME/IP-TP Maximum Message Size**: 16 MB maximum (realistic automotive limit covering firmware updates and diagnostic transfers while preventing resource exhaustion)
+
+4. **UDP Checksum Validation Default**: Enabled with warning-only mode (validates and logs warnings but doesn't drop packets - balances integrity checking with legacy system compatibility)
+
+5. **TCP Out-of-Order Segment Buffering**: Buffer up to 16 segments per connection (handles typical network reordering with bounded memory usage)
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Complete IPv4 Header Parsing (Priority: P1)
@@ -158,16 +172,16 @@ As a time synchronization engineer, I need complete gPTP TLV parsing including r
 
 - **FR-001**: System MUST parse all IPv4 header options (Router Alert, Timestamp, Record Route, Source/Strict Source Route)
 - **FR-002**: System MUST handle IPv4 fragmentation (fragment offset, MF flag, identification)
-- **FR-003**: System MUST support IPv4 fragment reassembly with timeout (60s default per RFC 791)
+- **FR-003**: System MUST support IPv4 fragment reassembly with timeout (30s default, configurable)
 - **FR-004**: System MUST parse Type of Service (ToS) and DSCP fields
 - **FR-005**: System MUST validate IPv4 header checksum with enable/disable option
 - **FR-006**: System MUST detect and report IPv4 header anomalies (invalid version, header length)
 
 #### TCP Protocol Completion
 
-- **FR-007**: System MUST track TCP connection state (CLOSED, SYN_SENT, ESTABLISHED, FIN_WAIT, etc.)
+- **FR-007**: System MUST track TCP connection state (CLOSED, SYN_SENT, ESTABLISHED, FIN_WAIT, etc.) with timeout (2 minutes for incomplete connections, 30s for TIME_WAIT)
 - **FR-008**: System MUST parse all TCP options (MSS, Window Scale, SACK, Timestamps, NOP, EOL)
-- **FR-009**: System MUST validate TCP sequence and acknowledgment numbers
+- **FR-009**: System MUST validate TCP sequence and acknowledgment numbers and buffer up to 16 out-of-order segments per connection
 - **FR-010**: System MUST detect TCP retransmissions
 - **FR-011**: System MUST track TCP window size and scaling factor
 - **FR-012**: System MUST handle TCP connection establishment (three-way handshake)
@@ -176,7 +190,7 @@ As a time synchronization engineer, I need complete gPTP TLV parsing including r
 
 #### UDP Protocol Completion
 
-- **FR-015**: System MUST validate UDP checksum with enable/disable option
+- **FR-015**: System MUST validate UDP checksum (enabled by default in warning-only mode, configurable to strict or disabled)
 - **FR-016**: System MUST handle UDP zero checksum (IPv4 only)
 - **FR-017**: System MUST detect UDP checksum errors and flag corrupted packets
 - **FR-018**: System MUST calculate UDP payload length accurately
@@ -184,7 +198,7 @@ As a time synchronization engineer, I need complete gPTP TLV parsing including r
 #### SOME/IP Protocol Completion
 
 - **FR-019**: System MUST parse SOME/IP-TP (Transport Protocol) headers
-- **FR-020**: System MUST reassemble segmented SOME/IP-TP messages
+- **FR-020**: System MUST reassemble segmented SOME/IP-TP messages (maximum 16 MB per message)
 - **FR-021**: System MUST handle TP More Segments flag and segment offset
 - **FR-022**: System MUST timeout incomplete TP messages (configurable, default 5s)
 - **FR-023**: System MUST validate SOME/IP message length field
@@ -257,7 +271,7 @@ As a time synchronization engineer, I need complete gPTP TLV parsing including r
 - **SC-002**: IPv4 fragment reassembly correctly reconstructs datagrams up to 64KB
 - **SC-003**: TCP connection tracking accurately identifies all standard state transitions
 - **SC-004**: UDP checksum validation detects 100% of intentionally corrupted packets
-- **SC-005**: SOME/IP-TP reassembly handles messages up to 1GB with segmentation
+- **SC-005**: SOME/IP-TP reassembly handles messages up to 16 MB with segmentation
 - **SC-006**: SOME/IP-SD parser extracts all entry types and options without error
 - **SC-007**: DoIP power mode transitions correctly tracked across all states
 - **SC-008**: All 50+ UDS NRC codes correctly identified with descriptions

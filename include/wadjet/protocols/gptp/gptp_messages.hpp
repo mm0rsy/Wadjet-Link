@@ -221,6 +221,12 @@ struct SignalingMessage {
 using MessageBody = std::variant<SyncMessage, FollowUpMessage, PdelayReqMessage, PdelayRespMessage,
                                  PdelayRespFollowUpMessage, AnnounceMessage, SignalingMessage>;
 
+/// @brief Variant type for polymorphic TLV handling
+///
+/// Allows type-safe processing of different TLV types using std::visit().
+/// Supports the main TLV types (FollowUpTlv, PathTraceTlv) and generic Tlv for unknown types.
+using GptpTlv = std::variant<FollowUpTlv, PathTraceTlv, Tlv>;
+
 /// @brief Get the expected body size for a message type
 [[nodiscard]] constexpr std::size_t expected_body_size(MessageType type) {
     switch (type) {

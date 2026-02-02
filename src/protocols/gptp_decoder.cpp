@@ -73,6 +73,36 @@ namespace {
 
 }  // anonymous namespace
 
+/// @brief Parse TLV array with unknown TLV handling
+/// @param ptr Pointer to TLV data
+/// @param remaining Bytes remaining in buffer
+/// @return Vector of parsed TLVs
+static std::vector<Tlv> parse_tlv_array(const std::byte* ptr, std::size_t remaining) {
+    std::vector<Tlv> tlvs;
+
+    while (remaining >= TLV_HEADER_SIZE) {
+        auto result = Tlv::parse(ptr, remaining);
+
+        if (!result) {
+            // Incomplete TLV - log warning and stop
+            // Could add logging here if needed
+            break;
+        }
+
+        auto [tlv, bytes_consumed] = result.value();
+
+        // Handle unknown TLV types with graceful fallback
+        // Unknown TLVs are still stored but their specific meaning is not interpreted
+        tlvs.push_back(tlv);
+
+        // Move to next TLV
+        ptr += bytes_consumed;
+        remaining -= bytes_consumed;
+    }
+
+    return tlvs;
+}
+
 // GptpHeader::to_string implementation
 std::string GptpHeader::to_string() const {
     std::ostringstream oss;
@@ -202,7 +232,29 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
             }
             FollowUpMessage follow_up;
             follow_up.precise_origin_timestamp = read_timestamp(data);
-            // TLV parsing can be added later if needed
+
+            // Parse TLVs after the timestamp (10 bytes body + any additional TLVs)
+            if (len > FOLLOW_UP_MESSAGE_SIZE) {
+                const std::byte* tlv_data = data + FOLLOW_UP_MESSAGE_SIZE;
+                std::size_t tlv_remaining = len - FOLLOW_UP_MESSAGE_SIZE;
+
+                // Parse TLV array
+                auto tlvs = parse_tlv_array(tlv_data, tlv_remaining);
+
+                // Extract Follow_Up info TLV if present
+                for (const auto& tlv : tlvs) {
+                    if (tlv.type == TlvType::ORGANIZATION_EXTENSION) {
+                        if (auto fu_tlv = FollowUpTlv::parse(tlv.value)) {
+                            follow_up.follow_up_info = fu_tlv.value();
+                        }
+                    } else if (tlv.type != TlvType::Management &&
+                               tlv.type != TlvType::ManagementErrorStatus) {
+                        // Store other TLVs
+                        follow_up.tlvs.push_back(tlv);
+                    }
+                }
+            }
+
             return follow_up;
         }
 
@@ -255,6 +307,28 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
             announce.grandmaster_identity = read_clock_identity(data + 19);
             announce.steps_removed = read_be16(data + 27);
             announce.time_source = static_cast<TimeSource>(data[29]);
+
+            // Parse TLVs after the body (30 bytes body + any additional TLVs)
+            if (len > ANNOUNCE_MESSAGE_SIZE) {
+                const std::byte* tlv_data = data + ANNOUNCE_MESSAGE_SIZE;
+                std::size_t tlv_remaining = len - ANNOUNCE_MESSAGE_SIZE;
+
+                // Parse TLV array
+                auto tlvs = parse_tlv_array(tlv_data, tlv_remaining);
+
+                // Extract Path Trace TLV if present
+                for (const auto& tlv : tlvs) {
+                    if (tlv.type == TlvType::PATH_TRACE) {
+                        if (auto path_trace = PathTraceTlv::parse(tlv.value)) {
+                            announce.path_trace = path_trace.value();
+                        }
+                    } else {
+                        // Store other TLVs
+                        announce.tlvs.push_back(tlv);
+                    }
+                }
+            }
+
             return announce;
         }
 
@@ -275,6 +349,103 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
         default:
             return std::nullopt;
     }
+}
+
+// Tlv::parse implementation
+std::optional<std::pair<Tlv, std::size_t>> Tlv::parse(const std::byte* ptr, std::size_t remaining) {
+    if (remaining < TLV_HEADER_SIZE) {
+        return std::nullopt;
+    }
+
+    Tlv parsed_tlv;
+
+    // Parse Type (2 bytes, big-endian)
+    std::uint16_t type_value = read_be16(ptr);
+    parsed_tlv.type = static_cast<TlvType>(type_value);
+
+    // Parse Length (2 bytes, big-endian)
+    parsed_tlv.length = read_be16(ptr + 2);
+
+    // Validate length doesn't exceed remaining buffer
+    std::size_t total_size = TLV_HEADER_SIZE + parsed_tlv.length;
+    if (total_size > remaining) {
+        return std::nullopt;
+    }
+
+    // Extract value
+    if (parsed_tlv.length > 0) {
+        const std::byte* value_ptr = ptr + TLV_HEADER_SIZE;
+        parsed_tlv.value.assign(value_ptr, value_ptr + parsed_tlv.length);
+    }
+
+    return std::make_pair(parsed_tlv, total_size);
+}
+
+// FollowUpTlv::parse implementation
+std::optional<FollowUpTlv> FollowUpTlv::parse(const std::vector<std::byte>& value) {
+    // Follow_Up TLV value format:
+    // - OUI (3 bytes): 00:80:C2
+    // - Sub-type (3 bytes): usually 01
+    // - Cumulative Scaled Rate Offset (4 bytes, big-endian signed)
+    // - GM Time Base Indicator (2 bytes, big-endian)
+    // - Last GM Phase Change (10 bytes: 2 MSB + 8 LSB, big-endian)
+    // - Scaled Last GM Frequency Change (4 bytes, big-endian signed)
+    // Total: 3 + 3 + 4 + 2 + 10 + 4 = 26 bytes minimum
+
+    constexpr std::size_t MIN_SIZE = 26;
+    if (value.size() < MIN_SIZE) {
+        return std::nullopt;
+    }
+
+    FollowUpTlv follow_up;
+
+    // Parse OUI (3 bytes)
+    for (std::size_t i = 0; i < 3; ++i) {
+        follow_up.organization_id[i] = static_cast<std::uint8_t>(value[i]);
+    }
+
+    // Parse Sub-type (3 bytes)
+    for (std::size_t i = 0; i < 3; ++i) {
+        follow_up.organization_sub_type[i] = static_cast<std::uint8_t>(value[3 + i]);
+    }
+
+    // Parse Cumulative Scaled Rate Offset (4 bytes, big-endian signed)
+    follow_up.cumulative_scaled_rate_offset = read_be32_signed(value.data() + 6);
+
+    // Parse GM Time Base Indicator (2 bytes)
+    follow_up.gm_time_base_indicator = read_be16(value.data() + 10);
+
+    // Parse Last GM Phase Change (10 bytes: 2 MSB + 8 LSB)
+    follow_up.last_gm_phase_change_ns_msb = read_be32(value.data() + 12);
+    follow_up.last_gm_phase_change_ns_lsb = read_be64(value.data() + 16);
+
+    // Parse Scaled Last GM Frequency Change (4 bytes, big-endian signed)
+    follow_up.scaled_last_gm_freq_change = read_be32_signed(value.data() + 24);
+
+    return follow_up;
+}
+
+// PathTraceTlv::parse implementation
+std::optional<PathTraceTlv> PathTraceTlv::parse(const std::vector<std::byte>& value) {
+    // Path Trace TLV contains a sequence of Clock Identities
+    // Each Clock Identity is 8 bytes
+    // Minimum: 1 clock identity = 8 bytes
+
+    constexpr std::size_t CLOCK_ID_SIZE = 8;
+
+    if (value.size() < CLOCK_ID_SIZE || value.size() % CLOCK_ID_SIZE != 0) {
+        return std::nullopt;
+    }
+
+    PathTraceTlv path_trace;
+
+    // Parse clock identities
+    for (std::size_t i = 0; i < value.size(); i += CLOCK_ID_SIZE) {
+        ClockIdentity id = read_clock_identity(value.data() + i);
+        path_trace.path_sequence.push_back(id);
+    }
+
+    return path_trace;
 }
 
 }  // namespace wadjet::protocols::gptp
