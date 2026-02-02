@@ -141,7 +141,7 @@ UDS defines complete set of NRC values for error reporting. Each NRC indicates s
 
 | Code | Name | Classification | Meaning | Recovery |
 |------|------|---|---------|----------|
-| 0x92 | failedToEnablRxTx | Temporary | Communication enable failed | Retry enable |
+| 0x92 | failedToEnableRxTx | Temporary | Communication enable failed | Retry enable |
 | 0x93 | failedToDisableRxTx | Temporary | Communication disable failed | Retry disable |
 | 0x94 | failedToEnableRxAndDisableTx | Temporary | Flow control failed | Retry command |
 | 0x95 | failedToDisableRxAndEnableTx | Temporary | Flow control failed | Retry command |
