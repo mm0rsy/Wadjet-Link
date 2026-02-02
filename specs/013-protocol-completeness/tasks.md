@@ -711,9 +711,9 @@ These are operational CI tasks, not implementation gaps. All fuzz harnesses (T12
 
 The following enhancements would improve documentation quality but are not blocking:
 
-- [ ] OPT-001 Add code examples to docs/protocols/dds.md for DDS/RTPS improvements
-- [ ] OPT-002 Add performance benchmarks table to RELEASE_NOTES_M13.md
-- [ ] OPT-003 Add troubleshooting section to docs/quickstart.md for common decode errors
+- [x] OPT-001 Add code examples to docs/protocols/dds.md for DDS/RTPS improvements
+- [x] OPT-002 Add performance benchmarks table to RELEASE_NOTES_M13.md
+- [x] OPT-003 Add troubleshooting section to docs/quickstart.md for common decode errors
 
 ### Implementation Quality Notes
 

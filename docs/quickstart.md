@@ -358,6 +358,40 @@ while (auto packet = reader.read()) {
 
 ---
 
+## Troubleshooting Common Decode Errors
+
+### 1. `DecodeError::ChecksumMismatch`
+
+- **Cause**: UDP/IPv4 checksum validation failed.
+- **Solution**:
+  - Ensure the packet source supports checksums.
+  - Set `UdpDecoder::Options::validate_checksum = false` for warning-only mode.
+  - Check if hardware offloading is interfering with software validation.
+
+### 2. `DecodeError::IncompleteMessage` (SOME/IP-TP)
+
+- **Cause**: Reassembly timeout or missing segments.
+- **Solution**:
+  - Increase `SomeIpTpConfig::timeout` (default 5s) if operating on high-latency networks.
+  - Verify that the sender is correctly setting the "More Segments" flag.
+  - Ensure the MTU is consistent across the network.
+
+### 3. `DecodeError::InvalidState` (TCP)
+
+- **Cause**: Out-of-order segment or stale connection.
+- **Solution**:
+  - The tracker buffers up to 16 out-of-order segments. Increase `TcpConnectionTracker::MAX_OUT_OF_ORDER` if needed.
+  - Reset the tracker if the physical link was disconnected.
+
+### 4. `DecodeError::InvalidLength` (SOME/IP-SD)
+
+- **Cause**: Entry array count doesn't match remaining payload.
+- **Solution**:
+  - Verify if the SD message follows AUTOSAR 4.4+ standards.
+  - Check for extra padding at the end of the UDP payload (Wadjet-Link expects tight packing).
+
+---
+
 ## Next Steps
 
 Now that you have the basics:
