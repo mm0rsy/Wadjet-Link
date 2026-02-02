@@ -5,10 +5,13 @@
 ///
 /// 𓆓 Wadjet-Link — Restoring the complete picture of the automotive stream.
 
+#include <array>
+#include <cctype>
 #include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace wadjet::protocols::diagnostic {

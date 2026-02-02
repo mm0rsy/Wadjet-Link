@@ -23,6 +23,7 @@
 #include <mutex>
 #include <span>
 #include <unordered_map>
+#include <vector>
 
 namespace wadjet::protocols::diagnostic {
 
