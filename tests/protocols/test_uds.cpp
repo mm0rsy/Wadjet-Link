@@ -655,14 +655,12 @@ TEST(ServiceHelpersTest, SecurityAccessHelpers) {
 
 TEST(ServiceSpecificNrcTest, RequestOutOfRangeByService) {
     // ReadDataByIdentifier - DID not found context
-    auto desc_rdbi =
-        service_specific_nrc_description(0x22, NRC::RequestOutOfRange);  // RDBI = 0x22
+    auto desc_rdbi = service_specific_nrc_description(0x22, NRC::RequestOutOfRange);  // RDBI = 0x22
     EXPECT_TRUE(desc_rdbi.find("DID") != std::string_view::npos ||
                 desc_rdbi.find("Data Identifier") != std::string_view::npos);
 
     // WriteDataByIdentifier - value out of range context
-    auto desc_wdbi =
-        service_specific_nrc_description(0x2E, NRC::RequestOutOfRange);  // WDBI = 0x2E
+    auto desc_wdbi = service_specific_nrc_description(0x2E, NRC::RequestOutOfRange);  // WDBI = 0x2E
     EXPECT_TRUE(desc_wdbi.find("DID") != std::string_view::npos ||
                 desc_wdbi.find("range") != std::string_view::npos);
 

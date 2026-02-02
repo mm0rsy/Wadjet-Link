@@ -62,15 +62,15 @@ class UdpDecoder : public DecoderBase<UdpDecoder, UdpHeader> {
 public:
     /// @brief Checksum validation mode
     enum class ChecksumMode {
-        DISABLED = 0,   ///< Do not validate UDP checksum
-        WARNING = 1,    ///< Log warning for invalid checksums but accept packets
-        STRICT = 2      ///< Drop packets with invalid checksums
+        DISABLED = 0,  ///< Do not validate UDP checksum
+        WARNING = 1,   ///< Log warning for invalid checksums but accept packets
+        STRICT = 2     ///< Drop packets with invalid checksums
     };
 
     /// @brief Decoder options
     struct Options {
-        bool validate_checksum;           ///< Validate UDP checksum (needs pseudo-header)
-        ChecksumMode checksum_mode;       ///< How to handle checksum validation results
+        bool validate_checksum;      ///< Validate UDP checksum (needs pseudo-header)
+        ChecksumMode checksum_mode;  ///< How to handle checksum validation results
         Options() : validate_checksum(false), checksum_mode(ChecksumMode::WARNING) {}
     };
 
@@ -98,11 +98,9 @@ public:
     /// @param dst_ip Destination IP address
     /// @param udp_data UDP header + payload
     /// @return Calculated checksum value
-    [[nodiscard]] static std::uint16_t calculate_checksum(
-        const void* src_ip,
-        const void* dst_ip,
-        const void* udp_data,
-        std::size_t udp_length);
+    [[nodiscard]] static std::uint16_t calculate_checksum(const void* src_ip, const void* dst_ip,
+                                                          const void* udp_data,
+                                                          std::size_t udp_length);
 
     /// @brief Validate UDP checksum
     /// @param src_ip Source IP address (4 bytes)
@@ -111,12 +109,9 @@ public:
     /// @param udp_length Total UDP datagram length
     /// @param checksum_field Checksum value from UDP header
     /// @return true if checksum is valid or zero
-    [[nodiscard]] static bool validate_checksum(
-        const void* src_ip,
-        const void* dst_ip,
-        const void* udp_data,
-        std::size_t udp_length,
-        std::uint16_t checksum_field);
+    [[nodiscard]] static bool validate_checksum(const void* src_ip, const void* dst_ip,
+                                                const void* udp_data, std::size_t udp_length,
+                                                std::uint16_t checksum_field);
 
     /// @brief Check if zero checksum is allowed for this IP version
     /// @param is_ipv6 true if IPv6, false if IPv4

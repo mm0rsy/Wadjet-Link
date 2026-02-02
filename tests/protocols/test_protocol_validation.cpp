@@ -9,8 +9,9 @@
 #include "wadjet/protocols/validation.hpp"
 
 #include <gtest/gtest.h>
-#include <vector>
+
 #include <array>
+#include <vector>
 
 using namespace wadjet::protocols;
 
@@ -112,7 +113,7 @@ TEST_F(ProtocolValidationTest, ValidLayeringWithVLAN) {
 
 TEST_F(ProtocolValidationTest, EmptyLayersValidation) {
     std::vector<ProtocolLayer> layers;
-    
+
     auto result = strict_validator.validateLayering(layers);
     EXPECT_TRUE(result.is_valid);
     EXPECT_EQ(result.error_count(), 0);
@@ -178,7 +179,7 @@ TEST_F(ProtocolValidationTest, ValidLengthsWithValidGaps) {
     // Adjacent layers with no gaps
     std::vector<ProtocolLayer> layers{
         {"Ethernet", 0, 14, 100, 0x0800, 0, false},  // Ends at 14
-        {"IPv4", 14, 20, 80, 0, 0, true},  // Starts at 14, no gap
+        {"IPv4", 14, 20, 80, 0, 0, true},            // Starts at 14, no gap
     };
 
     auto result = strict_validator.validateLengths(layers, 114);
@@ -195,15 +196,13 @@ TEST_F(ProtocolValidationTest, ValidIPv4Checksum) {
     // Version=4, IHL=5, DSCP=0, ECN=0, Total Length=20, ID=0, Flags=0, Fragment Offset=0
     // TTL=64, Protocol=6, Checksum=calculated, Source=192.168.1.1, Dest=192.168.1.2
     std::array<std::byte, 20> ipv4_header = {
-        std::byte{0x45}, std::byte{0x00},
-        std::byte{0x00}, std::byte{0x14},  // Total length = 20
-        std::byte{0x00}, std::byte{0x00},  // ID
+        std::byte{0x45}, std::byte{0x00}, std::byte{0x00}, std::byte{0x14},  // Total length = 20
+        std::byte{0x00}, std::byte{0x00},                                    // ID
         std::byte{0x40}, std::byte{0x00},  // Flags, fragment offset
         std::byte{0x40}, std::byte{0x06},  // TTL, Protocol (TCP)
         std::byte{0x7C}, std::byte{0xE3},  // Checksum (example)
         std::byte{0xC0}, std::byte{0xA8},  // Source IP: 192.168.1.1
-        std::byte{0x01}, std::byte{0x01},
-        std::byte{0xC0}, std::byte{0xA8},  // Dest IP: 192.168.1.2
+        std::byte{0x01}, std::byte{0x01}, std::byte{0xC0}, std::byte{0xA8},  // Dest IP: 192.168.1.2
         std::byte{0x01}, std::byte{0x02},
     };
 
@@ -214,10 +213,8 @@ TEST_F(ProtocolValidationTest, ValidIPv4Checksum) {
 
     // Note: We're testing the function call works, not the actual checksum
     // which would require a properly computed checksum
-    auto result = strict_validator.validateChecksums(
-        std::span<const std::byte>(packet_data),
-        layers
-    );
+    auto result =
+        strict_validator.validateChecksums(std::span<const std::byte>(packet_data), layers);
 
     // Result will depend on whether the checksum is valid
     // This is more of a "does it not crash" test
@@ -228,10 +225,8 @@ TEST_F(ProtocolValidationTest, ChecksumValidationNoLayers) {
     std::vector<std::byte> packet_data(100, std::byte{0});
     std::vector<ProtocolLayer> layers;
 
-    auto result = strict_validator.validateChecksums(
-        std::span<const std::byte>(packet_data),
-        layers
-    );
+    auto result =
+        strict_validator.validateChecksums(std::span<const std::byte>(packet_data), layers);
 
     EXPECT_TRUE(result.is_valid);
     EXPECT_EQ(result.error_count(), 0);
@@ -243,10 +238,8 @@ TEST_F(ProtocolValidationTest, ChecksumValidationEmptyPacket) {
         {"IPv4", 0, 20, 0, 0, 0, true},
     };
 
-    auto result = strict_validator.validateChecksums(
-        std::span<const std::byte>(packet_data),
-        layers
-    );
+    auto result =
+        strict_validator.validateChecksums(std::span<const std::byte>(packet_data), layers);
 
     EXPECT_TRUE(result.is_valid);
     EXPECT_EQ(result.error_count(), 0);
@@ -319,10 +312,8 @@ TEST_F(ProtocolValidationTest, CompleteEthernetIPv4TCPStack) {
 
 TEST_F(ProtocolValidationTest, DiagnosticProtocolStack) {
     std::vector<ProtocolLayer> layers{
-        {"Ethernet", 0, 14, 450, 0x0800, 0, false},
-        {"IPv4", 14, 20, 430, 0, 0, true},
-        {"TCP", 34, 20, 410, 0, 0, true},
-        {"DoIP", 54, 12, 398, 0, 0, false},
+        {"Ethernet", 0, 14, 450, 0x0800, 0, false}, {"IPv4", 14, 20, 430, 0, 0, true},
+        {"TCP", 34, 20, 410, 0, 0, true},           {"DoIP", 54, 12, 398, 0, 0, false},
         {"UDS", 66, 2, 396, 0, 0, false},
     };
 
@@ -397,7 +388,7 @@ TEST_F(ProtocolValidationTest, LargePacket) {
 
 TEST_F(ProtocolValidationTest, ValidationResultErrorAccumulation) {
     ValidationResult result(ValidationMode::Lenient);
-    
+
     EXPECT_TRUE(result.is_valid);
     EXPECT_EQ(result.error_count(), 0);
 

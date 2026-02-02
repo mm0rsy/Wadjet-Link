@@ -1,8 +1,9 @@
 // GoogleTest matchers for protocol completeness
 #pragma once
 #include <gtest/gtest.h>
-#include <vector>
+
 #include <cstdint>
+#include <vector>
 
 namespace wadjet {
 namespace testing {
@@ -22,5 +23,5 @@ MATCHER(IsValidUdpDatagram, "Valid UDP datagram") {
     return arg.size() >= 8;
 }
 
-} // namespace testing
-} // namespace wadjet
+}  // namespace testing
+}  // namespace wadjet

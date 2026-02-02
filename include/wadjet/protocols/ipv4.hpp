@@ -6,12 +6,12 @@
 #include "wadjet/core/types.hpp"
 #include "wadjet/protocols/decoder.hpp"
 
+#include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
-#include <memory>
-#include <chrono>
 
 namespace wadjet::protocols::ipv4 {
 
@@ -60,7 +60,7 @@ struct IPv4Header : public IDecodedHeader {
     };
     using OptionsList = std::vector<Option>;
     OptionsList parsed_options;
-    bool options_malformed = false; ///< Whether option parsing encountered malformed data
+    bool options_malformed = false;  ///< Whether option parsing encountered malformed data
 
     /// Known IPv4 option types (IANA)
     enum class OptionType : std::uint8_t {
@@ -90,11 +90,10 @@ struct IPv4Header : public IDecodedHeader {
         IPv4Address dst_ip;
         std::uint8_t protocol = 0;
         std::uint16_t identification = 0;
-        std::uint16_t offset = 0; // in bytes
-        bool mf = false; // more fragments flag
+        std::uint16_t offset = 0;  // in bytes
+        bool mf = false;           // more fragments flag
         std::vector<std::uint8_t> payload;
     };
-
 
     // IDecodedHeader interface
     [[nodiscard]] std::string_view protocol_name() const override { return "IPv4"; }
@@ -169,7 +168,8 @@ class Ipv4FragmentReassembler {
 public:
     /// @brief Configuration for fragment reassembly
     struct Config {
-        std::chrono::seconds timeout = std::chrono::seconds(30);  ///< Maximum time to hold incomplete fragments
+        std::chrono::seconds timeout =
+            std::chrono::seconds(30);  ///< Maximum time to hold incomplete fragments
     };
 
     /// @brief Constructor with optional configuration (default: 30s timeout)
@@ -178,7 +178,8 @@ public:
     /// @brief Add a fragment and attempt reassembly
     /// @param frag Fragment to add
     /// @return Complete reassembled payload if all fragments received, std::nullopt otherwise
-    [[nodiscard]] std::optional<std::vector<std::uint8_t>> add_fragment(const IPv4Header::Ipv4Fragment& frag);
+    [[nodiscard]] std::optional<std::vector<std::uint8_t>> add_fragment(
+        const IPv4Header::Ipv4Fragment& frag);
 
     /// @brief Clean up expired fragment caches
     void cleanup_expired();

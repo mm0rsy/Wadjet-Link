@@ -12,9 +12,11 @@ public:
     // IPv4 header checksum
     static uint16_t ipv4_checksum(const std::vector<uint8_t>& header);
     // TCP/UDP checksum (with pseudo-header)
-    static uint16_t transport_checksum(const std::vector<uint8_t>& header, const std::vector<uint8_t>& payload, uint32_t src_ip, uint32_t dst_ip, uint8_t protocol);
+    static uint16_t transport_checksum(const std::vector<uint8_t>& header,
+                                       const std::vector<uint8_t>& payload, uint32_t src_ip,
+                                       uint32_t dst_ip, uint8_t protocol);
 };
 
-} // namespace common
-} // namespace protocols
-} // namespace wadjet
+}  // namespace common
+}  // namespace protocols
+}  // namespace wadjet

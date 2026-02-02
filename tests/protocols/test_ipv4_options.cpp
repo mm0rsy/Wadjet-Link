@@ -1,5 +1,7 @@
 #include "wadjet/protocols/ipv4.hpp"
+
 #include <gtest/gtest.h>
+
 #include <vector>
 
 using namespace wadjet::protocols::ipv4;
@@ -27,7 +29,9 @@ TEST(IPv4OptionsTest, ParseRecordRoute) {
 }
 
 TEST(IPv4OptionsTest, ParseTimestamp) {
-    std::vector<std::byte> raw = {std::byte{68}, std::byte{10}, std::byte{0}, std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4}, std::byte{5}, std::byte{6}, std::byte{7}};
+    std::vector<std::byte> raw = {std::byte{68}, std::byte{10}, std::byte{0}, std::byte{1},
+                                  std::byte{2},  std::byte{3},  std::byte{4}, std::byte{5},
+                                  std::byte{6},  std::byte{7}};
     auto res = IPv4Header::parseIpv4Options(raw);
     ASSERT_FALSE(res.malformed);
     ASSERT_EQ(res.options.size(), 1);
@@ -36,7 +40,8 @@ TEST(IPv4OptionsTest, ParseTimestamp) {
 }
 
 TEST(IPv4OptionsTest, MalformedOption) {
-    std::vector<std::byte> raw = {std::byte{68}, std::byte{10}, std::byte{0}, std::byte{1}}; // truncated
+    std::vector<std::byte> raw = {std::byte{68}, std::byte{10}, std::byte{0},
+                                  std::byte{1}};  // truncated
     auto res = IPv4Header::parseIpv4Options(raw);
     ASSERT_TRUE(res.malformed);
 }

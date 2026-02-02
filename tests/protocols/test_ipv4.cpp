@@ -1,4 +1,5 @@
 #include "wadjet/protocols/ipv4.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace wadjet::protocols::ipv4;

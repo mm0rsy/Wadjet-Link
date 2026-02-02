@@ -1,8 +1,8 @@
 /// @file test_tcp_state.cpp
 /// @brief Tests for TCP state machine and connection tracking
 
-#include "wadjet/protocols/tcp.hpp"
 #include "wadjet/protocols/ipv4.hpp"
+#include "wadjet/protocols/tcp.hpp"
 
 #include <gtest/gtest.h>
 

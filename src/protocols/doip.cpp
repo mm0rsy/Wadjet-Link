@@ -215,8 +215,9 @@ DoIPDecoder::Result DoIPDecoder::decode_impl(const DecodeContext& ctx) const {
         case PayloadType::VehicleAnnouncementOrIdentificationResponse:
             // Vehicle ID response requires at least 32 bytes
             if (header.payload_length < 32) {
-                return make_error(DecodeErrorCode::InvalidLength,
-                                  "VehicleAnnouncementOrIdentificationResponse requires at least 32 bytes");
+                return make_error(
+                    DecodeErrorCode::InvalidLength,
+                    "VehicleAnnouncementOrIdentificationResponse requires at least 32 bytes");
             }
             break;
 
@@ -366,7 +367,7 @@ std::optional<PowerMode> DoIPDecoder::parse_diagnostic_power_mode(
     auto mode = static_cast<PowerMode>(static_cast<std::uint8_t>(payload[0]));
 
     // Validate power mode is one of the known values
-    if (mode != PowerMode::Ready && mode != PowerMode::NotReady && 
+    if (mode != PowerMode::Ready && mode != PowerMode::NotReady &&
         mode != PowerMode::NotSupported) {
         return std::nullopt;
     }
@@ -376,7 +377,7 @@ std::optional<PowerMode> DoIPDecoder::parse_diagnostic_power_mode(
 
 std::optional<std::tuple<std::uint8_t, std::uint8_t, std::uint8_t, std::uint16_t>>
 DoIPDecoder::parse_entity_status(std::span<const std::byte> payload) {
-    // Payload: node_type(1) + max_concurrent(1) + current_concurrent(1) + 
+    // Payload: node_type(1) + max_concurrent(1) + current_concurrent(1) +
     //          max_connections(2) + reserved(2) = 7 bytes minimum
     // But the actual spec might vary, we accept 5 bytes minimum
     if (payload.size() < 5) {
@@ -391,15 +392,14 @@ DoIPDecoder::parse_entity_status(std::span<const std::byte> payload) {
 
     // Max connections (2 bytes, big-endian)
     std::uint16_t max_connections = static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[3]) << 8) | 
-        static_cast<std::uint16_t>(data[4]));
+        (static_cast<std::uint16_t>(data[3]) << 8) | static_cast<std::uint16_t>(data[4]));
 
-    return std::make_tuple(node_type, max_concurrent_sockets, 
-                          current_concurrent_sockets, max_connections);
+    return std::make_tuple(node_type, max_concurrent_sockets, current_concurrent_sockets,
+                           max_connections);
 }
 
-std::optional<std::tuple<NackCode, std::uint16_t>>
-DoIPDecoder::parse_generic_nack(std::span<const std::byte> payload) {
+std::optional<std::tuple<NackCode, std::uint16_t>> DoIPDecoder::parse_generic_nack(
+    std::span<const std::byte> payload) {
     // Generic NACK payload contains NACK code (1 byte) + unknown payload type (2 bytes)
     if (payload.size() < 3) {
         return std::nullopt;
@@ -410,8 +410,7 @@ DoIPDecoder::parse_generic_nack(std::span<const std::byte> payload) {
     NackCode nack_code = static_cast<NackCode>(static_cast<std::uint8_t>(data[0]));
 
     std::uint16_t unknown_payload_type = static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[1]) << 8) | 
-        static_cast<std::uint16_t>(data[2]));
+        (static_cast<std::uint16_t>(data[1]) << 8) | static_cast<std::uint16_t>(data[2]));
 
     return std::make_tuple(nack_code, unknown_payload_type);
 }
@@ -426,8 +425,7 @@ std::optional<std::uint16_t> DoIPDecoder::parse_alive_check_response(
     const auto* data = payload.data();
 
     std::uint16_t tester_source_address = static_cast<std::uint16_t>(
-        (static_cast<std::uint16_t>(data[0]) << 8) | 
-        static_cast<std::uint16_t>(data[1]));
+        (static_cast<std::uint16_t>(data[0]) << 8) | static_cast<std::uint16_t>(data[1]));
 
     return tester_source_address;
 }

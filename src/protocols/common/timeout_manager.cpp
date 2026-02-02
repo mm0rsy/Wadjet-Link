@@ -1,7 +1,7 @@
 // Generic timeout manager implementation for protocol completeness
 #include <chrono>
-#include <unordered_map>
 #include <cstdint>
+#include <unordered_map>
 
 namespace wadjet {
 namespace protocols {
@@ -21,18 +21,17 @@ public:
 
     bool is_expired(uint64_t id) const {
         auto it = entries_.find(id);
-        if (it == entries_.end()) return false;
+        if (it == entries_.end())
+            return false;
         return Clock::now() > it->second.expiry;
     }
 
-    void remove(uint64_t id) {
-        entries_.erase(id);
-    }
+    void remove(uint64_t id) { entries_.erase(id); }
 
 private:
     std::unordered_map<uint64_t, Entry> entries_;
 };
 
-} // namespace common
-} // namespace protocols
-} // namespace wadjet
+}  // namespace common
+}  // namespace protocols
+}  // namespace wadjet

@@ -1,5 +1,7 @@
 #include "wadjet/protocols/someip.hpp"
+
 #include <gtest/gtest.h>
+
 #include <cstring>
 #include <vector>
 
@@ -9,74 +11,71 @@ class SomeipTpTest : public ::testing::Test {
 protected:
     /// Helper to create a SOME/IP-TP message
     static std::vector<std::byte> create_someip_tp_message(
-        std::uint16_t service_id,
-        std::uint16_t method_id,
+        std::uint16_t service_id, std::uint16_t method_id,
         std::uint32_t /*total_length*/,  // For documentation only
-        std::uint32_t segment_offset,
-        bool more_segments,
+        std::uint32_t segment_offset, bool more_segments,
         const std::vector<std::uint8_t>& payload) {
-        
         std::vector<std::byte> message;
-        
+
         // SOME/IP Header (16 bytes)
         // Service ID
         message.push_back(std::byte{static_cast<std::uint8_t>(service_id >> 8)});
         message.push_back(std::byte{static_cast<std::uint8_t>(service_id & 0xFF)});
-        
+
         // Method ID
         message.push_back(std::byte{static_cast<std::uint8_t>(method_id >> 8)});
         message.push_back(std::byte{static_cast<std::uint8_t>(method_id & 0xFF)});
-        
+
         // Length (header + TP header + payload = 8 + 4 + payload.size())
         std::uint32_t length = static_cast<std::uint32_t>(8 + 4 + payload.size());
         message.push_back(std::byte{static_cast<std::uint8_t>(length >> 24)});
         message.push_back(std::byte{static_cast<std::uint8_t>((length >> 16) & 0xFF)});
         message.push_back(std::byte{static_cast<std::uint8_t>((length >> 8) & 0xFF)});
         message.push_back(std::byte{static_cast<std::uint8_t>(length & 0xFF)});
-        
+
         // Client ID
         message.push_back(std::byte{0x01});
         message.push_back(std::byte{0x00});
-        
+
         // Session ID
         message.push_back(std::byte{0x00});
         message.push_back(std::byte{0x01});
-        
+
         // Protocol Version
         message.push_back(std::byte{0x01});
-        
+
         // Interface Version
         message.push_back(std::byte{0x00});
-        
+
         // Message Type (TP bit set in high bit of message type byte)
         std::uint8_t msg_type = 0x00;  // Request
         if (more_segments) {
             msg_type |= 0x20;  // TP flag
         }
         message.push_back(std::byte{msg_type});
-        
+
         // Return Code
         message.push_back(std::byte{0x00});
-        
+
         // TP Header (4 bytes when TP message)
         // Reserved (1 byte) + more_segments flag (1 bit) + offset (31 bits / 15 bits + reserved)
         if (more_segments || segment_offset > 0) {
             // This is a TP message, add TP header
             std::uint8_t reserve_and_flags = more_segments ? 0x01 : 0x00;
             message.push_back(std::byte{reserve_and_flags});
-            
+
             // Offset (3 bytes) - offset is in bytes / 4
             std::uint32_t offset_field = segment_offset / 4;
             message.push_back(std::byte{static_cast<std::uint8_t>((offset_field >> 16) & 0xFF)});
             message.push_back(std::byte{static_cast<std::uint8_t>((offset_field >> 8) & 0xFF)});
             message.push_back(std::byte{static_cast<std::uint8_t>(offset_field & 0xFF)});
         }
-        
+
         // Payload
         for (auto b : payload) {
             message.push_back(std::byte{b});
         }
-        
+
         return message;
     }
 };
@@ -152,7 +151,7 @@ TEST_F(SomeipTpTest, TpMoreSegmentsFlag) {
     std::vector<std::uint8_t> payload(100, 0x22);
     auto msg_with_flag = create_someip_tp_message(0x1234, 0x0001, 500, 0, true, payload);
     auto msg_without_flag = create_someip_tp_message(0x1234, 0x0001, 100, 0, false, payload);
-    
+
     EXPECT_GT(msg_with_flag.size(), 0);
     EXPECT_GT(msg_without_flag.size(), 0);
 }
@@ -164,7 +163,7 @@ TEST_F(SomeipTpTest, TpOffsetParsing) {
     auto msg_offset_0 = create_someip_tp_message(0x1234, 0x0001, 5000, 0, true, payload);
     auto msg_offset_1000 = create_someip_tp_message(0x1234, 0x0001, 5000, 1000, true, payload);
     auto msg_offset_2000 = create_someip_tp_message(0x1234, 0x0001, 5000, 2000, true, payload);
-    
+
     EXPECT_GT(msg_offset_0.size(), 0);
     EXPECT_GT(msg_offset_1000.size(), 0);
     EXPECT_GT(msg_offset_2000.size(), 0);
@@ -181,11 +180,11 @@ TEST_F(SomeipTpTest, TimeoutHandling) {
     // First segment arrives
     std::vector<std::uint8_t> payload1(1000, 0x44);
     auto msg1 = create_someip_tp_message(0x1234, 0x0001, 5000, 0, true, payload1);
-    
+
     // Second segment arrives
     std::vector<std::uint8_t> payload2(1000, 0x55);
     auto msg2 = create_someip_tp_message(0x1234, 0x0001, 5000, 1000, true, payload2);
-    
+
     // Message times out waiting for segment 3
     EXPECT_GT(msg1.size(), 0);
     EXPECT_GT(msg2.size(), 0);
@@ -197,7 +196,7 @@ TEST_F(SomeipTpTest, MultipleIncompleteMessages) {
     std::vector<std::uint8_t> payload(500, 0x66);
     auto msg1 = create_someip_tp_message(0x1111, 0x0001, 2000, 0, true, payload);
     auto msg2 = create_someip_tp_message(0x2222, 0x0001, 2000, 0, true, payload);
-    
+
     EXPECT_GT(msg1.size(), 0);
     EXPECT_GT(msg2.size(), 0);
 }
@@ -206,7 +205,7 @@ TEST_F(SomeipTpTest, MultipleIncompleteMessages) {
 TEST_F(SomeipTpTest, TotalLengthConsistency) {
     std::vector<std::uint8_t> payload(1000, 0x77);
     auto msg = create_someip_tp_message(0x1234, 0x0001, 5000, 1000, true, payload);
-    
+
     // Total length should be consistent across segments
     EXPECT_GT(msg.size(), 0);
 }
@@ -214,12 +213,12 @@ TEST_F(SomeipTpTest, TotalLengthConsistency) {
 /// Test TP segment ordering validation
 TEST_F(SomeipTpTest, SegmentOrderingValidation) {
     std::vector<std::uint8_t> payload(1000, 0x88);
-    
+
     // Receive segments out of order
     auto seg3 = create_someip_tp_message(0x1234, 0x0001, 4000, 3000, false, payload);
     auto seg1 = create_someip_tp_message(0x1234, 0x0001, 4000, 0, true, payload);
     auto seg2 = create_someip_tp_message(0x1234, 0x0001, 4000, 1000, true, payload);
-    
+
     EXPECT_GT(seg1.size(), 0);
     EXPECT_GT(seg2.size(), 0);
     EXPECT_GT(seg3.size(), 0);
@@ -228,13 +227,13 @@ TEST_F(SomeipTpTest, SegmentOrderingValidation) {
 /// Test TP with different message types
 TEST_F(SomeipTpTest, TpWithDifferentMessageTypes) {
     std::vector<std::uint8_t> payload(100, 0x99);
-    
+
     // Request-type TP message
     auto tp_request = create_someip_tp_message(0x1234, 0x0001, 200, 0, true, payload);
-    
+
     // Response-type TP message (would have different type byte)
     auto tp_response = create_someip_tp_message(0x5678, 0x0001, 200, 0, true, payload);
-    
+
     EXPECT_GT(tp_request.size(), 0);
     EXPECT_GT(tp_response.size(), 0);
 }
@@ -248,11 +247,11 @@ TEST_F(SomeipTpTest, MinimumLengthValidation) {
 /// Test TP reassembly state machine
 TEST_F(SomeipTpTest, ReassemblyStateMachine) {
     std::vector<std::uint8_t> payload(1000, 0xAA);
-    
+
     // State transitions: IDLE -> WAITING -> COMPLETE
     auto first_seg = create_someip_tp_message(0x1234, 0x0001, 3000, 0, true, payload);
     auto last_seg = create_someip_tp_message(0x1234, 0x0001, 3000, 1000, false, payload);
-    
+
     EXPECT_GT(first_seg.size(), 0);
     EXPECT_GT(last_seg.size(), 0);
 }
@@ -266,7 +265,7 @@ TEST_F(SomeipTpTest, LargeMultiSegmentPayload) {
     auto seg3 = create_someip_tp_message(0x1234, 0x0001, 5242880, 2097152U, true, segment_payload);
     auto seg4 = create_someip_tp_message(0x1234, 0x0001, 5242880, 3145728U, true, segment_payload);
     auto seg5 = create_someip_tp_message(0x1234, 0x0001, 5242880, 4194304U, false, segment_payload);
-    
+
     EXPECT_GT(seg1.size(), 1000000);
     EXPECT_GT(seg2.size(), 1000000);
     EXPECT_GT(seg3.size(), 1000000);

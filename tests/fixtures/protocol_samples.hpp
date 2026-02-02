@@ -1,8 +1,9 @@
 // Test fixtures for protocol samples (for GoogleTest)
 #pragma once
 #include <gtest/gtest.h>
-#include <vector>
+
 #include <cstdint>
+#include <vector>
 
 namespace wadjet {
 namespace test {
@@ -23,5 +24,5 @@ protected:
     }
 };
 
-} // namespace test
-} // namespace wadjet
+}  // namespace test
+}  // namespace wadjet

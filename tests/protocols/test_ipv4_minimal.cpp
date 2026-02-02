@@ -1,4 +1,5 @@
 #include "wadjet/protocols/ipv4.hpp"
+
 #include <gtest/gtest.h>
 
 using namespace wadjet::protocols::ipv4;
@@ -11,7 +12,7 @@ TEST(IPv4ExtensionTest, FragmentReassemblerConstruction) {
     // Test that reassembler can be constructed with default config
     Ipv4FragmentReassembler::Config cfg;
     cfg.timeout = std::chrono::seconds(30);
-    
+
     Ipv4FragmentReassembler reassembler(cfg);
     EXPECT_EQ(reassembler.size(), 0);
 }
@@ -32,7 +33,7 @@ TEST(IPv4ExtensionTest, FragmentReassemblerSimpleInOrder) {
 
     auto res = r.add_fragment(f1);
     EXPECT_FALSE(res);  // Incomplete, more fragments expected
-    
+
     IPv4Header::Ipv4Fragment f2 = f1;
     f2.offset = 4;
     f2.mf = false;
@@ -83,7 +84,7 @@ TEST(IPv4ExtensionTest, FragmentReassemblerClear) {
     f.payload = {1, 2};
 
     auto _ = r.add_fragment(f);  // Suppress nodiscard warning
-    (void)_;  // Suppress unused variable warning
+    (void)_;                     // Suppress unused variable warning
     EXPECT_EQ(r.size(), 1);
 
     r.clear();

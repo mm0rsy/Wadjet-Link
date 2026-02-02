@@ -66,11 +66,8 @@ TEST_F(TcpOptionsTest, MSSOptionVariations) {
     };
 
     std::array test_cases{
-        TestCase{536, "Minimal MSS"},
-        TestCase{1460, "Ethernet MSS"},
-        TestCase{1452, "PPPoE MSS"},
-        TestCase{9000, "Jumbo frame"},
-        TestCase{65535, "Maximum MSS"},
+        TestCase{536, "Minimal MSS"},  TestCase{1460, "Ethernet MSS"}, TestCase{1452, "PPPoE MSS"},
+        TestCase{9000, "Jumbo frame"}, TestCase{65535, "Maximum MSS"},
     };
 
     for (const auto& tc : test_cases) {

@@ -6,8 +6,8 @@
 /// Main header for gPTP protocol support, including message types, TLV structures,
 /// and the polymorphic GptpTlv variant type.
 
-#include "wadjet/protocols/gptp/gptp_types.hpp"
 #include "wadjet/protocols/gptp/gptp_messages.hpp"
+#include "wadjet/protocols/gptp/gptp_types.hpp"
 
 namespace wadjet::protocols::gptp {
 

@@ -15,6 +15,6 @@ public:
     virtual int get_state() const = 0;
 };
 
-} // namespace common
-} // namespace protocols
-} // namespace wadjet
+}  // namespace common
+}  // namespace protocols
+}  // namespace wadjet

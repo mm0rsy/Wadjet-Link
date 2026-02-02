@@ -247,7 +247,7 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
                         if (auto fu_tlv = FollowUpTlv::parse(tlv.value)) {
                             follow_up.follow_up_info = fu_tlv.value();
                         }
-                    } else if (tlv.type != TlvType::Management && 
+                    } else if (tlv.type != TlvType::Management &&
                                tlv.type != TlvType::ManagementErrorStatus) {
                         // Store other TLVs
                         follow_up.tlvs.push_back(tlv);
@@ -352,8 +352,7 @@ std::optional<MessageBody> GptpDecoder::parse_body(MessageType type, const std::
 }
 
 // Tlv::parse implementation
-std::optional<std::pair<Tlv, std::size_t>> Tlv::parse(const std::byte* ptr,
-                                                       std::size_t remaining) {
+std::optional<std::pair<Tlv, std::size_t>> Tlv::parse(const std::byte* ptr, std::size_t remaining) {
     if (remaining < TLV_HEADER_SIZE) {
         return std::nullopt;
     }

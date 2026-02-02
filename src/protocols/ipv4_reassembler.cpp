@@ -1,10 +1,10 @@
 #include "wadjet/protocols/ipv4.hpp"
 
-#include <unordered_map>
-#include <map>
-#include <vector>
-#include <optional>
 #include <chrono>
+#include <map>
+#include <optional>
+#include <unordered_map>
+#include <vector>
 
 namespace wadjet::protocols::ipv4 {
 
@@ -23,8 +23,14 @@ struct FragmentKeyHash {
     std::size_t operator()(const FragmentKey& k) const noexcept {
         // Simple hash combining parts
         std::size_t h = 1469598103934665603ULL;
-        auto mix = [&](std::uint32_t v) { h ^= v; h *= 1099511628211ULL; };
-        mix(k.src.to_uint32()); mix(k.dst.to_uint32()); mix(k.proto); mix(k.id);
+        auto mix = [&](std::uint32_t v) {
+            h ^= v;
+            h *= 1099511628211ULL;
+        };
+        mix(k.src.to_uint32());
+        mix(k.dst.to_uint32());
+        mix(k.proto);
+        mix(k.id);
         return h;
     }
 };
@@ -46,14 +52,15 @@ public:
             entry.seen_last = true;
             entry.total_size = frag.offset + frag.payload.size();
         }
-        
+
         // Quick completeness check: if we have seen last and total bytes covered
         if (entry.seen_last) {
             // compute accumulated size
             std::size_t acc = 0;
             std::size_t offset = 0;
             for (auto& [off, data] : entry.fragments) {
-                if (off != offset) return std::nullopt; // gap detected
+                if (off != offset)
+                    return std::nullopt;  // gap detected
                 acc += data.size();
                 offset += data.size();
             }
@@ -64,7 +71,7 @@ public:
                 for (auto& [off, data] : entry.fragments) {
                     out.insert(out.end(), data.begin(), data.end());
                 }
-                cache_.erase(key); // cleanup
+                cache_.erase(key);  // cleanup
                 return out;
             }
         }
@@ -74,7 +81,8 @@ public:
     void cleanup_expired() {
         auto now = std::chrono::steady_clock::now();
         for (auto it = cache_.begin(); it != cache_.end();) {
-            auto age = std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update);
+            auto age =
+                std::chrono::duration_cast<std::chrono::seconds>(now - it->second.last_update);
             if (age > config_.timeout) {
                 it = cache_.erase(it);
             } else {
@@ -83,13 +91,9 @@ public:
         }
     }
 
-    void clear() {
-        cache_.clear();
-    }
+    void clear() { cache_.clear(); }
 
-    std::size_t size() const {
-        return cache_.size();
-    }
+    std::size_t size() const { return cache_.size(); }
 
 private:
     struct Entry {
@@ -108,7 +112,8 @@ private:
 Ipv4FragmentReassembler::Ipv4FragmentReassembler(const Config& cfg)
     : config_(cfg), impl_(std::make_unique<Impl>(cfg)) {}
 
-std::optional<std::vector<std::uint8_t>> Ipv4FragmentReassembler::add_fragment(const IPv4Header::Ipv4Fragment& frag) {
+std::optional<std::vector<std::uint8_t>> Ipv4FragmentReassembler::add_fragment(
+    const IPv4Header::Ipv4Fragment& frag) {
     return impl_->add_fragment(frag);
 }
 
@@ -126,4 +131,4 @@ std::size_t Ipv4FragmentReassembler::size() const {
 
 Ipv4FragmentReassembler::~Ipv4FragmentReassembler() = default;
 
-} // namespace wadjet::protocols::ipv4
+}  // namespace wadjet::protocols::ipv4

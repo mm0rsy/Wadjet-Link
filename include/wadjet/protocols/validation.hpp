@@ -9,22 +9,22 @@
 #include "wadjet/protocols/decoder.hpp"
 
 #include <memory>
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace wadjet::protocols {
 
 /// @brief Error handling modes for protocol validation
 enum class ValidationMode {
-    Strict,    ///< Fail on first validation error
-    Lenient,   ///< Log warnings but continue validation
+    Strict,   ///< Fail on first validation error
+    Lenient,  ///< Log warnings but continue validation
 };
 
 /// @brief Validation result containing all errors found
 struct ValidationResult {
-    bool is_valid;                      ///< True if all validations passed
-    ValidationMode mode;                ///< Mode used for validation
-    std::vector<DecodeError> errors;    ///< All validation errors found
+    bool is_valid;                    ///< True if all validations passed
+    ValidationMode mode;              ///< Mode used for validation
+    std::vector<DecodeError> errors;  ///< All validation errors found
 
     ValidationResult() : is_valid(true), mode(ValidationMode::Strict) {}
 
@@ -48,13 +48,13 @@ struct ValidationResult {
 
 /// @brief Protocol layer information for validation
 struct ProtocolLayer {
-    std::string name;           ///< Layer name (e.g., "IPv4", "TCP")
-    std::size_t offset;         ///< Offset in packet where layer starts
-    std::size_t header_length;  ///< Length of this layer's header
-    std::size_t payload_length; ///< Length of payload carried by this layer
-    std::uint16_t ethertype;    ///< EtherType or protocol number (optional)
-    std::uint16_t checksum;     ///< Checksum value (if applicable, 0 if none)
-    bool has_checksum;          ///< Whether this layer has a checksum field
+    std::string name;            ///< Layer name (e.g., "IPv4", "TCP")
+    std::size_t offset;          ///< Offset in packet where layer starts
+    std::size_t header_length;   ///< Length of this layer's header
+    std::size_t payload_length;  ///< Length of payload carried by this layer
+    std::uint16_t ethertype;     ///< EtherType or protocol number (optional)
+    std::uint16_t checksum;      ///< Checksum value (if applicable, 0 if none)
+    bool has_checksum;           ///< Whether this layer has a checksum field
 };
 
 /// @brief Cross-protocol validator for packet analysis
@@ -99,10 +99,8 @@ public:
     /// @param layers Vector of protocol layers in order
     /// @param total_packet_length Total length of received packet (including headers)
     /// @return Validation result with any errors found
-    [[nodiscard]] ValidationResult validateLengths(
-        const std::vector<ProtocolLayer>& layers,
-        std::size_t total_packet_length
-    ) const;
+    [[nodiscard]] ValidationResult validateLengths(const std::vector<ProtocolLayer>& layers,
+                                                   std::size_t total_packet_length) const;
 
     /// @brief Validate checksums across protocol layers
     ///
@@ -117,8 +115,7 @@ public:
     /// @return Validation result with any checksum errors found
     [[nodiscard]] ValidationResult validateChecksums(
         const std::span<const std::byte>& packet_data,
-        const std::vector<ProtocolLayer>& layers
-    ) const;
+        const std::vector<ProtocolLayer>& layers) const;
 
     /// @brief Set validation mode
     /// @param mode New validation mode
@@ -131,37 +128,27 @@ private:
     ValidationMode mode_;
 
     /// @brief Validate IPv4 checksum
-    [[nodiscard]] bool validate_ipv4_checksum(
-        const std::span<const std::byte>& packet_data,
-        const ProtocolLayer& layer
-    ) const;
+    [[nodiscard]] bool validate_ipv4_checksum(const std::span<const std::byte>& packet_data,
+                                              const ProtocolLayer& layer) const;
 
     /// @brief Validate UDP checksum
-    [[nodiscard]] bool validate_udp_checksum(
-        const std::span<const std::byte>& packet_data,
-        const ProtocolLayer& udp_layer,
-        const ProtocolLayer* ipv4_layer
-    ) const;
+    [[nodiscard]] bool validate_udp_checksum(const std::span<const std::byte>& packet_data,
+                                             const ProtocolLayer& udp_layer,
+                                             const ProtocolLayer* ipv4_layer) const;
 
     /// @brief Validate TCP checksum
-    [[nodiscard]] bool validate_tcp_checksum(
-        const std::span<const std::byte>& packet_data,
-        const ProtocolLayer& tcp_layer,
-        const ProtocolLayer* ipv4_layer
-    ) const;
+    [[nodiscard]] bool validate_tcp_checksum(const std::span<const std::byte>& packet_data,
+                                             const ProtocolLayer& tcp_layer,
+                                             const ProtocolLayer* ipv4_layer) const;
 
     /// @brief Calculate IPv4 checksum from bytes
     [[nodiscard]] static std::uint16_t calculate_ipv4_checksum(
-        const std::span<const std::byte>& header_data
-    );
+        const std::span<const std::byte>& header_data);
 
     /// @brief Calculate pseudo-header checksum for UDP/TCP
     [[nodiscard]] static std::uint16_t calculate_pseudo_checksum(
-        const std::span<const std::byte>& packet_data,
-        const ProtocolLayer& ipv4_layer,
-        std::uint8_t protocol_number,
-        std::size_t transport_length
-    );
+        const std::span<const std::byte>& packet_data, const ProtocolLayer& ipv4_layer,
+        std::uint8_t protocol_number, std::size_t transport_length);
 };
 
 }  // namespace wadjet::protocols

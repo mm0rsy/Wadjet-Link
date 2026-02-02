@@ -35,21 +35,28 @@ IPv4Header::ParseOptionsResult IPv4Header::parseIpv4Options(const std::vector<st
     std::size_t i = 0;
     while (i < raw.size()) {
         uint8_t kind = static_cast<uint8_t>(raw[i]);
-        if (kind == 0) { // EOL
+        if (kind == 0) {  // EOL
             res.options.push_back({kind, {}});
             break;
-        } else if (kind == 1) { // NOP
+        } else if (kind == 1) {  // NOP
             res.options.push_back({kind, {}});
             ++i;
             continue;
         } else {
-            if (i + 1 >= raw.size()) { res.malformed = true; break; } // malformed
+            if (i + 1 >= raw.size()) {
+                res.malformed = true;
+                break;
+            }  // malformed
             uint8_t length = static_cast<uint8_t>(raw[i + 1]);
-            if (length < 2 || i + length > raw.size()) { res.malformed = true; break; } // malformed
+            if (length < 2 || i + length > raw.size()) {
+                res.malformed = true;
+                break;
+            }  // malformed
             std::vector<uint8_t> data;
             if (length > 2) {
                 data.reserve(length - 2);
-                for (size_t j = i + 2; j < i + length; ++j) data.push_back(static_cast<uint8_t>(raw[j]));
+                for (size_t j = i + 2; j < i + length; ++j)
+                    data.push_back(static_cast<uint8_t>(raw[j]));
             }
             res.options.push_back({kind, data});
             i += length;
@@ -175,7 +182,8 @@ IPv4Decoder::Result IPv4Decoder::decode_impl(const DecodeContext& ctx) const {
         frag.dst_ip = header.dst_ip;
         frag.protocol = header.protocol;
         frag.identification = header.identification;
-        frag.offset = static_cast<std::uint16_t>(header.fragment_offset * 8); // frag offset in bytes
+        frag.offset =
+            static_cast<std::uint16_t>(header.fragment_offset * 8);  // frag offset in bytes
         frag.mf = header.flags.more_fragments;
         // payload will be added by caller using next_ctx
     }

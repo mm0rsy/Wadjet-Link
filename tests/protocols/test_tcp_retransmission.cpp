@@ -12,20 +12,13 @@ namespace wadjet::protocols::tcp {
 
 class TcpRetransmissionTest : public ::testing::Test {
 protected:
-    void SetUp() override {
-        tracker_ = std::make_unique<TcpConnectionTracker>();
-    }
+    void SetUp() override { tracker_ = std::make_unique<TcpConnectionTracker>(); }
 
     std::unique_ptr<TcpConnectionTracker> tracker_;
 
     /// Helper to create a TCP header with specific flags
-    TcpHeader create_header(
-        std::uint32_t seq_num,
-        std::uint32_t ack_num,
-        bool syn = false,
-        bool ack = false,
-        bool fin = false,
-        bool rst = false) {
+    TcpHeader create_header(std::uint32_t seq_num, std::uint32_t ack_num, bool syn = false,
+                            bool ack = false, bool fin = false, bool rst = false) {
         TcpHeader hdr;
         hdr.seq_num = seq_num;
         hdr.ack_num = ack_num;
@@ -261,7 +254,7 @@ TEST_F(TcpRetransmissionTest, InterspersedRetransmissions) {
     ASSERT_NE(conn, nullptr);
 
     conn->state = TcpState::Established;
-    conn->remote_seq = 0;   // Haven't received data yet
+    conn->remote_seq = 0;  // Haven't received data yet
     conn->local_ack = 5000;
 
     // New packet from remote

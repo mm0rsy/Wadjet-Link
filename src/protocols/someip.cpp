@@ -24,8 +24,8 @@ std::string SomeIpHeader::to_string() const {
 }
 
 bool SomeipTpReassembler::add_segment(std::uint32_t message_id, std::uint32_t request_id,
-                                      const SomeipTpSegment& segment,
-                                      const std::uint8_t* data, std::size_t data_size) {
+                                      const SomeipTpSegment& segment, const std::uint8_t* data,
+                                      std::size_t data_size) {
     // Validate offset is within bounds
     if (segment.offset > MAX_MESSAGE_SIZE) {
         return false;
@@ -52,13 +52,13 @@ bool SomeipTpReassembler::add_segment(std::uint32_t message_id, std::uint32_t re
     } else {
         // Subsequent segment - add to existing message
         auto& msg = it->second;
-        
+
         // Update total_length if this segment extends further
         std::uint32_t segment_end = segment.offset + static_cast<std::uint32_t>(data_size);
         if (segment_end > msg.total_length) {
             msg.total_length = segment_end;
         }
-        
+
         msg.last_update_time = 0;  // Reset/update timestamp if needed
         msg.add_segment(segment.offset, data, data_size);
     }
@@ -67,14 +67,15 @@ bool SomeipTpReassembler::add_segment(std::uint32_t message_id, std::uint32_t re
     return messages_[key].is_complete();
 }
 
-const SomeipTpMessage* SomeipTpReassembler::get_message(std::uint32_t message_id, std::uint32_t request_id) const {
+const SomeipTpMessage* SomeipTpReassembler::get_message(std::uint32_t message_id,
+                                                        std::uint32_t request_id) const {
     auto key = std::make_pair(message_id, request_id);
     auto it = messages_.find(key);
-    
+
     if (it != messages_.end() && it->second.is_complete()) {
         return &it->second;
     }
-    
+
     return nullptr;
 }
 
@@ -87,7 +88,7 @@ void SomeipTpReassembler::cleanup_timed_out(std::uint64_t current_time_ms) {
     // Remove messages that have exceeded the timeout
     for (auto it = messages_.begin(); it != messages_.end();) {
         auto& msg = it->second;
-        
+
         // Check if message has timed out
         if (current_time_ms > msg.last_update_time &&
             (current_time_ms - msg.last_update_time) > TIMEOUT_MS) {
@@ -146,28 +147,28 @@ SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const
 
     // Validate length field - minimum is 8 bytes (Request ID onwards)
     if (header.length < 8) {
-        return make_error(DecodeErrorCode::InvalidLength,
-                          "SOME/IP length too small: " + std::to_string(header.length) +
-                          " (minimum: 8 bytes)");
+        return make_error(
+            DecodeErrorCode::InvalidLength,
+            "SOME/IP length too small: " + std::to_string(header.length) + " (minimum: 8 bytes)");
     }
 
     // Check for TP flag (0x20) in message type byte
     bool is_tp_message = (message_type_byte & TP_FLAG) != 0;
-    
+
     if (is_tp_message) {
         // TP message - validate TP-specific length constraints
         // TP header is 4 bytes, so minimum TP message length is 12 (8 + 4)
         if (header.length < 12) {
             return make_error(DecodeErrorCode::InvalidLength,
                               "SOME/IP-TP length too small: " + std::to_string(header.length) +
-                              " (minimum: 12 bytes for TP overhead)");
+                                  " (minimum: 12 bytes for TP overhead)");
         }
-        
+
         // TP messages can be up to 16 MB total
         if (header.length > SomeipTpReassembler::MAX_MESSAGE_SIZE) {
             return make_error(DecodeErrorCode::InvalidLength,
                               "SOME/IP-TP message exceeds maximum size: " +
-                              std::to_string(header.length) + " bytes (max: 16 MB)");
+                                  std::to_string(header.length) + " bytes (max: 16 MB)");
         }
 
         if (options_.enable_tp_reassembly) {
@@ -186,18 +187,20 @@ SomeIpDecoder::Result SomeIpDecoder::decode_impl(const DecodeContext& ctx) const
                                        static_cast<std::uint32_t>(header.session_id);
 
             // Get payload (skip SOME/IP header + TP header)
-            const std::uint8_t* payload = reinterpret_cast<const std::uint8_t*>(ctx.data.data()) + HEADER_SIZE + 4;
+            const std::uint8_t* payload =
+                reinterpret_cast<const std::uint8_t*>(ctx.data.data()) + HEADER_SIZE + 4;
             std::size_t payload_size = header.length > 12 ? header.length - 12 : 0;
 
             // Validate payload size doesn't exceed 16 MB
             if (tp_segment.offset + payload_size > SomeipTpReassembler::MAX_MESSAGE_SIZE) {
                 return make_error(DecodeErrorCode::InvalidLength,
                                   "SOME/IP-TP segment offset exceeds maximum: " +
-                                  std::to_string(tp_segment.offset + payload_size) + " bytes");
+                                      std::to_string(tp_segment.offset + payload_size) + " bytes");
             }
 
             // Add segment to reassembler
-            [[maybe_unused]] bool complete = tp_reassembler_.add_segment(message_id, request_id, tp_segment, payload, payload_size);
+            [[maybe_unused]] bool complete = tp_reassembler_.add_segment(
+                message_id, request_id, tp_segment, payload, payload_size);
             // Note: complete flag indicates if the message is fully reassembled
         }
     } else {
