@@ -114,6 +114,11 @@ if(WADJET_SCENARIO_ENABLED)
     endif()
     target_link_libraries(wadjet PRIVATE nlohmann_json::nlohmann_json)
 endif()
-
+# ============================================================================
+# Distributed Testing Module (Optional)
+# ============================================================================
+if(WADJET_ENABLE_DISTRIBUTED)
+    add_subdirectory(distributed)
+endif()
 # Future: Add subdirectories as they are implemented
 # add_subdirectory(testing)

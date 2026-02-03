@@ -17,6 +17,7 @@ option(WADJET_BUILD_FUZZ "Build fuzz tests (requires Clang with libFuzzer)" OFF)
 option(WADJET_BUILD_C_BINDINGS "Build C bindings (for FFI with Rust, Python, etc.)" OFF)
 option(WADJET_BUILD_PYTHON_BINDINGS "Build Python bindings (requires pybind11)" OFF)
 option(WADJET_ENABLE_SANITIZERS "Enable ASan/UBSan in Debug builds" ON)
+option(WADJET_ENABLE_DISTRIBUTED "Enable distributed testing infrastructure" ON)
 
 # ============================================================================
 # C++ Standard
@@ -24,6 +25,21 @@ option(WADJET_ENABLE_SANITIZERS "Enable ASan/UBSan in Debug builds" ON)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# ============================================================================
+# Distributed Testing Dependencies (gRPC + Protobuf)
+# ============================================================================
+if(WADJET_ENABLE_DISTRIBUTED)
+    include(FetchContent)
+    
+    # Fetch gRPC and its dependencies
+    FetchContent_Declare(grpc
+        GIT_REPOSITORY https://github.com/grpc/grpc.git
+        GIT_TAG        v1.50.0
+        CMAKE_ARGS -DgRPC_BUILD_TESTS=OFF
+    )
+    FetchContent_MakeAvailable(grpc)
+endif()
 
 # ============================================================================
 # Compiler Warnings
