@@ -1,0 +1,379 @@
+// Distributed Testing Infrastructure - gRPC Service Definition
+// 
+// Feature: 014-distributed-testing
+// Version: 1.0.0
+// Date: 2026-02-03
+//
+// This protocol defines the communication contract between the test coordinator
+// and test nodes for distributed testing scenarios.
+
+syntax = "proto3";
+
+package wadjet.distributed.v1;
+
+option cc_namespace = "wadjet::distributed::proto";
+
+// ============================================================================
+// Service Definitions
+// ============================================================================
+
+// DistributedTestService - Coordinator-side service
+// Nodes connect to this service to participate in distributed tests
+service DistributedTestService {
+    // Node registration and lifecycle
+    rpc RegisterNode(RegisterNodeRequest) returns (RegisterNodeResponse);
+    rpc UnregisterNode(UnregisterNodeRequest) returns (UnregisterNodeResponse);
+    rpc Heartbeat(stream HeartbeatRequest) returns (stream HeartbeatResponse);
+    
+    // Barrier synchronization
+    rpc WaitBarrier(WaitBarrierRequest) returns (WaitBarrierResponse);
+    
+    // Capture control (coordinator -> nodes via streaming)
+    rpc ControlChannel(stream NodeMessage) returns (stream CoordinatorMessage);
+    
+    // Result collection
+    rpc ReportResult(ReportResultRequest) returns (ReportResultResponse);
+    rpc UploadPcap(stream PcapChunk) returns (UploadPcapResponse);
+}
+
+// ============================================================================
+// Node Registration
+// ============================================================================
+
+message RegisterNodeRequest {
+    string node_id = 1;
+    string hostname = 2;
+    repeated string capture_interfaces = 3;
+    ClockSyncInfo clock_sync = 4;
+    map<string, string> metadata = 5;  // Additional node info
+    ProtocolVersion protocol_version = 6;  // For version compatibility check
+}
+
+// Protocol version for compatibility checking (Edge Case Resolution)
+message ProtocolVersion {
+    uint32 major = 1;  // Breaking changes - must match
+    uint32 minor = 2;  // New features - coordinator must be >= node
+    uint32 patch = 3;  // Bug fixes - compatible
+}
+
+message RegisterNodeResponse {
+    bool success = 1;
+    string error_message = 2;
+    string assigned_node_id = 3;  // May differ if node_id was already taken
+    int64 server_timestamp_ns = 4;  // For clock offset estimation
+    ProtocolVersion coordinator_version = 5;  // Coordinator's protocol version
+}
+
+message UnregisterNodeRequest {
+    string node_id = 1;
+    string reason = 2;  // Optional shutdown reason
+}
+
+message UnregisterNodeResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// ============================================================================
+// Heartbeat & Health
+// ============================================================================
+
+message HeartbeatRequest {
+    string node_id = 1;
+    int64 timestamp_ns = 2;
+    NodeHealthInfo health = 3;
+}
+
+message HeartbeatResponse {
+    int64 server_timestamp_ns = 1;
+    bool acknowledged = 2;
+    optional ControlCommand pending_command = 3;  // Piggyback commands
+}
+
+message NodeHealthInfo {
+    NodeHealthStatus status = 1;
+    ClockSyncInfo clock_sync = 2;
+    CaptureStatus capture_status = 3;
+    ResourceUsage resources = 4;
+}
+
+enum NodeHealthStatus {
+    NODE_HEALTH_UNKNOWN = 0;
+    NODE_HEALTH_HEALTHY = 1;
+    NODE_HEALTH_DEGRADED = 2;
+    NODE_HEALTH_UNHEALTHY = 3;
+}
+
+message ClockSyncInfo {
+    ClockSyncMethod method = 1;
+    bool is_synchronized = 2;
+    int64 estimated_offset_ns = 3;
+    int64 max_error_ns = 4;
+    string grandmaster_id = 5;  // For gPTP
+}
+
+enum ClockSyncMethod {
+    CLOCK_SYNC_NONE = 0;
+    CLOCK_SYNC_NTP = 1;
+    CLOCK_SYNC_GPTP = 2;
+    CLOCK_SYNC_UNKNOWN = 3;
+}
+
+message CaptureStatus {
+    CaptureState state = 1;
+    string interface = 2;
+    uint64 packets_captured = 3;
+    uint64 packets_dropped = 4;
+}
+
+enum CaptureState {
+    CAPTURE_IDLE = 0;
+    CAPTURE_STARTING = 1;
+    CAPTURE_RUNNING = 2;
+    CAPTURE_STOPPING = 3;
+    CAPTURE_STOPPED = 4;
+    CAPTURE_ERROR = 5;
+}
+
+message ResourceUsage {
+    double cpu_percent = 1;
+    uint64 memory_bytes = 2;
+    uint64 disk_available_bytes = 3;
+}
+
+// ============================================================================
+// Barrier Synchronization
+// ============================================================================
+
+message WaitBarrierRequest {
+    string node_id = 1;
+    string barrier_id = 2;
+    int64 arrival_timestamp_ns = 3;
+}
+
+message WaitBarrierResponse {
+    bool proceed = 1;
+    BarrierState state = 2;
+    int64 sync_timestamp_ns = 3;  // Agreed start time
+    repeated string participating_nodes = 4;
+    repeated string missing_nodes = 5;  // Nodes that timed out
+    int64 wait_duration_ms = 6;
+}
+
+enum BarrierState {
+    BARRIER_WAITING = 0;
+    BARRIER_ALL_ARRIVED = 1;
+    BARRIER_TIMEOUT = 2;
+    BARRIER_CANCELLED = 3;
+}
+
+// ============================================================================
+// Control Channel (Bidirectional Streaming)
+// ============================================================================
+
+// Messages from node to coordinator
+message NodeMessage {
+    string node_id = 1;
+    oneof payload {
+        CaptureStartedEvent capture_started = 2;
+        CaptureStoppedEvent capture_stopped = 3;
+        MatcherResultEvent matcher_result = 4;
+        ErrorEvent error = 5;
+        LogEvent log = 6;
+    }
+}
+
+message CaptureStartedEvent {
+    string interface = 1;
+    int64 start_timestamp_ns = 2;
+}
+
+message CaptureStoppedEvent {
+    string interface = 1;
+    int64 end_timestamp_ns = 2;
+    uint64 total_packets = 3;
+    string pcap_path = 4;  // Local path on node
+}
+
+message MatcherResultEvent {
+    string matcher_id = 1;
+    bool matched = 2;
+    int64 match_timestamp_ns = 3;
+    bytes packet_data = 4;  // Matched packet (optional)
+    string error_message = 5;
+}
+
+message ErrorEvent {
+    string error_code = 1;
+    string error_message = 2;
+    int64 timestamp_ns = 3;
+}
+
+message LogEvent {
+    string level = 1;  // DEBUG, INFO, WARN, ERROR
+    string message = 2;
+    int64 timestamp_ns = 3;
+}
+
+// Messages from coordinator to node
+message CoordinatorMessage {
+    string message_id = 1;
+    oneof payload {
+        ControlCommand command = 2;
+        ScenarioConfig scenario = 3;
+        BarrierNotification barrier = 4;
+        AbortSignal abort = 5;
+    }
+}
+
+message ControlCommand {
+    CommandType type = 1;
+    CaptureConfig capture_config = 2;  // For START_CAPTURE
+    MatcherConfig matcher_config = 3;  // For EVALUATE_MATCHER
+    int64 timeout_ms = 4;
+}
+
+enum CommandType {
+    COMMAND_UNKNOWN = 0;
+    COMMAND_START_CAPTURE = 1;
+    COMMAND_STOP_CAPTURE = 2;
+    COMMAND_EVALUATE_MATCHER = 3;
+    COMMAND_PING = 4;
+    COMMAND_SHUTDOWN = 5;
+}
+
+message CaptureConfig {
+    string interface = 1;
+    string bpf_filter = 2;
+    int64 duration_ms = 3;  // 0 = indefinite
+    bool hardware_timestamps = 4;
+    uint32 snaplen = 5;
+    uint32 buffer_size = 6;
+}
+
+message MatcherConfig {
+    string matcher_id = 1;
+    string matcher_type = 2;
+    bytes matcher_params = 3;  // JSON-encoded parameters
+    int64 timeout_ms = 4;
+}
+
+message ScenarioConfig {
+    string scenario_id = 1;
+    string scenario_name = 2;
+    repeated NodeAssignment node_assignments = 3;
+    repeated StepConfig steps = 4;
+}
+
+message NodeAssignment {
+    string node_id = 1;
+    string role = 2;  // e.g., "sender", "receiver", "observer"
+    repeated string interfaces = 3;
+}
+
+message StepConfig {
+    string step_id = 1;
+    string step_name = 2;
+    StepType type = 3;
+    bytes step_params = 4;  // JSON-encoded, type-specific
+    int64 timeout_ms = 5;
+}
+
+enum StepType {
+    STEP_UNKNOWN = 0;
+    STEP_BARRIER = 1;
+    STEP_CAPTURE = 2;
+    STEP_EXPECT = 3;
+    STEP_WAIT = 4;
+    STEP_LOG = 5;
+}
+
+message BarrierNotification {
+    string barrier_id = 1;
+    BarrierState state = 2;
+    int64 sync_timestamp_ns = 3;
+}
+
+message AbortSignal {
+    string reason = 1;
+    bool collect_partial_results = 2;
+}
+
+// ============================================================================
+// Result Reporting
+// ============================================================================
+
+message ReportResultRequest {
+    string node_id = 1;
+    string scenario_id = 2;
+    NodeResultProto result = 3;
+}
+
+message NodeResultProto {
+    string node_id = 1;
+    ResultStatus status = 2;
+    repeated AssertionResultProto assertions = 3;
+    int64 execution_time_ms = 4;
+    string error_message = 5;
+    repeated string pcap_paths = 6;
+}
+
+enum ResultStatus {
+    RESULT_UNKNOWN = 0;
+    RESULT_PASSED = 1;
+    RESULT_FAILED = 2;
+    RESULT_ERROR = 3;
+    RESULT_SKIPPED = 4;
+    RESULT_TIMEOUT = 5;
+}
+
+message AssertionResultProto {
+    string matcher_id = 1;
+    ResultStatus status = 2;
+    string src_node = 3;
+    string dst_node = 4;
+    int64 src_timestamp_ns = 5;
+    int64 dst_timestamp_ns = 6;
+    int64 latency_ns = 7;
+    string expected = 8;
+    string actual = 9;
+    string error_message = 10;
+}
+
+message ReportResultResponse {
+    bool success = 1;
+    string error_message = 2;
+}
+
+// ============================================================================
+// PCAP Upload (Streaming)
+// ============================================================================
+
+message PcapChunk {
+    string node_id = 1;
+    string scenario_id = 2;
+    string filename = 3;  // Suggested filename
+    bytes data = 4;
+    bool is_last_chunk = 5;
+    int64 total_size = 6;  // Total file size in bytes
+    int32 chunk_index = 7;
+}
+
+message UploadPcapResponse {
+    bool success = 1;
+    string error_message = 2;
+    string stored_path = 3;  // Path where PCAP was stored on coordinator
+}
+
+// ============================================================================
+// Common Types
+// ============================================================================
+
+message Timestamp {
+    int64 seconds = 1;
+    int32 nanos = 2;
+}
+
+message Duration {
+    int64 milliseconds = 1;
+}
