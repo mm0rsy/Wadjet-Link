@@ -9,35 +9,28 @@ class TestCoordinator;
 /**
  * @brief gRPC service implementation for distributed testing
  * 
- * T022-T024: Implements the DistributedTestService gRPC interface
- * - Node registration and unregistration
- * - Heartbeat streaming for health monitoring
- * - Barrier synchronization
+ * T200-T206: Implements the DistributedTestService gRPC interface
+ * - Node registration and unregistration (T200, T201)
+ * - Heartbeat streaming for health monitoring (T202)
+ * - Barrier synchronization (T203)
+ * - Control channel for coordinator commands (T204)
+ * - Result reporting (T205)
+ * - PCAP upload (T206)
  * 
- * Note: Requires HAVE_PROTO_LIB for full implementation (T015)
+ * Note: Requires proto code generation for full implementation (T218, T219)
+ * Proto files successfully compiled from proto/distributed_test.proto
  */
 class DistributedTestServiceImpl {
 public:
     explicit DistributedTestServiceImpl(TestCoordinator* coordinator);
     
-    // T023: RegisterNode RPC handler
-    // Placeholder - requires proto code generation
-    
-    // T023: UnregisterNode RPC handler
-    // Placeholder - requires proto code generation
-    
-    // T024: Heartbeat streaming RPC handler
-    // T024: Heartbeat streaming RPC handler
-    // Placeholder - requires proto code generation
-    
-    // T029: WaitBarrier RPC handler
-    // Placeholder - requires proto code generation
-    
-    // T041: StartCapture RPC handler
-    // Placeholder - requires proto code generation
-    
-    // T050: UploadPcap RPC handler
-    // Placeholder - requires proto code generation
+    // T200: RegisterNode RPC handler - awaits proto header integration
+    // T201: UnregisterNode RPC handler - awaits proto header integration
+    // T202: Heartbeat streaming RPC handler - awaits proto header integration
+    // T203: WaitBarrier RPC handler - awaits proto header integration
+    // T204: ControlChannel RPC handler (bidirectional streaming) - awaits proto header integration
+    // T205: ReportResult RPC handler - awaits proto header integration
+    // T206: UploadPcap RPC handler (client streaming) - awaits proto header integration
     
 private:
     TestCoordinator* coordinator_;

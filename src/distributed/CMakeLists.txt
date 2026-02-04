@@ -45,7 +45,8 @@ target_include_directories(wadjet_distributed PUBLIC
 
 if(HAVE_PROTO_LIB)
     target_include_directories(wadjet_distributed PUBLIC
-        ${CMAKE_BINARY_DIR}/proto_build
+        ${CMAKE_CURRENT_BINARY_DIR}/proto_build
+        ${CMAKE_BINARY_DIR}/src/distributed/proto_build
     )
 endif()
 

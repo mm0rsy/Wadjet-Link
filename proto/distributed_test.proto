@@ -11,7 +11,9 @@ syntax = "proto3";
 
 package wadjet.distributed.v1;
 
-option cc_namespace = "wadjet::distributed::proto";
+option java_package = "com.wadjet.distributed.v1";
+option java_outer_classname = "DistributedTestProto";
+option go_package = "github.com/wadjet/distributed/v1";
 
 // ============================================================================
 // Service Definitions
