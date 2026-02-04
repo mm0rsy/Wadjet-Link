@@ -83,8 +83,8 @@ public:
         coordinator_failure_callback_ = callback;
     }
     
-    auto wait_at_barrier(const std::string& barrier_id,
-                        std::chrono::milliseconds timeout)
+    auto wait_at_barrier(const std::string& /*barrier_id*/,
+                        std::chrono::milliseconds /*timeout*/)
         -> Result<BarrierResult> override {
         if (!is_connected_) {
             return Result<BarrierResult>(
@@ -139,14 +139,16 @@ public:
                 if (!config.filter_expression.empty()) {
                     auto filter_result = session.set_filter(config.filter_expression);
                     if (!filter_result) {
-                        return filter_result;
+                        return Result<void>(
+                            Error::make("FILTER_FAILED", "Failed to apply BPF filter"));
                     }
                 }
 
                 // Start capturing
                 auto start_result = session.start();
                 if (!start_result) {
-                    return start_result;
+                    return Result<void>(
+                        Error::make("CAPTURE_START_FAILED", "Failed to start capture"));
                 }
 
                 // Store session for later use
@@ -198,19 +200,22 @@ public:
 
             // Write captured packets to PCAP file
             if (!captured_packets_.empty()) {
-                pcap::PcapWriter writer(pcap_path);
-                for (const auto& packet : captured_packets_) {
-                    writer.write_packet(packet);
+                auto writer_result = pcap::PcapWriter::create(pcap_path);
+                if (writer_result) {
+                    auto& writer = writer_result.value();
+                    for (const auto& packet : captured_packets_) {
+                        writer.write_packet(packet);
+                    }
                 }
             }
 
             // Return capture result
             NodeCaptureResult result;
             result.node_id = config_.node_id;
-            result.packet_count = captured_packets_.size();
+            result.packet_count = static_cast<int64_t>(captured_packets_.size());
             result.byte_count = 0;  // Could sum packet sizes if needed
             for (const auto& packet : captured_packets_) {
-                result.byte_count += packet.data.size();
+                result.byte_count += static_cast<int64_t>(packet.data().size());
             }
             result.pcap_path = pcap_path.string();
             result.start_time_ns = capture_start_time_.time_since_epoch().count();
@@ -227,8 +232,8 @@ public:
         }
     }
     
-    auto evaluate_matcher(const std::string& matcher_type,
-                         const std::string& matcher_config)
+    auto evaluate_matcher(const std::string& /*matcher_type*/,
+                         const std::string& /*matcher_config*/)
         -> Result<std::string> override {
         if (!is_connected_) {
             return Result<std::string>(
@@ -248,8 +253,8 @@ public:
         return is_connected_;
     }
     
-    auto execute_command(const std::string& command,
-                        const std::vector<std::string>& args)
+    auto execute_command(const std::string& /*command*/,
+                        const std::vector<std::string>& /*args*/)
         -> Result<std::string> override {
         if (!is_connected_) {
             return Result<std::string>(
@@ -340,7 +345,7 @@ private:
 
     // T039-T040: Capture session management
     std::vector<std::pair<std::string, io::PcapCaptureSession>> capture_sessions_;
-    std::vector<net::Packet> captured_packets_;
+    std::vector<Packet> captured_packets_;
 };
 
 // T026: Factory function

@@ -3,16 +3,6 @@
 #include <string>
 #include <memory>
 #include <chrono>
-#include <grpcpp/grpcpp.h>
-
-// Forward declarations - generated proto
-namespace wadjet::distributed::proto {
-    class DistributedTestService;
-    class RegisterNodeRequest;
-    class RegisterNodeResponse;
-    class WaitBarrierRequest;
-    class WaitBarrierResponse;
-}
 
 namespace wadjet::distributed {
 
@@ -26,6 +16,8 @@ struct BarrierResult;
  * - Register/unregister nodes with coordinator
  * - Send heartbeats for health monitoring
  * - Participate in barrier synchronization
+ * 
+ * Note: Requires HAVE_PROTO_LIB for full implementation (T015)
  */
 class DistributedTestClient {
 public:
@@ -38,7 +30,7 @@ public:
     static auto create(const std::string& coordinator_address)
         -> std::unique_ptr<DistributedTestClient>;
     
-    DistributedTestClient(std::shared_ptr<::grpc::Channel> channel);
+    explicit DistributedTestClient(const std::string& coordinator_address);
     
     ~DistributedTestClient();
     
@@ -51,46 +43,17 @@ public:
     auto register_node(const NodeInfo& node_info) -> bool;
     
     /**
-     * @brief Unregister this node from the coordinator
+     * @brief Participate in a barrier synchronization
      * 
-     * @param node_id Node identifier
-     * @return true if unregistration successful
+     * @param barrier_id ID of the barrier to synchronize on
+     * @param timeout_ms Maximum time to wait in milliseconds
+     * @return Barrier synchronization result
      */
-    auto unregister_node(const std::string& node_id) -> bool;
+    auto wait_barrier(const std::string& barrier_id, std::chrono::milliseconds timeout_ms = std::chrono::milliseconds(5000))
+        -> BarrierResult;
     
-    /**
-     * @brief Send a heartbeat to the coordinator
-     * 
-     * @param node_id Node identifier
-     * @return true if heartbeat sent successfully
-     */
-    auto send_heartbeat(const std::string& node_id) -> bool;
-    
-    /**
-     * @brief Wait at a barrier for synchronization
-     * 
-     * T030: Call WaitBarrier RPC on coordinator
-     * 
-     * @param barrier_id Barrier identifier
-     * @param node_id This node's ID
-     * @param timeout Timeout for waiting
-     * @return Barrier result or error
-     */
-    auto wait_barrier(const std::string& barrier_id,
-                     const std::string& node_id,
-                     std::chrono::milliseconds timeout)
-        -> std::pair<bool, BarrierResult>;
-    
-    /**
-     * @brief Check if client is connected
-     * 
-     * @return true if connected to coordinator
-     */
-    auto is_connected() const -> bool;
-
 private:
-    class Impl;
-    std::unique_ptr<Impl> impl_;
+    std::string coordinator_address_;
 };
 
 }  // namespace wadjet::distributed

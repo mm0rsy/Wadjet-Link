@@ -100,6 +100,13 @@ public:
      * @return Reference to sync status
      */
     [[nodiscard]] auto get_status() const -> const ClockSyncStatus& { return status_; }
+    
+    /**
+     * @brief Get the sync status (alias for get_status)
+     * 
+     * @return Reference to sync status
+     */
+    [[nodiscard]] auto status() const -> const ClockSyncStatus& { return status_; }
 
 private:
     ClockSyncStatus status_;

@@ -1,20 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <grpcpp/grpcpp.h>
-
-// Forward declarations - generated proto
-namespace wadjet::distributed::proto {
-    class DistributedTestService;
-    class RegisterNodeRequest;
-    class RegisterNodeResponse;
-    class UnregisterNodeRequest;
-    class UnregisterNodeResponse;
-    class HeartbeatRequest;
-    class HeartbeatResponse;
-    class WaitBarrierRequest;
-    class WaitBarrierResponse;
-}
 
 namespace wadjet::distributed {
 
@@ -27,35 +13,31 @@ class TestCoordinator;
  * - Node registration and unregistration
  * - Heartbeat streaming for health monitoring
  * - Barrier synchronization
+ * 
+ * Note: Requires HAVE_PROTO_LIB for full implementation (T015)
  */
-class DistributedTestServiceImpl final
-    : public proto::DistributedTestService::Service {
+class DistributedTestServiceImpl {
 public:
     explicit DistributedTestServiceImpl(TestCoordinator* coordinator);
     
     // T023: RegisterNode RPC handler
-    ::grpc::Status RegisterNode(
-        ::grpc::ServerContext* context,
-        const proto::RegisterNodeRequest* request,
-        proto::RegisterNodeResponse* response) override;
+    // Placeholder - requires proto code generation
     
     // T023: UnregisterNode RPC handler
-    ::grpc::Status UnregisterNode(
-        ::grpc::ServerContext* context,
-        const proto::UnregisterNodeRequest* request,
-        proto::UnregisterNodeResponse* response) override;
+    // Placeholder - requires proto code generation
     
     // T024: Heartbeat streaming RPC handler
-    ::grpc::Status Heartbeat(
-        ::grpc::ServerContext* context,
-        ::grpc::ServerReader<proto::HeartbeatRequest>* reader,
-        proto::HeartbeatResponse* response) override;
+    // T024: Heartbeat streaming RPC handler
+    // Placeholder - requires proto code generation
     
     // T029: WaitBarrier RPC handler
-    ::grpc::Status WaitBarrier(
-        ::grpc::ServerContext* context,
-        const proto::WaitBarrierRequest* request,
-        proto::WaitBarrierResponse* response) override;
+    // Placeholder - requires proto code generation
+    
+    // T041: StartCapture RPC handler
+    // Placeholder - requires proto code generation
+    
+    // T050: UploadPcap RPC handler
+    // Placeholder - requires proto code generation
     
 private:
     TestCoordinator* coordinator_;

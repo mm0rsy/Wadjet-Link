@@ -138,8 +138,8 @@ auto SyncBarrier::arrive_and_wait(std::chrono::milliseconds timeout)
     });
     
     if (!proceed) {
-        return Result<BarrierResult>::err(
-            Error("BARRIER_TIMEOUT: Barrier synchronization timeout"));
+        return Result<BarrierResult>(
+            Error::make("BARRIER_TIMEOUT", "Barrier synchronization timeout"));
     }
     
     BarrierResult result;
@@ -149,7 +149,7 @@ auto SyncBarrier::arrive_and_wait(std::chrono::milliseconds timeout)
     result.missing_nodes = impl_->missing_nodes;
     result.wait_duration = timeout;
     
-    return Result<BarrierResult>::ok(result);
+    return Result<BarrierResult>(result);
 }
 
 // Get barrier ID

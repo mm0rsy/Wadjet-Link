@@ -2,7 +2,10 @@
 
 #include <map>
 #include <unordered_map>
+#include <openssl/evp.h>
 #include <openssl/sha.h>
+#include <iomanip>
+#include <sstream>
 
 namespace wadjet::distributed {
 
@@ -14,10 +17,10 @@ struct MessageCorrelator::Impl {
     CorrelationFunc custom_func;
     
     // Stored packets indexed by node_id
-    std::unordered_map<std::string, std::vector<net::Packet>> node_packets;
+    std::unordered_map<std::string, std::vector<Packet>> node_packets;
     
     // Correlation ID map for quick lookup
-    std::multimap<std::string, std::pair<std::string, net::Packet>> id_to_packet;
+    std::multimap<std::string, std::pair<std::string, Packet>> id_to_packet;
     
     explicit Impl(CorrelationMethod m) : method(m) {}
     explicit Impl(CorrelationFunc f) : method(CorrelationMethod::Custom), custom_func(std::move(f)) {}
@@ -42,8 +45,8 @@ MessageCorrelator& MessageCorrelator::operator=(MessageCorrelator&&) noexcept = 
 
 // T044-T045: Add packets from a node
 auto MessageCorrelator::add_packets(const std::string& node_id,
-                                   std::span<const net::Packet> packets) -> void {
-    impl_->node_packets[node_id] = std::vector<net::Packet>(packets.begin(), packets.end());
+                                   std::span<const Packet> packets) -> void {
+    impl_->node_packets[node_id] = std::vector<Packet>(packets.begin(), packets.end());
     
     // Pre-compute correlation IDs for quick lookup
     for (const auto& packet : packets) {
@@ -51,19 +54,24 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
         
         switch (impl_->method) {
             case CorrelationMethod::PayloadHash: {
-                // T044: Compute SHA-256 of payload
-                unsigned char hash[SHA256_DIGEST_LENGTH];
-                SHA256_CTX sha256;
-                SHA256_Init(&sha256);
-                SHA256_Update(&sha256, packet.data.data(), packet.data.size());
-                SHA256_Final(hash, &sha256);
+                // T044: Compute SHA-256 of payload using EVP API
+                unsigned char hash[EVP_MAX_MD_SIZE];
+                unsigned int hash_len = 0;
+                
+                EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+                if (!mdctx) break;
+                
+                EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+                EVP_DigestUpdate(mdctx, packet.data().data(), packet.data().size());
+                EVP_DigestFinal_ex(mdctx, hash, &hash_len);
+                EVP_MD_CTX_free(mdctx);
                 
                 // Convert to hex string
-                char hash_str[SHA256_DIGEST_LENGTH * 2 + 1] = {0};
-                for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-                    snprintf(hash_str + (i * 2), 3, "%02x", hash[i]);
+                std::ostringstream oss;
+                for (unsigned int i = 0; i < hash_len; i++) {
+                    oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
                 }
-                corr_id = std::string(hash_str);
+                corr_id = oss.str();
                 break;
             }
             case CorrelationMethod::SequenceNumber: {
@@ -102,7 +110,7 @@ auto MessageCorrelator::correlate() -> std::vector<CorrelatedPackets> {
     std::vector<CorrelatedPackets> result;
     
     // Group packets by correlation ID
-    std::map<std::string, std::vector<std::pair<std::string, net::Packet>>> groups;
+    std::map<std::string, std::vector<std::pair<std::string, Packet>>> groups;
     
     for (const auto& [corr_id, node_packet] : impl_->id_to_packet) {
         groups[corr_id].push_back(node_packet);
@@ -122,28 +130,34 @@ auto MessageCorrelator::correlate() -> std::vector<CorrelatedPackets> {
 }
 
 // Find specific correlation
-auto MessageCorrelator::find_correlation(const net::PacketView& source_packet,
+auto MessageCorrelator::find_correlation(const PacketView& source_packet,
                                         const std::string& target_node)
-    -> std::optional<net::Packet> {
+    -> std::optional<Packet> {
     // Create temporary packet from view to compute correlation ID
-    net::Packet source_pkt{source_packet.data(), source_packet.size()};
+    Packet source_pkt(source_packet);
     
     // Compute correlation ID
     std::optional<std::string> corr_id;
     
     switch (impl_->method) {
         case CorrelationMethod::PayloadHash: {
-            unsigned char hash[SHA256_DIGEST_LENGTH];
-            SHA256_CTX sha256;
-            SHA256_Init(&sha256);
-            SHA256_Update(&sha256, source_packet.data(), source_packet.size());
-            SHA256_Final(hash, &sha256);
+            unsigned char hash[EVP_MAX_MD_SIZE];
+            unsigned int hash_len = 0;
             
-            char hash_str[SHA256_DIGEST_LENGTH * 2 + 1] = {0};
-            for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-                snprintf(hash_str + (i * 2), 3, "%02x", hash[i]);
+            EVP_MD_CTX* mdctx = EVP_MD_CTX_new();
+            if (!mdctx) break;
+            
+            EVP_DigestInit_ex(mdctx, EVP_sha256(), nullptr);
+            EVP_DigestUpdate(mdctx, source_packet.data().data(), source_packet.data().size());
+            EVP_DigestFinal_ex(mdctx, hash, &hash_len);
+            EVP_MD_CTX_free(mdctx);
+            
+            // Convert to hex string
+            std::ostringstream oss;
+            for (unsigned int i = 0; i < hash_len; i++) {
+                oss << std::hex << std::setw(2) << std::setfill('0') << (int)hash[i];
             }
-            corr_id = std::string(hash_str);
+            corr_id = oss.str();
             break;
         }
         default:

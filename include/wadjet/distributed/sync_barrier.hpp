@@ -5,7 +5,7 @@
 #include <vector>
 #include <memory>
 
-#include "wadjet/core/result.hpp"
+#include "result.hpp"
 
 namespace wadjet::distributed {
 

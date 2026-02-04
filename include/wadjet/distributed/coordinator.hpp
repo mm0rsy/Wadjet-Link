@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "types.hpp"
-#include "wadjet/core/result.hpp"
+#include "result.hpp"
 #include "sync_barrier.hpp"
 
 namespace wadjet::distributed {
