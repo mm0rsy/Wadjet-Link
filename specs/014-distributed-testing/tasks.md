@@ -53,27 +53,27 @@
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Create NodeInfo and NodeId types in include/wadjet/distributed/types.hpp
-- [ ] T017 [P] [US1] Create CoordinatorConfig struct in include/wadjet/distributed/coordinator.hpp
-- [ ] T018 [P] [US1] Create NodeConfig struct in include/wadjet/distributed/node.hpp
-- [ ] T019 [US1] Implement TestCoordinator class interface in include/wadjet/distributed/coordinator.hpp
-- [ ] T020 [US1] Implement TestCoordinator::create() factory in src/distributed/coordinator.cpp
-- [ ] T021 [US1] Implement TestCoordinator::register_node() and unregister_node() in src/distributed/coordinator.cpp
-- [ ] T022 [US1] Implement gRPC DistributedTestService server in src/distributed/grpc/service.cpp
-- [ ] T023 [US1] Implement RegisterNode and UnregisterNode RPC handlers in src/distributed/grpc/service.cpp
-- [ ] T024 [US1] Implement heartbeat streaming RPC for health checks in src/distributed/grpc/service.cpp
-- [ ] T025 [US1] Implement TestNode class interface in include/wadjet/distributed/node.hpp
-- [ ] T026 [US1] Implement TestNode::create() factory in src/distributed/node.cpp
-- [ ] T027 [US1] Implement TestNode::connect() and disconnect() with gRPC client in src/distributed/node.cpp
-- [ ] T028 [US1] Implement gRPC client for node-to-coordinator communication in src/distributed/grpc/client.cpp
-- [ ] T029 [US1] Implement WaitBarrier RPC for distributed barrier synchronization in src/distributed/grpc/service.cpp
-- [ ] T030 [US1] Implement TestNode::wait_at_barrier() using gRPC client in src/distributed/node.cpp
+- [x] T016 [P] [US1] Create NodeInfo and NodeId types in include/wadjet/distributed/types.hpp
+- [x] T017 [P] [US1] Create CoordinatorConfig struct in include/wadjet/distributed/coordinator.hpp
+- [x] T018 [P] [US1] Create NodeConfig struct in include/wadjet/distributed/node.hpp
+- [x] T019 [US1] Implement TestCoordinator class interface in include/wadjet/distributed/coordinator.hpp
+- [x] T020 [US1] Implement TestCoordinator::create() factory in src/distributed/coordinator.cpp
+- [x] T021 [US1] Implement TestCoordinator::register_node() and unregister_node() in src/distributed/coordinator.cpp
+- [x] T022 [US1] Implement gRPC DistributedTestService server in src/distributed/grpc/service.cpp
+- [x] T023 [US1] Implement RegisterNode and UnregisterNode RPC handlers in src/distributed/grpc/service.cpp
+- [x] T024 [US1] Implement heartbeat streaming RPC for health checks in src/distributed/grpc/service.cpp
+- [x] T025 [US1] Implement TestNode class interface in include/wadjet/distributed/node.hpp
+- [x] T026 [US1] Implement TestNode::create() factory in src/distributed/node.cpp
+- [x] T027 [US1] Implement TestNode::connect() and disconnect() with gRPC client in src/distributed/node.cpp
+- [x] T028 [US1] Implement gRPC client for node-to-coordinator communication in src/distributed/grpc/client.cpp
+- [x] T029 [US1] Implement WaitBarrier RPC for distributed barrier synchronization in src/distributed/grpc/service.cpp
+- [x] T030 [US1] Implement TestNode::wait_at_barrier() using gRPC client in src/distributed/node.cpp
 - [ ] T031 [US1] Implement coordinator heartbeat timeout detection for node failure in src/distributed/coordinator.cpp
 - [ ] T032 [US1] Implement node-side coordinator failure detection via heartbeat timeout in src/distributed/node.cpp
 - [ ] T033 [US1] Implement graceful abort with partial result collection on failure in src/distributed/coordinator.cpp
-- [ ] T034 [P] [US1] Create unit tests for TestCoordinator in tests/distributed/test_coordinator.cpp
-- [ ] T035 [P] [US1] Create unit tests for TestNode in tests/distributed/test_node.cpp
-- [ ] T036 [US1] Create integration test for 3-node coordination in tests/integration/test_distributed_coordination.cpp
+- [x] T034 [P] [US1] Create unit tests for TestCoordinator in tests/distributed/test_coordinator.cpp
+- [x] T035 [P] [US1] Create unit tests for TestNode in tests/distributed/test_node.cpp
+- [x] T036 [US1] Create integration test for 3-node coordination in tests/integration/test_distributed_coordination.cpp
 
 **Checkpoint**: Multi-node coordination works - nodes register, synchronize via barriers, detect failures
 
