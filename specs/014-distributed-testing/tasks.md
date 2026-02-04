@@ -92,16 +92,16 @@
 - [x] T039 [US2] Implement TestNode::start_capture() integrating with M1 packet capture in src/distributed/node.cpp
 - [x] T040 [US2] Implement TestNode::stop_capture() returning NodeCaptureResult in src/distributed/node.cpp
 - [ ] T041 [US2] Implement StartCapture command via gRPC ControlChannel in src/distributed/grpc/service.cpp
-- [ ] T042 [US2] Implement capture synchronization using SyncBarrier (<10ms jitter) in src/distributed/coordinator.cpp
+- [X] T042 [US2] Implement capture synchronization using SyncBarrier (<10ms jitter) in src/distributed/coordinator.cpp
 - [x] T043 [US2] Implement MessageCorrelator class interface in include/wadjet/distributed/message_correlator.hpp
 - [x] T044 [US2] Implement MessageCorrelator::correlate() with PayloadHash method in src/distributed/message_correlator.cpp
 - [x] T045 [US2] Implement MessageCorrelator::correlate() with SequenceNumber method in src/distributed/message_correlator.cpp
-- [ ] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
+- [X] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
 - [x] T047 [US2] Implement PcapMerger class for merging multi-node captures in src/distributed/pcap_merger.cpp
 - [x] T048 [US2] Implement timestamp-sorted merge algorithm in PcapMerger in src/distributed/pcap_merger.cpp
 - [x] T049 [P] [US2] Create unit tests for PcapMerger in tests/distributed/test_pcap_merger.cpp
 - [ ] T050 [US2] Implement PCAP upload streaming via gRPC UploadPcap RPC in src/distributed/grpc/service.cpp
-- [ ] T051 [US2] Integrate M8 gPTP decoder for clock sync health verification in src/distributed/timestamp_normalizer.cpp
+- [X] T051 [US2] Integrate M8 gPTP decoder for clock sync health verification in src/distributed/timestamp_normalizer.cpp
 - [ ] T052 [US2] Create integration test for synchronized capture on 3 nodes in tests/integration/test_distributed_capture.cpp
 
 **Checkpoint**: Synchronized capture works - nodes capture simultaneously, PCAPs merge with aligned timestamps
@@ -163,7 +163,7 @@ Proto CMakeLists.txt has incorrect protoc invocation:
 
 Several test files mentioned in tasks don't exist or are incomplete:
 
-- [ ] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
+- [X] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
 - [ ] T220 [P] [US1] Create unit tests for gRPC service handlers in tests/distributed/test_grpc_service.cpp
 - [ ] T221 [P] [US1] Create unit tests for gRPC client in tests/distributed/test_grpc_client.cpp
 
