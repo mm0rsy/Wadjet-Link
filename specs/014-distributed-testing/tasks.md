@@ -130,10 +130,10 @@ The gRPC service.cpp and client.cpp have placeholder implementations that need c
 
 The matcher .cpp files contain only placeholders - need full evaluate() implementations:
 
-- [ ] T207 [US3] Complete ExpectMessageFlow::evaluate() implementation in src/distributed/matchers/expect_message_flow.cpp
-- [ ] T208 [US3] Complete WithinLatency::evaluate() implementation in src/distributed/matchers/within_latency.cpp
-- [ ] T209 [US3] Complete HappensBefore::evaluate() implementation in src/distributed/matchers/happens_before.cpp
-- [ ] T210 [US3] Complete MustNotSeeOn::evaluate() implementation in src/distributed/matchers/must_not_see_on.cpp
+- [X] T207 [US3] Complete ExpectMessageFlow::evaluate() implementation in src/distributed/matchers/expect_message_flow.cpp
+- [X] T208 [US3] Complete WithinLatency::evaluate() implementation in src/distributed/matchers/within_latency.cpp
+- [X] T209 [US3] Complete HappensBefore::evaluate() implementation in src/distributed/matchers/happens_before.cpp
+- [X] T210 [US3] Complete MustNotSeeOn::evaluate() implementation in src/distributed/matchers/must_not_see_on.cpp
 
 ### Category 3: Missing Headers per plan.md Structure
 
