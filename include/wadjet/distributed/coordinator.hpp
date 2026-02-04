@@ -166,6 +166,39 @@ public:
     virtual auto wait_for_nodes(const std::vector<NodeId>& expected_nodes,
                                std::chrono::milliseconds timeout)
         -> Result<int> = 0;
+    
+    /**
+     * @brief Abort test execution with graceful shutdown
+     * 
+     * T033: Allows graceful abort with partial result collection
+     * 
+     * @param reason Reason for abort
+     * @return Result indicating success or failure
+     */
+    virtual auto abort_test(const std::string& reason) -> Result<void> = 0;
+    
+    /**
+     * @brief Check if test has been aborted
+     * 
+     * @return true if abort was initiated
+     */
+    virtual auto is_aborted() const -> bool = 0;
+    
+    /**
+     * @brief Get the abort reason
+     * 
+     * @return Reason string if aborted
+     */
+    virtual auto get_abort_reason() const -> std::string = 0;
+    
+    /**
+     * @brief Get nodes that failed during test
+     * 
+     * T033: For partial result collection
+     * 
+     * @return Vector of failed node IDs
+     */
+    virtual auto get_failed_nodes() const -> std::vector<NodeId> = 0;
 
 protected:
     TestCoordinator() = default;

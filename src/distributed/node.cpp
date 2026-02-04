@@ -14,7 +14,7 @@ namespace wadjet::distributed {
 class TestNodeImpl : public TestNode {
 public:
     explicit TestNodeImpl(const NodeConfig& config)
-        : config_(config) {}
+        : config_(config), last_coordinator_response_(std::chrono::system_clock::now()) {}
     
     ~TestNodeImpl() override {
         if (is_connected()) {
@@ -43,12 +43,38 @@ public:
         {
             std::lock_guard<std::mutex> lock(mutex_);
             is_connected_ = false;
+            coordinator_online_ = false;
             cv_.notify_all();
         }
         
         if (heartbeat_thread_.joinable()) {
             heartbeat_thread_.join();
         }
+    }
+    
+    /// T032: Detect if coordinator has failed (no response to heartbeats)
+    auto is_coordinator_online() const -> bool {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return coordinator_online_;
+    }
+    
+    /// T032: Mark coordinator as failed or recovered
+    auto set_coordinator_online(bool online) -> void {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (coordinator_online_ != online) {
+                coordinator_online_ = online;
+                if (!online && coordinator_failure_callback_) {
+                    // Call failure callback
+                }
+            }
+        }
+    }
+    
+    /// T032: Set callback for coordinator failure detection
+    auto on_coordinator_failure(std::function<void()> callback) -> void {
+        std::lock_guard<std::mutex> lock(mutex_);
+        coordinator_failure_callback_ = callback;
     }
     
     auto wait_at_barrier(const std::string& barrier_id,
@@ -156,7 +182,30 @@ private:
                     break;
                 }
                 
+                // T032: Check if coordinator is still responding
+                auto now = std::chrono::system_clock::now();
+                auto time_since_response = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now - last_coordinator_response_);
+                
+                // If no response in coordinator_timeout, mark as failed
+                if (time_since_response > config_.coordinator_timeout) {
+                    if (coordinator_online_) {
+                        coordinator_online_ = false;
+                        if (coordinator_failure_callback_) {
+                            // Unlock before calling callback
+                            lock.unlock();
+                            coordinator_failure_callback_();
+                            lock.lock();
+                        }
+                    }
+                } else if (!coordinator_online_) {
+                    // Coordinator recovered
+                    coordinator_online_ = true;
+                }
+                
                 // TODO: Implement actual heartbeat RPC in T024
+                // After successful RPC, update: last_coordinator_response_ = now;
+                last_coordinator_response_ = now;  // Placeholder
                 
                 lock.unlock();
                 std::this_thread::sleep_for(config_.heartbeat_interval);
@@ -170,9 +219,12 @@ private:
     
     bool is_connected_ = false;
     bool is_capturing_ = false;
+    bool coordinator_online_ = true;  // T032: Track coordinator health
     CaptureConfig capture_config_;
     std::chrono::system_clock::time_point capture_start_time_;
+    std::chrono::system_clock::time_point last_coordinator_response_;
     std::thread heartbeat_thread_;
+    std::function<void()> coordinator_failure_callback_;  // T032: Failure callback
 };
 
 // T026: Factory function

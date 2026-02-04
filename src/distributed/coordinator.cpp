@@ -206,6 +206,56 @@ public:
         }
     }
     
+    /// T033: Abort test execution with partial result collection
+    auto abort_test(const std::string& reason) -> Result<void> {
+        std::lock_guard<std::mutex> lock(mutex_);
+        
+        if (!is_running_) {
+            return Result<void>(Error::make("NOT_RUNNING", "Coordinator not running"));
+        }
+        
+        // Mark as aborted
+        is_aborted_ = true;
+        abort_reason_ = reason;
+        
+        // Collect results from online nodes before abort
+        std::vector<NodeId> online = online_nodes();
+        std::vector<NodeId> offline;
+        
+        for (const auto& [node_id, _] : nodes_) {
+            auto it = std::find(online.begin(), online.end(), node_id);
+            if (it == online.end()) {
+                offline.push_back(node_id);
+            }
+        }
+        
+        // Store abort state for retrieval
+        aborted_nodes_ = offline;
+        
+        // Notify all waiting threads
+        cv_.notify_all();
+        
+        return Result<void>();
+    }
+    
+    /// T033: Get abort status
+    auto is_aborted() const -> bool {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return is_aborted_;
+    }
+    
+    /// T033: Get abort reason
+    auto get_abort_reason() const -> std::string {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return abort_reason_;
+    }
+    
+    /// T033: Get nodes that failed (for partial result collection)
+    auto get_failed_nodes() const -> std::vector<NodeId> {
+        std::lock_guard<std::mutex> lock(mutex_);
+        return aborted_nodes_;
+    }
+    
 private:
     void monitor_heartbeats() {
         while (is_running_) {
@@ -251,6 +301,9 @@ private:
     std::condition_variable cv_;
     
     bool is_running_ = false;
+    bool is_aborted_ = false;                           // T033: Track abort state
+    std::string abort_reason_;                          // T033: Reason for abort
+    std::vector<NodeId> aborted_nodes_;                // T033: Nodes that failed
     std::thread heartbeat_thread_;
     
     std::unordered_map<NodeId, NodeInfo> nodes_;

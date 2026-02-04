@@ -146,6 +146,24 @@ public:
     virtual auto execute_command(const std::string& command,
                                 const std::vector<std::string>& args = {})
         -> Result<std::string> = 0;
+    
+    /**
+     * @brief Check if coordinator is online
+     * 
+     * T032: Detects coordinator failure via heartbeat timeout
+     * 
+     * @return true if coordinator is responding
+     */
+    virtual auto is_coordinator_online() const -> bool = 0;
+    
+    /**
+     * @brief Set callback for coordinator failure detection
+     * 
+     * T032: Called when coordinator stops responding
+     * 
+     * @param callback Function called on coordinator failure
+     */
+    virtual auto on_coordinator_failure(std::function<void()> callback) -> void = 0;
 
 protected:
     TestNode() = default;
