@@ -16,12 +16,12 @@
 
 **Purpose**: Project initialization, gRPC/protobuf integration, directory structure
 
-- [ ] T001 Create distributed module directory structure per plan.md in include/wadjet/distributed/, src/distributed/, tests/distributed/
-- [ ] T002 Add gRPC and Protocol Buffers dependencies to CMakeLists.txt using FetchContent
-- [ ] T003 [P] Create proto/CMakeLists.txt for protobuf code generation
-- [ ] T004 [P] Copy distributed_test.proto from specs/014-distributed-testing/contracts/ to proto/distributed_test.proto
-- [ ] T005 Add WADJET_ENABLE_DISTRIBUTED CMake option with conditional compilation
-- [ ] T006 [P] Create src/distributed/CMakeLists.txt for libwadjet_distributed library target
+- [x] T001 Create distributed module directory structure per plan.md in include/wadjet/distributed/, src/distributed/, tests/distributed/
+- [x] T002 Add gRPC and Protocol Buffers dependencies to CMakeLists.txt using FetchContent
+- [x] T003 [P] Create proto/CMakeLists.txt for protobuf code generation
+- [x] T004 [P] Copy distributed_test.proto from specs/014-distributed-testing/contracts/ to proto/distributed_test.proto
+- [x] T005 Add WADJET_ENABLE_DISTRIBUTED CMake option with conditional compilation
+- [x] T006 [P] Create src/distributed/CMakeLists.txt for libwadjet_distributed library target
 
 ---
 
@@ -31,15 +31,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T007 Implement ClockSyncStatus struct and ClockSyncMethod enum in include/wadjet/distributed/timestamp_normalizer.hpp
-- [ ] T008 Implement TimestampNormalizer::detect_sync_status() using adjtimex() in src/distributed/timestamp_normalizer.cpp
-- [ ] T009 [P] Implement TimestampNormalizer::now_utc_ns() and hardware_to_utc() in src/distributed/timestamp_normalizer.cpp
-- [ ] T010 [P] Create unit tests for TimestampNormalizer in tests/distributed/test_timestamp_normalizer.cpp
-- [ ] T011 Implement SyncBarrier class interface in include/wadjet/distributed/sync_barrier.hpp
-- [ ] T012 Implement SyncBarrier barrier logic (no network) in src/distributed/sync_barrier.cpp
-- [ ] T013 [P] Create unit tests for SyncBarrier in tests/distributed/test_sync_barrier.cpp
-- [ ] T014 Implement Result<T> error handling pattern in include/wadjet/distributed/result.hpp (if not existing)
-- [ ] T015 Generate protobuf C++ code from proto/distributed_test.proto via CMake custom command
+- [x] T007 Implement ClockSyncStatus struct and ClockSyncMethod enum in include/wadjet/distributed/timestamp_normalizer.hpp
+- [x] T008 Implement TimestampNormalizer::detect_sync_status() using adjtimex() in src/distributed/timestamp_normalizer.cpp
+- [x] T009 [P] Implement TimestampNormalizer::now_utc_ns() and hardware_to_utc() in src/distributed/timestamp_normalizer.cpp
+- [x] T010 [P] Create unit tests for TimestampNormalizer in tests/distributed/test_timestamp_normalizer.cpp
+- [x] T011 Implement SyncBarrier class interface in include/wadjet/distributed/sync_barrier.hpp
+- [x] T012 Implement SyncBarrier barrier logic (no network) in src/distributed/sync_barrier.cpp
+- [x] T013 [P] Create unit tests for SyncBarrier in tests/distributed/test_sync_barrier.cpp
+- [x] T014 Implement Result<T> error handling pattern in include/wadjet/distributed/result.hpp (if not existing)
+- [x] T015 Generate protobuf C++ code from proto/distributed_test.proto via CMake custom command
 
 **Checkpoint**: Foundation ready - core primitives tested, gRPC proto generated
 
