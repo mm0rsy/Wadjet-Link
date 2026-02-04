@@ -87,15 +87,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T037 [P] [US2] Create CaptureConfig struct in include/wadjet/distributed/types.hpp
-- [ ] T038 [P] [US2] Create NodeCaptureResult struct in include/wadjet/distributed/types.hpp
-- [ ] T039 [US2] Implement TestNode::start_capture() integrating with M1 packet capture in src/distributed/node.cpp
-- [ ] T040 [US2] Implement TestNode::stop_capture() returning NodeCaptureResult in src/distributed/node.cpp
+- [x] T037 [P] [US2] Create CaptureConfig struct in include/wadjet/distributed/types.hpp
+- [x] T038 [P] [US2] Create NodeCaptureResult struct in include/wadjet/distributed/types.hpp
+- [x] T039 [US2] Implement TestNode::start_capture() integrating with M1 packet capture in src/distributed/node.cpp
+- [x] T040 [US2] Implement TestNode::stop_capture() returning NodeCaptureResult in src/distributed/node.cpp
 - [ ] T041 [US2] Implement StartCapture command via gRPC ControlChannel in src/distributed/grpc/service.cpp
 - [ ] T042 [US2] Implement capture synchronization using SyncBarrier (<10ms jitter) in src/distributed/coordinator.cpp
-- [ ] T043 [US2] Implement MessageCorrelator class interface in include/wadjet/distributed/message_correlator.hpp
-- [ ] T044 [US2] Implement MessageCorrelator::correlate() with PayloadHash method in src/distributed/message_correlator.cpp
-- [ ] T045 [US2] Implement MessageCorrelator::correlate() with SequenceNumber method in src/distributed/message_correlator.cpp
+- [x] T043 [US2] Implement MessageCorrelator class interface in include/wadjet/distributed/message_correlator.hpp
+- [x] T044 [US2] Implement MessageCorrelator::correlate() with PayloadHash method in src/distributed/message_correlator.cpp
+- [x] T045 [US2] Implement MessageCorrelator::correlate() with SequenceNumber method in src/distributed/message_correlator.cpp
 - [ ] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
 - [ ] T047 [US2] Implement PcapMerger class for merging multi-node captures in src/distributed/pcap_merger.cpp
 - [ ] T048 [US2] Implement timestamp-sorted merge algorithm in PcapMerger in src/distributed/pcap_merger.cpp
@@ -116,17 +116,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T053 [P] [US3] Create DistributedMatchResult struct in include/wadjet/distributed/distributed_matcher.hpp
-- [ ] T054 [P] [US3] Create DistributedCaptureContext struct in include/wadjet/distributed/distributed_matcher.hpp
-- [ ] T055 [US3] Implement DistributedMatcher base class interface in include/wadjet/distributed/distributed_matcher.hpp
-- [ ] T056 [US3] Implement ExpectMessageFlow matcher in include/wadjet/distributed/matchers/expect_message_flow.hpp
-- [ ] T057 [US3] Implement ExpectMessageFlow::evaluate() in src/distributed/matchers/expect_message_flow.cpp
-- [ ] T058 [US3] Implement WithinLatency wrapper matcher in include/wadjet/distributed/matchers/within_latency.hpp
-- [ ] T059 [US3] Implement WithinLatency::evaluate() with one-way latency calculation in src/distributed/matchers/within_latency.cpp
-- [ ] T060 [US3] Implement HappensBefore causal ordering matcher in include/wadjet/distributed/matchers/happens_before.hpp
-- [ ] T061 [US3] Implement HappensBefore::evaluate() in src/distributed/matchers/happens_before.cpp
-- [ ] T062 [US3] Implement MustNotSeeOn absence assertion matcher in include/wadjet/distributed/matchers/must_not_see_on.hpp
-- [ ] T063 [US3] Implement MustNotSeeOn::evaluate() in src/distributed/matchers/must_not_see_on.cpp
+- [x] T053 [P] [US3] Create DistributedMatchResult struct in include/wadjet/distributed/distributed_matcher.hpp
+- [x] T054 [P] [US3] Create DistributedCaptureContext struct in include/wadjet/distributed/distributed_matcher.hpp
+- [x] T055 [US3] Implement DistributedMatcher base class interface in include/wadjet/distributed/distributed_matcher.hpp
+- [x] T056 [US3] Implement ExpectMessageFlow matcher in include/wadjet/distributed/matchers/expect_message_flow.hpp
+- [x] T057 [US3] Implement ExpectMessageFlow::evaluate() in src/distributed/matchers/expect_message_flow.cpp
+- [x] T058 [US3] Implement WithinLatency wrapper matcher in include/wadjet/distributed/matchers/within_latency.hpp
+- [x] T059 [US3] Implement WithinLatency::evaluate() with one-way latency calculation in src/distributed/matchers/within_latency.cpp
+- [x] T060 [US3] Implement HappensBefore causal ordering matcher in include/wadjet/distributed/matchers/happens_before.hpp
+- [x] T061 [US3] Implement HappensBefore::evaluate() in src/distributed/matchers/happens_before.cpp
+- [x] T062 [US3] Implement MustNotSeeOn absence assertion matcher in include/wadjet/distributed/matchers/must_not_see_on.hpp
+- [x] T063 [US3] Implement MustNotSeeOn::evaluate() in src/distributed/matchers/must_not_see_on.cpp
 - [ ] T064 [US3] Implement EvaluateMatcher RPC for remote matcher execution in src/distributed/grpc/service.cpp
 - [ ] T065 [US3] Implement TestNode::evaluate_matcher() using gRPC client in src/distributed/node.cpp
 - [ ] T066 [US3] Integrate with existing M3 GoogleTest matchers in src/distributed/distributed_matcher.cpp
