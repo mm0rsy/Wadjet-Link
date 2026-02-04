@@ -97,9 +97,9 @@
 - [x] T044 [US2] Implement MessageCorrelator::correlate() with PayloadHash method in src/distributed/message_correlator.cpp
 - [x] T045 [US2] Implement MessageCorrelator::correlate() with SequenceNumber method in src/distributed/message_correlator.cpp
 - [ ] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
-- [ ] T047 [US2] Implement PcapMerger class for merging multi-node captures in src/distributed/pcap_merger.cpp
-- [ ] T048 [US2] Implement timestamp-sorted merge algorithm in PcapMerger in src/distributed/pcap_merger.cpp
-- [ ] T049 [P] [US2] Create unit tests for PcapMerger in tests/distributed/test_pcap_merger.cpp
+- [x] T047 [US2] Implement PcapMerger class for merging multi-node captures in src/distributed/pcap_merger.cpp
+- [x] T048 [US2] Implement timestamp-sorted merge algorithm in PcapMerger in src/distributed/pcap_merger.cpp
+- [x] T049 [P] [US2] Create unit tests for PcapMerger in tests/distributed/test_pcap_merger.cpp
 - [ ] T050 [US2] Implement PCAP upload streaming via gRPC UploadPcap RPC in src/distributed/grpc/service.cpp
 - [ ] T051 [US2] Integrate M8 gPTP decoder for clock sync health verification in src/distributed/timestamp_normalizer.cpp
 - [ ] T052 [US2] Create integration test for synchronized capture on 3 nodes in tests/integration/test_distributed_capture.cpp
