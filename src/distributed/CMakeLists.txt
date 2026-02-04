@@ -2,8 +2,15 @@
 # Distributed Testing Infrastructure Library
 # ============================================================================
 
-# Build proto library first
-add_subdirectory(${CMAKE_SOURCE_DIR}/proto proto_build)
+# Build proto library first (if protoc is available)
+if(WADJET_ENABLE_DISTRIBUTED AND NOT SKIP_PROTO_GENERATION)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/proto proto_build)
+    set(HAVE_PROTO_LIB ON)
+    find_package(gRPC REQUIRED)
+    find_package(Protobuf REQUIRED)
+else()
+    set(HAVE_PROTO_LIB OFF)
+endif()
 
 # Create the distributed testing library
 add_library(wadjet_distributed
@@ -30,24 +37,32 @@ add_library(wadjet_distributed
     grpc/client.cpp
 )
 
-# Include proto generated code
+# Include proto generated code if available
 target_include_directories(wadjet_distributed PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_BINARY_DIR}/proto_build
 )
 
+if(HAVE_PROTO_LIB)
+    target_include_directories(wadjet_distributed PUBLIC
+        ${CMAKE_BINARY_DIR}/proto_build
+    )
+endif()
+
 # Link against generated proto code and gRPC
-target_link_libraries(wadjet_distributed
+set(WADJET_DISTRIBUTED_LIBS
     PUBLIC
         wadjet
-        wadjet_distributed_proto
     PRIVATE
         wadjet_warnings
         wadjet_sanitizers
         protobuf::libprotobuf
-        gRPC::grpc
-        gRPC::grpc++
 )
+
+if(HAVE_PROTO_LIB)
+    list(APPEND WADJET_DISTRIBUTED_LIBS PUBLIC wadjet_distributed_proto gRPC::grpc gRPC::grpc++)
+endif()
+
+target_link_libraries(wadjet_distributed ${WADJET_DISTRIBUTED_LIBS})
 
 # Distributed header include paths
 target_include_directories(wadjet_distributed

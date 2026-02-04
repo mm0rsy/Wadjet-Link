@@ -2,67 +2,29 @@
 # Distributed Testing Unit Tests
 # ============================================================================
 
-# Timestamp Normalizer Tests
-add_executable(test_timestamp_normalizer
-    test_timestamp_normalizer.cpp
-)
+if(WADJET_ENABLE_DISTRIBUTED)
+    # Create unified distributed tests executable
+    if(NOT TARGET wadjet_distributed_tests)
+        add_executable(wadjet_distributed_tests
+            test_timestamp_normalizer.cpp
+            test_sync_barrier.cpp
+            test_coordinator.cpp
+            test_node.cpp
+        )
 
-target_link_libraries(test_timestamp_normalizer
-    PRIVATE
-        wadjet_distributed
-        gtest
-        gtest_main
-        wadjet_warnings
-        wadjet_sanitizers
-)
+        target_link_libraries(wadjet_distributed_tests
+            PRIVATE
+                wadjet_distributed
+                gtest
+                gtest_main
+                wadjet_warnings
+                wadjet_sanitizers
+        )
 
-add_test(NAME TimestampNormalizer COMMAND test_timestamp_normalizer)
-
-# SyncBarrier Tests
-add_executable(test_sync_barrier
-    test_sync_barrier.cpp
-)
-
-target_link_libraries(test_sync_barrier
-    PRIVATE
-        wadjet_distributed
-        gtest
-        gtest_main
-        wadjet_warnings
-        wadjet_sanitizers
-)
-
-add_test(NAME SyncBarrier COMMAND test_sync_barrier)
-
-# TestCoordinator Tests
-add_executable(test_coordinator
-    test_coordinator.cpp
-)
-
-target_link_libraries(test_coordinator
-    PRIVATE
-        wadjet_distributed
-        gtest
-        gtest_main
-        wadjet_warnings
-        wadjet_sanitizers
-)
-
-add_test(NAME Coordinator COMMAND test_coordinator)
-
-# TestNode Tests
-add_executable(test_node
-    test_node.cpp
-)
-
-target_link_libraries(test_node
-    PRIVATE
-        wadjet_distributed
-        gtest
-        gtest_main
-        wadjet_warnings
-        wadjet_sanitizers
-)
-
-add_test(NAME Node COMMAND test_node)
-
+        # Register tests
+        include(GoogleTest)
+        gtest_discover_tests(wadjet_distributed_tests
+            TEST_PREFIX "distributed."
+        )
+    endif()
+endif()

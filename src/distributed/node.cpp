@@ -1,10 +1,16 @@
 #include "wadjet/distributed/node.hpp"
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <memory>
+#include "wadjet/io/capture_session.hpp"
+#include "wadjet/io/pcap_capture_session.hpp"
+#include "wadjet/pcap/pcap_writer.hpp"
+
 #include <chrono>
+#include <condition_variable>
+#include <filesystem>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 namespace wadjet::distributed {
 
@@ -106,13 +112,59 @@ public:
         if (is_capturing_) {
             return Result<void>(Error::make("ALREADY_CAPTURING", "Already capturing"));
         }
-        
-        // TODO: Implement actual packet capture in T039
-        is_capturing_ = true;
-        capture_config_ = config;
-        capture_start_time_ = std::chrono::system_clock::now();
-        
-        return Result<void>();
+
+        // T039: Integrate with M1 packet capture
+        // For each configured interface, start a capture session
+        try {
+            capture_sessions_.clear();
+            captured_packets_.clear();
+
+            for (const auto& interface : config_.capture_interfaces) {
+                // Try to create a PcapCaptureSession first (more portable)
+                io::PcapCaptureSession::Options opts;
+                opts.snaplen = config.snaplen;
+                opts.promiscuous = config.promiscuous;
+                opts.timeout_ms = 100;
+
+                auto session_result = io::PcapCaptureSession::create(interface, opts);
+                if (!session_result) {
+                    return Result<void>(
+                        Error::make("CAPTURE_INIT_FAILED",
+                                    "Failed to create capture session on interface: " + interface));
+                }
+
+                auto session = std::move(session_result.value());
+
+                // Apply BPF filter if provided
+                if (!config.filter_expression.empty()) {
+                    auto filter_result = session.set_filter(config.filter_expression);
+                    if (!filter_result) {
+                        return filter_result;
+                    }
+                }
+
+                // Start capturing
+                auto start_result = session.start();
+                if (!start_result) {
+                    return start_result;
+                }
+
+                // Store session for later use
+                capture_sessions_.push_back(std::make_pair(interface, std::move(session)));
+            }
+
+            is_capturing_ = true;
+            capture_config_ = config;
+            capture_start_time_ = std::chrono::system_clock::now();
+
+            // Start capture thread to collect packets
+            capture_thread_ = std::thread([this]() { capture_packets_thread(); });
+
+            return Result<void>();
+        } catch (const std::exception& e) {
+            return Result<void>(
+                Error::make("CAPTURE_INIT_FAILED", std::string("Exception: ") + e.what()));
+        }
     }
     
     auto stop_capture() -> Result<NodeCaptureResult> override {
@@ -125,18 +177,54 @@ public:
         
         is_capturing_ = false;
         auto capture_end_time = std::chrono::system_clock::now();
-        
-        // TODO: Implement actual capture result retrieval in T040
-        NodeCaptureResult result;
-        result.node_id = config_.node_id;
-        result.packet_count = 0;
-        result.byte_count = 0;
-        result.pcap_path = "/tmp/" + config_.node_id + "_capture.pcap";
-        result.start_time_ns = capture_start_time_.time_since_epoch().count();
-        result.end_time_ns = capture_end_time.time_since_epoch().count();
-        result.success = true;
-        
-        return Result<NodeCaptureResult>(result);
+
+        // T040: Stop capture and return result with captured packets
+        try {
+            // Stop all capture sessions
+            for (auto& [interface, session] : capture_sessions_) {
+                session.stop();
+            }
+
+            // Wait for capture thread to finish
+            if (capture_thread_.joinable()) {
+                capture_thread_.join();
+            }
+
+            // Generate PCAP filename with timestamp
+            auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+            std::filesystem::path pcap_path =
+                std::filesystem::temp_directory_path() /
+                ("wadjet_" + config_.node_id + "_" + std::to_string(timestamp) + ".pcap");
+
+            // Write captured packets to PCAP file
+            if (!captured_packets_.empty()) {
+                pcap::PcapWriter writer(pcap_path);
+                for (const auto& packet : captured_packets_) {
+                    writer.write_packet(packet);
+                }
+            }
+
+            // Return capture result
+            NodeCaptureResult result;
+            result.node_id = config_.node_id;
+            result.packet_count = captured_packets_.size();
+            result.byte_count = 0;  // Could sum packet sizes if needed
+            for (const auto& packet : captured_packets_) {
+                result.byte_count += packet.data.size();
+            }
+            result.pcap_path = pcap_path.string();
+            result.start_time_ns = capture_start_time_.time_since_epoch().count();
+            result.end_time_ns = capture_end_time.time_since_epoch().count();
+            result.success = true;
+
+            capture_sessions_.clear();
+            captured_packets_.clear();
+
+            return Result<NodeCaptureResult>(result);
+        } catch (const std::exception& e) {
+            return Result<NodeCaptureResult>(
+                Error::make("CAPTURE_STOP_FAILED", std::string("Exception: ") + e.what()));
+        }
     }
     
     auto evaluate_matcher(const std::string& matcher_type,
@@ -212,7 +300,30 @@ private:
             }
         }
     }
-    
+
+    /// T039: Packet capture thread that continuously polls capture sessions
+    void capture_packets_thread() {
+        while (is_capturing_) {
+            try {
+                // Poll all capture sessions for new packets
+                for (auto& [interface, session] : capture_sessions_) {
+                    constexpr auto timeout = std::chrono::milliseconds(100);
+
+                    while (auto packet = session.next_packet(timeout)) {
+                        std::lock_guard<std::mutex> lock(mutex_);
+                        captured_packets_.push_back(packet.value());
+                    }
+                }
+
+                // Brief sleep to avoid busy-polling
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            } catch (const std::exception&) {
+                // Silently ignore errors in capture thread
+                // The main thread will detect if capture failed
+            }
+        }
+    }
+
     NodeConfig config_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
@@ -224,7 +335,12 @@ private:
     std::chrono::system_clock::time_point capture_start_time_;
     std::chrono::system_clock::time_point last_coordinator_response_;
     std::thread heartbeat_thread_;
+    std::thread capture_thread_;                          // T039: Capture packet collection thread
     std::function<void()> coordinator_failure_callback_;  // T032: Failure callback
+
+    // T039-T040: Capture session management
+    std::vector<std::pair<std::string, io::PcapCaptureSession>> capture_sessions_;
+    std::vector<net::Packet> captured_packets_;
 };
 
 // T026: Factory function

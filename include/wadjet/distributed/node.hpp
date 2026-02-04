@@ -6,7 +6,7 @@
 #include <functional>
 
 #include "types.hpp"
-#include "result.hpp"
+#include "wadjet/core/result.hpp"
 
 namespace wadjet::distributed {
 
