@@ -68,9 +68,9 @@
 - [x] T028 [US1] Implement gRPC client for node-to-coordinator communication in src/distributed/grpc/client.cpp
 - [x] T029 [US1] Implement WaitBarrier RPC for distributed barrier synchronization in src/distributed/grpc/service.cpp
 - [x] T030 [US1] Implement TestNode::wait_at_barrier() using gRPC client in src/distributed/node.cpp
-- [ ] T031 [US1] Implement coordinator heartbeat timeout detection for node failure in src/distributed/coordinator.cpp
-- [ ] T032 [US1] Implement node-side coordinator failure detection via heartbeat timeout in src/distributed/node.cpp
-- [ ] T033 [US1] Implement graceful abort with partial result collection on failure in src/distributed/coordinator.cpp
+- [x] T031 [US1] Implement coordinator heartbeat timeout detection for node failure in src/distributed/coordinator.cpp
+- [x] T032 [US1] Implement node-side coordinator failure detection via heartbeat timeout in src/distributed/node.cpp
+- [x] T033 [US1] Implement graceful abort with partial result collection on failure in src/distributed/coordinator.cpp
 - [x] T034 [P] [US1] Create unit tests for TestCoordinator in tests/distributed/test_coordinator.cpp
 - [x] T035 [P] [US1] Create unit tests for TestNode in tests/distributed/test_node.cpp
 - [x] T036 [US1] Create integration test for 3-node coordination in tests/integration/test_distributed_coordination.cpp
