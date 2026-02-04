@@ -118,13 +118,13 @@
 
 The gRPC service.cpp and client.cpp have placeholder implementations that need completion:
 
-- [ ] T200 [US1] Complete RegisterNode RPC handler with protobuf integration in src/distributed/grpc/service.cpp
-- [ ] T201 [US1] Complete UnregisterNode RPC handler in src/distributed/grpc/service.cpp
-- [ ] T202 [US1] Complete Heartbeat streaming RPC handler in src/distributed/grpc/service.cpp
-- [ ] T203 [US1] Complete WaitBarrier RPC handler in src/distributed/grpc/service.cpp
-- [ ] T204 [US1] Complete gRPC client RegisterNode call in src/distributed/grpc/client.cpp
-- [ ] T205 [US1] Complete gRPC client WaitBarrier call in src/distributed/grpc/client.cpp
-- [ ] T206 [US1] Complete gRPC client Heartbeat streaming in src/distributed/grpc/client.cpp
+- [X] T200 [US1] Complete RegisterNode RPC handler with protobuf integration in src/distributed/grpc/service.cpp
+- [X] T201 [US1] Complete UnregisterNode RPC handler in src/distributed/grpc/service.cpp
+- [X] T202 [US1] Complete Heartbeat streaming RPC handler in src/distributed/grpc/service.cpp
+- [X] T203 [US1] Complete WaitBarrier RPC handler in src/distributed/grpc/service.cpp
+- [X] T204 [US1] Complete gRPC client RegisterNode call in src/distributed/grpc/client.cpp
+- [X] T205 [US1] Complete gRPC client WaitBarrier call in src/distributed/grpc/client.cpp
+- [X] T206 [US1] Complete gRPC client Heartbeat streaming in src/distributed/grpc/client.cpp
 
 ### Category 2: Matcher Implementations (Placeholder Files)
 

@@ -38,6 +38,41 @@ add_library(wadjet_distributed
     grpc/client.cpp
 )
 
+# Separate target for proto generated files (without -Werror)
+if(HAVE_PROTO_LIB)
+    add_library(wadjet_distributed_proto_obj OBJECT
+        ${CMAKE_BINARY_DIR}/src/distributed/proto_build/distributed_test.pb.cc
+    )
+    
+    target_include_directories(wadjet_distributed_proto_obj PRIVATE
+        ${CMAKE_BINARY_DIR}/src/distributed/proto_build
+        ${CMAKE_BINARY_DIR}/_deps/grpc-src/third_party/protobuf/src
+    )
+    
+    # Remove -Werror from proto object files to allow protobuf library warnings
+    get_target_property(PROTO_FLAGS wadjet_distributed_proto_obj COMPILE_FLAGS)
+    if(PROTO_FLAGS)
+        string(REPLACE "-Werror" "" PROTO_FLAGS "${PROTO_FLAGS}")
+    else()
+        set(PROTO_FLAGS "")
+    endif()
+    set_target_properties(wadjet_distributed_proto_obj PROPERTIES COMPILE_FLAGS "${PROTO_FLAGS}")
+    
+    target_compile_options(wadjet_distributed_proto_obj PRIVATE
+        -Wno-conversion
+        -Wno-sign-conversion
+        -Wno-error=conversion
+    )
+    
+    # Compile gRPC service and client with special handling
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/grpc/service.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/grpc/client.cpp
+        PROPERTIES
+        COMPILE_FLAGS "-Wno-conversion -Wno-sign-conversion"
+    )
+endif()
+
 # Include proto generated code if available
 target_include_directories(wadjet_distributed PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
