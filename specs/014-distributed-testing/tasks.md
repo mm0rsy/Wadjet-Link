@@ -156,8 +156,8 @@ The data-model.md specifies interfaces not fully matching implementations:
 
 Proto CMakeLists.txt has incorrect protoc invocation:
 
-- [ ] T218 [P] Fix proto/CMakeLists.txt protoc command (uses grpc_cpp_plugin incorrectly)
-- [ ] T219 [P] Verify proto code generation works end-to-end with test compilation
+- [X] T218 [P] Fix proto/CMakeLists.txt protoc command (uses grpc_cpp_plugin incorrectly)
+- [X] T219 [P] Verify proto code generation works end-to-end with test compilation
 
 ### Category 6: Missing Unit Tests (Marked as Done But Not Found)
 
