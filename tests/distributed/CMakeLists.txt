@@ -10,6 +10,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             test_sync_barrier.cpp
             test_coordinator.cpp
             test_node.cpp
+            test_pcap_merger.cpp
         )
 
         target_link_libraries(wadjet_distributed_tests

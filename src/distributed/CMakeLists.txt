@@ -21,6 +21,9 @@ add_library(wadjet_distributed
     # Message correlation
     message_correlator.cpp
     
+    # PCAP merging
+    pcap_merger.cpp
+    
     # Distributed matchers
     distributed_matcher.cpp
     matchers/expect_message_flow.cpp
