@@ -6,8 +6,6 @@
 if(WADJET_ENABLE_DISTRIBUTED AND NOT SKIP_PROTO_GENERATION)
     add_subdirectory(${CMAKE_SOURCE_DIR}/proto proto_build)
     set(HAVE_PROTO_LIB ON)
-    find_package(gRPC REQUIRED)
-    find_package(Protobuf REQUIRED)
 else()
     set(HAVE_PROTO_LIB OFF)
 endif()
@@ -62,7 +60,11 @@ set(WADJET_DISTRIBUTED_LIBS
 )
 
 if(HAVE_PROTO_LIB)
-    list(APPEND WADJET_DISTRIBUTED_LIBS PUBLIC wadjet_distributed_proto gRPC::grpc gRPC::grpc++)
+    list(APPEND WADJET_DISTRIBUTED_LIBS PUBLIC wadjet_distributed_proto)
+    # Only add gRPC libraries if they're available
+    if(TARGET gRPC::grpc)
+        list(APPEND WADJET_DISTRIBUTED_LIBS PUBLIC gRPC::grpc gRPC::grpc++)
+    endif()
 endif()
 
 target_link_libraries(wadjet_distributed ${WADJET_DISTRIBUTED_LIBS})

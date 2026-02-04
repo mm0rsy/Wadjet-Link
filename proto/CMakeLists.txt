@@ -22,8 +22,6 @@ if(WADJET_ENABLE_DISTRIBUTED)
     
     # Use protoc compiler to generate C++ code
     find_program(PROTOC protoc REQUIRED)
-    find_package(Protobuf REQUIRED)
-    find_package(gRPC REQUIRED CONFIG)
     
     get_filename_component(PROTO_DIR "${CMAKE_CURRENT_LIST_DIR}" ABSOLUTE)
     get_filename_component(PROTO_FILE "${CMAKE_CURRENT_LIST_DIR}/distributed_test.proto" ABSOLUTE)
@@ -42,15 +40,30 @@ if(WADJET_ENABLE_DISTRIBUTED)
         "${CMAKE_CURRENT_BINARY_DIR}/distributed_test.grpc.pb.h"
     )
     
-    # Custom command to run protoc
+    # Determine grpc_cpp_plugin location
+    if(TARGET gRPC::grpc_cpp_plugin)
+        get_target_property(_PLUGIN gRPC::grpc_cpp_plugin IMPORTED_LOCATION)
+    else()
+        # Try to find it in the build directory (if built from FetchContent)
+        set(_PLUGIN "${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin")
+    endif()
+    
+    # Custom command to run protoc with grpc plugin
+    # Add IMPLICIT_DEPENDS for grpc_cpp_plugin if available
+    set(_IMPLICIT_DEPS)
+    if(TARGET grpc_cpp_plugin)
+        list(APPEND _IMPLICIT_DEPS grpc_cpp_plugin)
+    endif()
+    
     add_custom_command(
         OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
-        COMMAND ${_gRPC_CPP_PLUGIN_EXECUTABLE}
+        COMMAND ${PROTOC}
         ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+             --plugin=protoc-gen-grpc="${_PLUGIN}"
              --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
              -I "${PROTO_DIR}"
              "${PROTO_FILE}"
-        DEPENDS "${PROTO_FILE}"
+        DEPENDS "${PROTO_FILE}" ${_IMPLICIT_DEPS}
         COMMENT "Generating protobuf and gRPC code for distributed_test.proto"
     )
     
@@ -65,10 +78,16 @@ if(WADJET_ENABLE_DISTRIBUTED)
     # Link dependencies
     target_link_libraries(wadjet_distributed_proto PUBLIC
         protobuf::libprotobuf
-        gRPC::grpc
-        gRPC::grpc++
-        gRPC::grpc++_reflection
     )
+    
+    # Only link gRPC targets if available
+    if(TARGET gRPC::grpc)
+        target_link_libraries(wadjet_distributed_proto PUBLIC
+            gRPC::grpc
+            gRPC::grpc++
+            gRPC::grpc++_reflection
+        )
+    endif()
     
     # Include directories for generated code
     target_include_directories(wadjet_distributed_proto PUBLIC

@@ -32,13 +32,18 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(WADJET_ENABLE_DISTRIBUTED)
     include(FetchContent)
     
-    # Fetch gRPC and its dependencies
-    FetchContent_Declare(grpc
-        GIT_REPOSITORY https://github.com/grpc/grpc.git
-        GIT_TAG        v1.50.0
-        CMAKE_ARGS -DgRPC_BUILD_TESTS=OFF
+    # Set up gRPC from source
+    set(FETCHCONTENT_QUIET OFF)
+    FetchContent_Declare(
+        gRPC
+        GIT_REPOSITORY https://github.com/grpc/grpc
+        GIT_TAG        v1.51.1
     )
-    FetchContent_MakeAvailable(grpc)
+    FetchContent_MakeAvailable(gRPC)
+    
+    # Make gRPC available for subdirectories
+    set(gRPC_FOUND ON)
+    set(gRPC_INCLUDE_DIRS "${grpc_SOURCE_DIR}/include")
 endif()
 
 # ============================================================================
