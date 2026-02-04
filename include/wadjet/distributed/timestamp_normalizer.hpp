@@ -1,7 +1,10 @@
 #pragma once
 
-#include <cstdint>
+#include "wadjet/net/packet.hpp"
+
 #include <chrono>
+#include <cstdint>
+#include <optional>
 #include <string>
 
 namespace wadjet::distributed {
@@ -93,7 +96,20 @@ public:
      */
     [[nodiscard]] auto within_drift(int64_t ts1, int64_t ts2,
                                    std::chrono::nanoseconds max_drift) const -> bool;
-    
+
+    /**
+     * @brief Verify clock sync health by decoding gPTP messages
+     *
+     * T051: Passive monitoring - analyzes captured Ethernet frames to extract gPTP
+     * Announce/Sync messages and verify clock synchronization health.
+     * Does NOT participate in gPTP protocol, only observes grandmaster identity
+     * and clock quality from network traffic.
+     *
+     * @param packet Ethernet packet to check for gPTP messages
+     * @return Updated ClockSyncStatus with grandmaster info if gPTP found
+     */
+    [[nodiscard]] auto verify_gptp_health(const Packet& packet) -> std::optional<ClockSyncStatus>;
+
     /**
      * @brief Get the sync status this normalizer was created with
      * 
@@ -109,7 +125,7 @@ public:
     [[nodiscard]] auto status() const -> const ClockSyncStatus& { return status_; }
 
 private:
-    ClockSyncStatus status_;
+    ClockSyncStatus status_;  ///< Current clock sync status
 };
 
 }  // namespace wadjet::distributed

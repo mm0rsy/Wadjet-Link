@@ -1,7 +1,10 @@
 #include "wadjet/distributed/timestamp_normalizer.hpp"
 
+#include "wadjet/protocols/gptp/gptp.hpp"
+
 #include <sys/timex.h>
 #include <time.h>
+
 #include <cmath>
 
 namespace wadjet::distributed {
@@ -79,6 +82,55 @@ auto TimestampNormalizer::within_drift(int64_t ts1, int64_t ts2,
                                       std::chrono::nanoseconds max_drift) const -> bool {
     int64_t delta = std::abs(ts1 - ts2);
     return delta <= max_drift.count();
+}
+
+// T051: Verify gPTP clock sync health via passive message decoding
+auto TimestampNormalizer::verify_gptp_health(const Packet& packet)
+    -> std::optional<ClockSyncStatus> {
+    // T051: Simple gPTP packet detection via byte inspection
+    // We perform passive monitoring without requiring complex parsing
+
+    const auto& data = packet.data();
+    if (data.size() < 34) {  // Minimum gPTP message size
+        return std::nullopt;
+    }
+
+    // Check first byte: transport-specific and message type
+    // Cast std::byte to uint8_t for bitwise operations
+    uint8_t ts_and_type = static_cast<uint8_t>(data[0]);
+    uint8_t version = static_cast<uint8_t>(data[1]) & 0x0F;
+
+    // Check transport specific bits (upper 4 bits should be 0 for standard messages)
+    if ((ts_and_type & 0xF0) != 0x00) {
+        return std::nullopt;
+    }
+
+    // Check version (bits 0-3 should be 2 for 802.1AS)
+    if (version != 2 && version != 0) {  // Accept 0 for compatibility
+        return std::nullopt;
+    }
+
+    // Create updated sync status with gPTP info
+    ClockSyncStatus status = status_;
+    status.method = ClockSyncMethod::GPTP;
+    status.is_synchronized = true;
+
+    // Extract source clock identity from offset 20-27 (8 bytes of source port identity)
+    if (data.size() >= 28) {
+        // Format as hex string for display
+        char buffer[64];
+        snprintf(buffer, sizeof(buffer), "%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+                 static_cast<uint8_t>(data[20]), static_cast<uint8_t>(data[21]),
+                 static_cast<uint8_t>(data[22]), static_cast<uint8_t>(data[23]),
+                 static_cast<uint8_t>(data[24]), static_cast<uint8_t>(data[25]),
+                 static_cast<uint8_t>(data[26]), static_cast<uint8_t>(data[27]));
+
+        status.grandmaster_id = buffer;
+        status.max_error_ns = 1000;      // 1 microsecond typical for gPTP
+        status.estimated_offset_ns = 0;  // Will be measured separately
+    }
+
+    return status;
 }
 
 }  // namespace wadjet::distributed

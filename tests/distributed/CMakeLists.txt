@@ -11,6 +11,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             test_coordinator.cpp
             test_node.cpp
             test_pcap_merger.cpp
+            test_message_correlator.cpp
         )
 
         target_link_libraries(wadjet_distributed_tests
@@ -20,6 +21,8 @@ if(WADJET_ENABLE_DISTRIBUTED)
                 gtest_main
                 wadjet_warnings
                 wadjet_sanitizers
+                ssl
+                crypto
         )
 
         # Register tests

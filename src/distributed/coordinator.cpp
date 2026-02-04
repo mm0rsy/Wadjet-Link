@@ -255,7 +255,55 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         return aborted_nodes_;
     }
-    
+
+    /// T042: Synchronize capture start across nodes with <10ms jitter
+    auto synchronize_capture_start(const std::vector<NodeId>& nodes,
+                                   std::chrono::milliseconds timeout)
+        -> Result<BarrierResult> override {
+        if (nodes.empty()) {
+            return Result<BarrierResult>(Error::make("INVALID_NODES", "Node list cannot be empty"));
+        }
+
+        // Verify all nodes are registered
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            for (const auto& node_id : nodes) {
+                if (nodes_.find(node_id) == nodes_.end()) {
+                    return Result<BarrierResult>(
+                        Error::make("NODE_NOT_FOUND", "Node " + node_id + " not registered"));
+                }
+            }
+        }
+
+        // Create barrier with unique ID for this capture synchronization
+        static int capture_barrier_counter = 0;
+        std::string barrier_id = "capture_sync_" + std::to_string(capture_barrier_counter++);
+
+        auto barrier_result = create_barrier(barrier_id);
+        if (!barrier_result.is_ok()) {
+            return Result<BarrierResult>(barrier_result.unwrap_err());
+        }
+
+        auto barrier = std::move(barrier_result.unwrap());
+
+        // Wait for all nodes to arrive at barrier (with slightly longer timeout than 10ms jitter)
+        auto config = SyncBarrier::Config{
+            .timeout = timeout,
+            .sync_margin = std::chrono::milliseconds(10)  // 10ms jitter allowed
+        };
+
+        auto result = barrier->wait_for_nodes(nodes, config);
+
+        // Check if synchronization was successful
+        if (!result.succeeded()) {
+            return Result<BarrierResult>(Error::make(
+                "SYNC_FAILED", "Capture synchronization failed: " +
+                                   std::to_string(result.missing_nodes.size()) + " nodes missing"));
+        }
+
+        return Result<BarrierResult>(result);
+    }
+
 private:
     void monitor_heartbeats() {
         while (is_running_) {

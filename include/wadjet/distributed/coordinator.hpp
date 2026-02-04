@@ -200,6 +200,21 @@ public:
      */
     virtual auto get_failed_nodes() const -> std::vector<NodeId> = 0;
 
+    /**
+     * @brief Synchronize capture start across all nodes (<10ms jitter)
+     *
+     * T042: Coordinates synchronized packet capture start with barrier synchronization
+     * Ensures all nodes start capture within 10ms of each other for timestamp alignment.
+     *
+     * @param nodes List of node IDs to synchronize
+     * @param timeout Maximum time to wait for synchronization
+     * @return Result with BarrierResult containing sync timestamp
+     */
+    virtual auto synchronize_capture_start(
+        const std::vector<NodeId>& nodes,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds{
+            10000}) -> Result<BarrierResult> = 0;
+
 protected:
     TestCoordinator() = default;
 };
