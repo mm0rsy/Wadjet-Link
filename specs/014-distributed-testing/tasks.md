@@ -344,46 +344,46 @@ Fields, types, and methods specified in data-model.md but missing from implement
 
 #### C1: Missing Enums (data-model.md Enumerations section)
 
-- [ ] T253 [P] Create NodeHealthStatus enum class (Unknown, Healthy, Degraded, Unhealthy, Disconnected) in include/wadjet/distributed/types.hpp per data-model.md
-- [ ] T254 [P] Create CaptureState enum class (Idle, Starting, Running, Stopping, Stopped, Error) in include/wadjet/distributed/types.hpp per data-model.md
-- [ ] T255 [P] Create BarrierState enum class (Waiting, AllArrived, Timeout, Cancelled) in include/wadjet/distributed/types.hpp per data-model.md
-- [ ] T256 [P] Create ResultStatus enum class (Passed, Failed, Error, Skipped, Timeout) in include/wadjet/distributed/result_aggregation.hpp per data-model.md
+- [x] T253 [P] Create NodeHealthStatus enum class (Unknown, Healthy, Degraded, Unhealthy, Disconnected) in include/wadjet/distributed/types.hpp per data-model.md
+- [x] T254 [P] Create CaptureState enum class (Idle, Starting, Running, Stopping, Stopped, Error) in include/wadjet/distributed/types.hpp per data-model.md
+- [x] T255 [P] Create BarrierState enum class (Waiting, AllArrived, Timeout, Cancelled) in include/wadjet/distributed/types.hpp per data-model.md
+- [x] T256 [P] Create ResultStatus enum class (Passed, Failed, Error, Skipped, Timeout) in include/wadjet/distributed/result_aggregation.hpp per data-model.md
 
 #### C2: Missing TLS Configuration (FR-042, data-model.md)
 
-- [ ] T257 Add tls_cert_path, tls_key_path, tls_ca_path fields to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
-- [ ] T258 Add tls_cert_path, tls_key_path, tls_ca_path fields to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md
-- [ ] T259 Add config_path field to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
-- [ ] T260 Add failure_capture_dir field to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md (default: "/tmp/wadjet_failures")
+- [x] T257 Add tls_cert_path, tls_key_path, tls_ca_path fields to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
+- [x] T258 Add tls_cert_path, tls_key_path, tls_ca_path fields to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md
+- [x] T259 Add config_path field to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
+- [x] T260 Add failure_capture_dir field to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md (default: "/tmp/wadjet_failures")
 - [ ] T261 Wire TLS credentials into gRPC server/client channel creation in src/distributed/coordinator.cpp and src/distributed/node.cpp
 
 #### C3: Missing Scenario Structs (data-model.md DistributedScenario section)
 
-- [ ] T262 [P] Create WaitStepConfig struct (duration field) in include/wadjet/distributed/scenario.hpp per data-model.md
-- [ ] T263 [P] Create LogStepConfig struct (message, level fields) in include/wadjet/distributed/scenario.hpp per data-model.md
-- [ ] T264 [P] Create NodeDefinition struct (id, address, interfaces) in include/wadjet/distributed/scenario.hpp per data-model.md
-- [ ] T265 Add tags field (std::vector<std::string>) to DistributedScenario in include/wadjet/distributed/scenario.hpp per data-model.md
-- [ ] T266 Refactor DistributedStep config to use std::variant<BarrierStepConfig, CaptureStepConfig, ExpectStepConfig, WaitStepConfig, LogStepConfig> per data-model.md
+- [x] T262 [P] Create WaitStepConfig struct (duration field) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [x] T263 [P] Create LogStepConfig struct (message, level fields) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [x] T264 [P] Create NodeDefinition struct (id, address, interfaces) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [x] T265 Add tags field (std::vector<std::string>) to DistributedScenario in include/wadjet/distributed/scenario.hpp per data-model.md
+- [x] T266 Refactor DistributedStep config to use std::variant<BarrierStepConfig, CaptureStepConfig, ExpectStepConfig, WaitStepConfig, LogStepConfig> per data-model.md
 
 #### C4: Missing AggregatedResult Fields (data-model.md AggregatedResult section)
 
-- [ ] T267 Add status field (ResultStatus) to AggregatedResult per data-model.md
-- [ ] T268 Add total_duration field (std::chrono::milliseconds) to AggregatedResult per data-model.md
-- [ ] T269 Add distributed_assertions field (std::vector<AssertionResult>) to AggregatedResult per data-model.md
-- [ ] T270 Add pcap_files field (std::vector<std::filesystem::path>) to AggregatedResult per data-model.md
-- [ ] T271 Add total_assertions, passed_assertions, failed_assertions int fields to AggregatedResult per data-model.md
-- [ ] T272 Implement AggregatedResult::merge() static method per data-model.md for combining multi-scenario results
+- [x] T267 Add status field (ResultStatus) to AggregatedResult per data-model.md
+- [x] T268 Add total_duration field (std::chrono::milliseconds) to AggregatedResult per data-model.md
+- [x] T269 Add distributed_assertions field (std::vector<AssertionResult>) to AggregatedResult per data-model.md
+- [x] T270 Add pcap_files field (std::vector<std::filesystem::path>) to AggregatedResult per data-model.md
+- [x] T271 Add total_assertions, passed_assertions, failed_assertions int fields to AggregatedResult per data-model.md
+- [x] T272 Implement AggregatedResult::merge() static method per data-model.md for combining multi-scenario results
 
 #### C5: Missing Node Methods (data-model.md TestNode section)
 
-- [ ] T273 Add TestNode::report_clock_status() -> ClockSyncStatus method per data-model.md
-- [ ] T274 Add TestNode::report_health() -> NodeHealthStatus method per data-model.md
+- [x] T273 Add TestNode::report_clock_status() -> ClockSyncStatus method per data-model.md
+- [x] T274 Add TestNode::report_health() -> NodeHealthStatus method per data-model.md
 
 #### C6: AssertionResult Schema Alignment (data-model.md vs implementation)
 
-- [ ] T275 Add src_node, dst_node fields to AssertionResult per data-model.md (spec: multi-node context)
-- [ ] T276 Add src_timestamp_ns, dst_timestamp_ns, latency_ns fields to AssertionResult per data-model.md
-- [ ] T277 Add expected, actual string fields to AssertionResult per data-model.md (for detailed assertion comparison)
+- [x] T275 Add src_node, dst_node fields to AssertionResult per data-model.md (spec: multi-node context)
+- [x] T276 Add src_timestamp_ns, dst_timestamp_ns, latency_ns fields to AssertionResult per data-model.md
+- [x] T277 Add expected, actual string fields to AssertionResult per data-model.md (for detailed assertion comparison)
 
 ### Category D: Missing Test Files 🟣
 
