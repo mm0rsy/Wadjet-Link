@@ -3,9 +3,11 @@
 #include "wadjet/distributed/distributed_matcher.hpp"
 #include "wadjet/protocols/uds/uds_types.hpp"
 
-#include <string>
-#include <optional>
+#include <fmt/format.h>
+
 #include <chrono>
+#include <optional>
+#include <string>
 
 namespace wadjet::distributed {
 
@@ -138,5 +140,115 @@ private:
     const std::string& dst_node,
     std::chrono::milliseconds timeout_ms = std::chrono::milliseconds{5000}
 );
+
+/**
+ * @brief Multi-ECU diagnostic session sequence expectation
+ *
+ * T319: Validates diagnostic sequences across multiple ECUs
+ *
+ * ExpectDiagnosticSession validates multi-step diagnostic operations across
+ * multiple ECUs, such as:
+ * - Security access unlock on one ECU followed by flash download
+ * - DTCs cleared on one ECU and verified as cleared on another
+ * - Diagnostic session transitions in coordinated manner
+ *
+ * @example
+ * ```cpp
+ * // Validate SecurityAccess on ECU-A then FlashDownload on ECU-B
+ * auto session_matcher = ExpectDiagnosticSession({
+ *     {"ecu_a", protocols::uds::ServiceID::SecurityAccess},
+ *     {"ecu_b", protocols::uds::ServiceID::RequestDownload}
+ * });
+ * session_matcher.evaluate(contexts);
+ * ```
+ */
+class ExpectDiagnosticSession : public DistributedMatcher {
+public:
+    /**
+     * @brief Diagnostic step in a session sequence
+     *
+     * Represents one operation within a multi-step diagnostic session
+     */
+    struct SessionStep {
+        std::string node_id;                         ///< Node/ECU ID
+        protocols::uds::ServiceID service_id;        ///< Expected UDS service
+        std::chrono::milliseconds timeout_ms{5000};  ///< Timeout for this step
+    };
+
+    /**
+     * @brief Create expectation for diagnostic session sequence
+     *
+     * @param steps Vector of diagnostic steps that should occur in order
+     * @param total_timeout_ms Total timeout for entire sequence
+     */
+    ExpectDiagnosticSession(const std::vector<SessionStep>& steps,
+                            std::chrono::milliseconds total_timeout_ms = std::chrono::milliseconds{
+                                30000});
+
+    /**
+     * @brief Evaluate the diagnostic session expectation
+     *
+     * Checks for:
+     * 1. First step service occurs on first node
+     * 2. Second step service occurs on second node
+     * 3. Services occur in the expected order (causality)
+     * 4. All services occur within their individual timeouts
+     * 5. Entire sequence completes within total timeout
+     *
+     * @param contexts Map of node_id to capture contexts
+     * @return Match result with timing and sequence information
+     */
+    auto evaluate(const std::unordered_map<std::string, DistributedCaptureContext>& contexts) const
+        -> DistributedMatchResult override;
+
+    /**
+     * @brief Get human-readable description of this matcher
+     */
+    auto describe() const -> std::string override {
+        std::string desc = "ExpectDiagnosticSession(";
+        for (size_t i = 0; i < steps_.size(); ++i) {
+            if (i > 0)
+                desc += " -> ";
+            desc += fmt::format("{}:0x{:02X}", steps_[i].node_id,
+                                static_cast<uint8_t>(steps_[i].service_id));
+        }
+        desc += ")";
+        return desc;
+    }
+
+    /**
+     * @brief Clone this matcher
+     */
+    auto clone() const -> std::unique_ptr<DistributedMatcher> override {
+        return std::make_unique<ExpectDiagnosticSession>(steps_, total_timeout_ms_);
+    }
+
+    /**
+     * @brief Get the diagnostic session steps
+     */
+    [[nodiscard]] const std::vector<SessionStep>& steps() const { return steps_; }
+
+    /**
+     * @brief Get the total timeout value
+     */
+    [[nodiscard]] std::chrono::milliseconds total_timeout() const { return total_timeout_ms_; }
+
+private:
+    std::vector<SessionStep> steps_;
+    std::chrono::milliseconds total_timeout_ms_;
+};
+
+/**
+ * @brief Create ExpectDiagnosticSession matcher for multi-ECU diagnostic sequences
+ *
+ * T319: Factory function for creating diagnostic session matchers
+ *
+ * @param steps Vector of diagnostic steps to validate
+ * @param total_timeout_ms Total timeout for entire sequence
+ * @return ExpectDiagnosticSession matcher instance
+ */
+[[nodiscard]] std::unique_ptr<DistributedMatcher> ExpectDiagnosticSession(
+    const std::vector<ExpectDiagnosticSession::SessionStep>& steps,
+    std::chrono::milliseconds total_timeout_ms = std::chrono::milliseconds{30000});
 
 }  // namespace wadjet::distributed

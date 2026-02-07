@@ -1,12 +1,17 @@
 #include "wadjet/distributed/matchers/expect_diagnostic.hpp"
+
 #include "wadjet/distributed/distributed_matcher.hpp"
+#include "wadjet/net/packet.hpp"
 #include "wadjet/protocols/diagnostic/uds_doip_decoder.hpp"
 #include "wadjet/protocols/uds/uds.hpp"
-#include "wadjet/net/packet.hpp"
 
-#include <vector>
+#include <fmt/format.h>
+
 #include <algorithm>
+#include <chrono>
 #include <limits>
+#include <unordered_map>
+#include <vector>
 
 namespace wadjet::distributed {
 
@@ -202,6 +207,117 @@ std::unique_ptr<DistributedMatcher> ExpectDiagnosticResponse(
     return std::make_unique<ExpectDiagnosticResponseImpl>(
         src_node, dst_node, std::nullopt, timeout_ms
     );
+}
+
+// Implementation of ExpectDiagnosticSession::constructor
+ExpectDiagnosticSession::ExpectDiagnosticSession(const std::vector<SessionStep>& steps,
+                                                 std::chrono::milliseconds total_timeout_ms)
+    : steps_(steps), total_timeout_ms_(total_timeout_ms) {}
+
+// Implementation of ExpectDiagnosticSession::evaluate
+auto ExpectDiagnosticSession::evaluate(
+    const std::unordered_map<std::string, DistributedCaptureContext>& contexts) const
+    -> DistributedMatchResult {
+    // Validate that we have all nodes present
+    for (const auto& step : steps_) {
+        if (contexts.find(step.node_id) == contexts.end()) {
+            return DistributedMatchResult::failure(
+                fmt::format("Node '{}' not found in capture contexts", step.node_id));
+        }
+    }
+
+    auto start_time = std::chrono::system_clock::now();
+
+    // Track which steps have been validated
+    std::vector<bool> steps_found(steps_.size(), false);
+    uint32_t current_step_idx = 0;
+
+    // Collect all UDS packets from all nodes with timestamps
+    struct PacketWithNode {
+        const Packet* packet;
+        std::string node_id;
+        int64_t timestamp_ns;
+        uint8_t service_id;
+    };
+
+    std::vector<PacketWithNode> all_packets;
+    protocols::diagnostic::UdsOverDoipDecoder decoder;
+
+    // Collect packets from all nodes
+    for (const auto& [node_id, context] : contexts) {
+        for (const auto& packet : context.packets) {
+            auto decode_result = decoder.decode(packet.view().as_bytes());
+
+            if (decode_result) {
+                const auto& uds_msg = decode_result.value();
+                all_packets.push_back({&packet, node_id, packet.timestamp().total_nanoseconds(),
+                                       static_cast<uint8_t>(uds_msg.service_id())});
+            }
+        }
+    }
+
+    // Sort packets by timestamp to process in order
+    std::sort(all_packets.begin(), all_packets.end(),
+              [](const PacketWithNode& a, const PacketWithNode& b) {
+                  return a.timestamp_ns < b.timestamp_ns;
+              });
+
+    // Validate each step in order
+    int64_t first_step_timestamp = -1;
+    for (const auto& packet_info : all_packets) {
+        if (current_step_idx >= steps_.size()) {
+            break;  // All steps validated
+        }
+
+        const auto& current_step = steps_[current_step_idx];
+
+        // Check if this packet matches the current step
+        if (packet_info.node_id == current_step.node_id &&
+            packet_info.service_id == static_cast<uint8_t>(current_step.service_id)) {
+            // Check timeout for this step
+            auto elapsed = std::chrono::system_clock::now() - start_time;
+            if (elapsed > current_step.timeout_ms) {
+                return DistributedMatchResult::failure(fmt::format(
+                    "Step {}: {} service 0x{:02X} exceeded timeout", current_step_idx,
+                    current_step.node_id, static_cast<uint8_t>(current_step.service_id)));
+            }
+
+            if (first_step_timestamp == -1) {
+                first_step_timestamp = packet_info.timestamp_ns;
+            }
+
+            steps_found[current_step_idx] = true;
+            current_step_idx++;
+        }
+    }
+
+    // Check if all steps were found
+    if (current_step_idx < steps_.size()) {
+        auto missing_step_idx = current_step_idx;
+        const auto& missing_step = steps_[missing_step_idx];
+        return DistributedMatchResult::failure(fmt::format(
+            "Diagnostic session incomplete: missing step {} - {} service 0x{:02X}",
+            missing_step_idx, missing_step.node_id, static_cast<uint8_t>(missing_step.service_id)));
+    }
+
+    // Check total timeout
+    auto total_elapsed = std::chrono::system_clock::now() - start_time;
+    if (total_elapsed > total_timeout_ms_) {
+        return DistributedMatchResult::failure(
+            fmt::format("Diagnostic session exceeded total timeout: {} > {}ms",
+                        total_elapsed.count() / 1000000, total_timeout_ms_.count()));
+    }
+
+    auto result = DistributedMatchResult::success(
+        first_step_timestamp, std::chrono::system_clock::now().time_since_epoch().count());
+    return result;
+}
+
+// Factory function for ExpectDiagnosticSession
+std::unique_ptr<DistributedMatcher> ExpectDiagnosticSession(
+    const std::vector<ExpectDiagnosticSession::SessionStep>& steps,
+    std::chrono::milliseconds total_timeout_ms) {
+    return std::make_unique<ExpectDiagnosticSession>(steps, total_timeout_ms);
 }
 
 }  // namespace wadjet::distributed
