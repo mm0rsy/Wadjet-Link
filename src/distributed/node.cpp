@@ -239,11 +239,21 @@ public:
                 capture_thread_.join();
             }
 
-            // Generate PCAP filename with timestamp
+            // T296: Generate PCAP filename with naming convention: {test_name}_{node_id}_{timestamp}.pcap
             auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
+            auto microseconds = timestamp / 1000;  // Convert to microseconds for filename
+            
+            // Build filename with test name if available, otherwise use default
+            std::string pcap_filename;
+            if (!capture_config_.test_name.empty()) {
+                pcap_filename = capture_config_.test_name + "_" + config_.node_id + "_" + 
+                               std::to_string(microseconds) + ".pcap";
+            } else {
+                pcap_filename = "wadjet_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
+            }
+            
             std::filesystem::path pcap_path =
-                std::filesystem::temp_directory_path() /
-                ("wadjet_" + config_.node_id + "_" + std::to_string(timestamp) + ".pcap");
+                std::filesystem::temp_directory_path() / pcap_filename;
 
             // Write captured packets to PCAP file
             if (!captured_packets_.empty()) {
@@ -433,14 +443,21 @@ private:
                 std::filesystem::create_directories(config_.failure_capture_dir);
             }
             
-            // Generate PCAP filename: {test_name}_{node_id}_{timestamp}.pcap
-            // We use the current timestamp since we don't have test_name here
+            // T296: Generate PCAP filename: {test_name}_{node_id}_{timestamp}.pcap
+            // For failure captures, prefix with "failure_"
             auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
             auto microseconds = timestamp / 1000;  // Convert nanoseconds to microseconds for filename
             
+            std::string pcap_filename;
+            if (!capture_config_.test_name.empty()) {
+                pcap_filename = "failure_" + capture_config_.test_name + "_" + config_.node_id + "_" + 
+                               std::to_string(microseconds) + ".pcap";
+            } else {
+                pcap_filename = "failure_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
+            }
+            
             std::filesystem::path pcap_path =
-                config_.failure_capture_dir /
-                ("failure_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap");
+                config_.failure_capture_dir / pcap_filename;
             
             // Write current captured packets to PCAP file
             if (!captured_packets_.empty()) {

@@ -14,6 +14,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             test_pcap_merger.cpp
             test_message_correlator.cpp
             test_config_loader.cpp
+            test_coordination_overhead.cpp
         )
 
         target_link_libraries(wadjet_distributed_tests

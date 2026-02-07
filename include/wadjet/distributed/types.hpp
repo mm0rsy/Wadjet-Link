@@ -74,6 +74,7 @@ struct NodeInfo {
  * @brief Capture configuration for a test
  */
 struct CaptureConfig {
+    std::string test_name;                  ///< T296: Test name for PCAP filename
     std::string filter_expression;          ///< BPF filter for packet capture
     uint32_t snaplen = 65535;               ///< Snapshot length for captured packets
     bool promiscuous = true;                ///< Promiscuous mode

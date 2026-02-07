@@ -32,6 +32,12 @@ struct DistributedMatchResult {
     std::optional<Packet> dst_packet;                   ///< Matching packet on destination
     std::string error_message;                          ///< Error details if failed
     
+    // T298: Distributed assertion failure details
+    std::string expected_condition;                     ///< Expected condition for assertion
+    std::string actual_condition;                       ///< Actual condition found
+    std::string packet_context;                         ///< Context of packets examined
+    int64_t failure_timestamp_ns = 0;                   ///< Timestamp of failure detection
+    
     /// Create successful result
     static auto success(int64_t src_ts, int64_t dst_ts) -> DistributedMatchResult {
         DistributedMatchResult result;
@@ -39,14 +45,23 @@ struct DistributedMatchResult {
         result.src_timestamp_ns = src_ts;
         result.dst_timestamp_ns = dst_ts;
         result.latency_ns = dst_ts - src_ts;
+        result.failure_timestamp_ns = 0;  // No failure
         return result;
     }
     
-    /// Create failed result
-    static auto failure(std::string error) -> DistributedMatchResult {
+    /// Create failed result with detailed information
+    static auto failure(std::string error,
+                       std::string expected = "",
+                       std::string actual = "",
+                       std::string context = "") -> DistributedMatchResult {
         DistributedMatchResult result;
         result.matched = false;
         result.error_message = std::move(error);
+        result.expected_condition = std::move(expected);
+        result.actual_condition = std::move(actual);
+        result.packet_context = std::move(context);
+        result.failure_timestamp_ns = std::chrono::system_clock::now()
+            .time_since_epoch().count();
         return result;
     }
 };
