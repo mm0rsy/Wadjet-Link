@@ -566,10 +566,10 @@ FR requirements with no implementing code (only task references but empty implem
 - [ ] T158 Run quickstart.md validation scenarios end-to-end
 - [ ] T159 Verify all 61 functional requirements are covered (FR-001 to FR-061, FR-049 DEFERRED)
 - [ ] T160 Verify all 13 success criteria are met (SC-001 to SC-013)
-- [ ] T161 Run full test suite with coverage report
-- [ ] T162 Performance validation: <10ms capture jitter, <1% coordination overhead
-- [ ] T163 Code review and cleanup
-- [ ] T164 Update CHANGELOG.md with M14 distributed testing entry
+- [x] T161 Run full test suite with coverage report
+- [x] T162 Performance validation: <10ms capture jitter, <1% coordination overhead
+- [x] T163 Code review and cleanup
+- [x] T164 Update CHANGELOG.md with M14 distributed testing entry
 
 ---
 

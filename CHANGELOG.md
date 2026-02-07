@@ -7,6 +7,215 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - M14 Distributed Testing (NEW!)
+
+#### Multi-Node Test Coordination (Phase 8-10)
+- **TestCoordinator** — Central orchestrator managing 100+ nodes
+  - gRPC-based node registration and lifecycle
+  - Heartbeat-based health monitoring (<5s timeout)
+  - Graceful abort with partial result collection
+  - Node failure detection and recovery
+  
+- **TestNode** — Individual test participants
+  - Automatic coordinator connection and heartbeat
+  - Per-node packet capture with BPF filtering
+  - Synchronized capture start/stop (<10ms jitter)
+  - Clock sync status verification (gPTP/NTP)
+
+- **SyncBarrier** — Distributed synchronization primitive
+  - <10ms jitter barrier synchronization
+  - Timeout-based failure detection
+  - Per-participant tracking and validation
+  - gRPC streaming for multi-node coordination
+
+#### Synchronized Packet Capture (Phase 4)
+- **Synchronized multi-node capture** with <10ms jitter
+  - Hardware timestamping support (nanosecond precision)
+  - ±1µs timestamp alignment with gPTP (IEEE 802.1AS)
+  - Per-node capture with independent BPF filters
+  - Automatic PCAP naming: {test_name}_{node_id}_{timestamp}.pcap
+
+#### Message Correlation & PCAP Merging (Phase 4)
+- **MessageCorrelator** — Identify same packet on multiple captures
+  - PayloadHash correlation (packet content matching)
+  - SequenceNumber correlation (protocol sequence tracking)
+  - Handles packet loss and reordering
+  
+- **PcapMerger** — Merge multi-node captures with timestamp alignment
+  - Synchronized timestamp merging
+  - Packet interleaving by global timestamp
+  - Metadata preservation from original captures
+  - Output in standard pcap/pcapng format
+
+#### Distributed Assertions (Phase 5)
+- **ExpectMessageFlow** — Validate message sequences across nodes
+  - Source → Intermediate → Destination pattern
+  - Packet payload matching
+  - Configurable timeout bounds
+  
+- **WithinLatency** — Request-response timing validation
+  - Measure latency between request and response
+  - Support for timeout detection
+  - Per-node and aggregate metrics
+  
+- **HappensBefore** — Causal ordering validation
+  - Validate that event A happened before event B
+  - Timestamp-based ordering checks
+  - Cross-node causality verification
+  
+- **MustNotSeeOn** — Negative assertions for absence validation
+  - Verify packets absent on specific nodes
+  - Support for traffic filtering constraints
+  - Useful for security and isolation testing
+
+#### Declarative Scenario Execution (Phase 6)
+- **YAML/JSON Scenario Format** — Human-readable test definitions
+  - Node topology with roles (provider, consumer, observer)
+  - Sequential and parallel step execution
+  - Barrier synchronization points
+  - Timing constraints and timeouts
+  
+- **Step Types**: barrier, capture, command, expect, log, wait
+- **Scenario Decomposition** — Automatic distribution to nodes
+- **Step Coordination** — Sequential execution with barriers
+- **Parallel Steps** — Concurrent node operations
+- **Timing Constraints** — Enforce latency bounds
+
+#### Result Aggregation & Observability (Phase 7-11)
+- **Per-Node Results** — Capture statistics and assertions
+  - Packet counts and byte totals
+  - Captured PCAP file path
+  - Capture duration and timestamps
+  - Performance metrics (throughput, packet loss)
+  
+- **Result Aggregation** — Combine results from all nodes
+  - Single aggregated result per scenario
+  - Failed node handling with partial results
+  - Performance metrics aggregation
+  
+- **JUnit XML Report** — CI/CD compatible output
+  - Standard JUnit XML schema
+  - Test suites = nodes
+  - Test cases = scenarios
+  - Properties = performance metrics
+  
+- **HTML Reports** — Human-readable result visualization
+- **Test Failure PCAP Archival** — Auto-save captures on failure
+- **Comprehensive Logging** — JSON-formatted logs with timestamps
+- **CI/CD Integration** — Jenkins, GitLab CI, GitHub Actions examples
+
+#### FFI Language Bindings (Phase 8)
+- **C ABI Layer** — C99 compatible C API
+  - libwadjet_c dynamic library
+  - Opaque pointer types for C++ objects
+  - Result type handling for C
+  
+- **Python Bindings** — pybind11-based Python API
+  - Native Python objects for all types
+  - pytest integration support
+  - NumPy array support for packet data
+  
+- **Rust Bindings** — Safe idiomatic Rust wrappers
+  - bindgen FFI bindings
+  - Safe Result<T, E> error handling
+  - Zero-copy integration
+
+#### CLI Tools (Phase 9)
+- **wadjet-coordinator** — Distributed test orchestrator
+  - Command-line scenario execution
+  - Node registration and management
+  - JUnit XML and HTML report generation
+  
+- **wadjet-node** — Test node participant
+  - Automatic coordinator discovery
+  - Clock sync verification (--check-clock)
+  - Multi-interface support
+
+#### Examples & Documentation (Phase 10)
+- **C++ Example** — 3-node SOME/IP Service Discovery test
+  - Demonstrates full distributed testing workflow
+  - Shows node registration and barrier synchronization
+  - Includes assertion examples
+  
+- **Example Scenarios** — Ready-to-run test definitions
+  - someip_discovery.yaml: 7-step SOME/IP SD test
+  - nodes.yaml: Provider, consumer, monitor configuration
+  
+- **Documentation**
+  - docs/distributed_testing.md: Complete architecture guide
+  - docs/quickstart.md: 5-step quick start tutorial
+  - README.md: Feature overview and examples
+
+#### Infrastructure Completeness (Phase 11)
+- **Umbrella Headers** — Single include point for all distributed APIs
+  - include/wadjet/distributed/distributed.hpp
+  - All public headers in one place
+  
+- **GoogleTest Fixture** — DistributedTestFixture
+  - Automatic coordinator setup/teardown
+  - AddNode(), LoadScenario(), RunScenario() helpers
+  - Node health monitoring and status checks
+  
+- **Network Topology Visualization**
+  - Mermaid diagram generation (graphical)
+  - Graphviz DOT format (tool-compatible)
+  - ASCII art (console-friendly)
+  - Path finding and connectivity analysis
+  
+- **Network Partition Handling**
+  - Split-brain detection via heartbeat quorum
+  - Graceful degradation with minority node handling
+  - on_partition_detected() callback
+  
+- **Parallel Scenario Execution**
+  - run_scenarios_parallel() for concurrent tests
+  - Per-scenario result isolation
+  - Separate result aggregation for each scenario
+  
+- **Observability Enhancements**
+  - PCAP naming convention support
+  - Barrier event logging with timestamps
+  - Replay mode for saved PCAP playback
+  
+- **Performance Metrics**
+  - throughput_packets_per_sec calculation
+  - packet_loss_count detection
+  - Helper methods for metric computation
+  
+- **Protocol Version Compatibility**
+  - Version field in RegisterNodeRequest
+  - Major/minor/patch version checking
+  - Forward/backward compatibility support
+
+### Distributed Testing Specification
+
+- **60+ Functional Requirements** — Comprehensive feature coverage
+  - Node coordination and synchronization
+  - Packet capture and correlation
+  - Distributed assertions
+  - Scenario execution and result aggregation
+  
+- **13 Success Criteria** — Validation and performance targets
+  - <10ms capture jitter
+  - ±1µs timestamp alignment (gPTP)
+  - Message correlation across nodes
+  - PCAP merging with timestamp ordering
+  - Distributed assertion validation
+  - Result aggregation and reporting
+  
+- **12 Phases** — Complete implementation plan
+  - Phase 1-2: Setup and foundational primitives
+  - Phase 3-5: Core user stories (coordination, capture, assertions)
+  - Phase 6-7: Scenarios and result aggregation
+  - Phase 8-10: FFI bindings, CLI tools, examples
+  - Phase 11: Infrastructure completeness
+  - Phase 12: Polish and validation
+  
+- **187 Implementation Tasks** — From infrastructure to examples
+  - 164 base tasks across 11 phases
+  - 23 infrastructure completeness tasks
+  - Unit and integration tests throughout
+
 ### Added - M13 Protocol Completeness
 
 #### Core Protocol Implementations
