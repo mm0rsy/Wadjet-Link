@@ -483,14 +483,14 @@ FR requirements with no implementing code (only task references but empty implem
 
 **Purpose**: Command-line tools consuming libwadjet_distributed
 
-- [ ] T121 Implement wadjet-coordinator CLI tool in tools/wadjet-coordinator.cpp
-- [ ] T122 Add --config option for node configuration YAML in tools/wadjet-coordinator.cpp
-- [ ] T123 Add --scenario option for scenario execution in tools/wadjet-coordinator.cpp
-- [ ] T124 Add --output-dir and --junit-report options in tools/wadjet-coordinator.cpp
-- [ ] T125 Implement wadjet-node CLI tool in tools/wadjet-node.cpp
-- [ ] T126 Add --node-id and --config options in tools/wadjet-node.cpp
-- [ ] T127 Add --check-clock option for clock sync verification in tools/wadjet-node.cpp
-- [ ] T128 Update tools/CMakeLists.txt with coordinator and node targets
+- [x] T121 Implement wadjet-coordinator CLI tool in tools/wadjet-coordinator.cpp
+- [x] T122 Add --config option for node configuration YAML in tools/wadjet-coordinator.cpp
+- [x] T123 Add --scenario option for scenario execution in tools/wadjet-coordinator.cpp
+- [x] T124 Add --output-dir and --junit-report options in tools/wadjet-coordinator.cpp
+- [x] T125 Implement wadjet-node CLI tool in tools/wadjet-node.cpp
+- [x] T126 Add --node-id and --config options in tools/wadjet-node.cpp
+- [x] T127 Add --check-clock option for clock sync verification in tools/wadjet-node.cpp
+- [x] T128 Update tools/CMakeLists.txt with coordinator and node targets
 
 ---
 
