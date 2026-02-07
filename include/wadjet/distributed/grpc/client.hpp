@@ -38,6 +38,23 @@ public:
     static auto create(const std::string& coordinator_address)
         -> std::unique_ptr<DistributedTestClient>;
     
+    /**
+     * @brief Create a client connection with TLS credentials
+     * 
+     * T261: Create gRPC client with TLS support for secure communication
+     * 
+     * @param coordinator_address Address of the coordinator
+     * @param tls_cert_path Path to client certificate file
+     * @param tls_key_path Path to client key file
+     * @param tls_ca_path Path to CA certificate for server verification
+     * @return Created client or nullptr on failure
+     */
+    static auto create_with_tls(const std::string& coordinator_address,
+                                const std::string& tls_cert_path,
+                                const std::string& tls_key_path,
+                                const std::string& tls_ca_path)
+        -> std::unique_ptr<DistributedTestClient>;
+    
     explicit DistributedTestClient(const std::string& coordinator_address);
     
     ~DistributedTestClient();
@@ -91,6 +108,10 @@ private:
     std::string coordinator_address_;
     std::shared_ptr<grpc::Channel> channel_;
     std::unique_ptr<v1::DistributedTestService::Stub> stub_;
+    
+    // T261: TLS credentials support
+    bool use_tls_ = false;
+    std::shared_ptr<grpc::ChannelCredentials> tls_credentials_;
     
     auto connect() -> bool;
 };

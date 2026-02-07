@@ -13,6 +13,8 @@
 
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
+#include <fstream>
+#include <sstream>
 
 namespace wadjet::distributed {
 
@@ -21,6 +23,47 @@ using namespace v1;
 auto DistributedTestClient::create(const std::string& coordinator_address)
     -> std::unique_ptr<DistributedTestClient> {
     auto client = std::make_unique<DistributedTestClient>(coordinator_address);
+    if (client->connect()) {
+        return client;
+    }
+    return nullptr;
+}
+
+// T261: Create client with TLS credentials
+auto DistributedTestClient::create_with_tls(const std::string& coordinator_address,
+                                            const std::string& tls_cert_path,
+                                            const std::string& tls_key_path,
+                                            const std::string& tls_ca_path)
+    -> std::unique_ptr<DistributedTestClient> {
+    auto client = std::make_unique<DistributedTestClient>(coordinator_address);
+    
+    // Load TLS credentials from files
+    std::ifstream cert_file(tls_cert_path);
+    std::ifstream key_file(tls_key_path);
+    std::ifstream ca_file(tls_ca_path);
+    
+    if (!cert_file || !key_file) {
+        return nullptr;  // TLS files not found
+    }
+    
+    std::stringstream cert_stream, key_stream, ca_stream;
+    cert_stream << cert_file.rdbuf();
+    key_stream << key_file.rdbuf();
+    if (ca_file) {
+        ca_stream << ca_file.rdbuf();
+    }
+    
+    // Create SslCredentialsOptions with client certificate
+    grpc::SslCredentialsOptions opts;
+    opts.pem_client_cert_chain = cert_stream.str();
+    opts.pem_private_key = key_stream.str();
+    if (!ca_stream.str().empty()) {
+        opts.pem_root_certs = ca_stream.str();
+    }
+    
+    client->tls_credentials_ = grpc::SslCredentials(opts);
+    client->use_tls_ = true;
+    
     if (client->connect()) {
         return client;
     }
@@ -38,9 +81,17 @@ DistributedTestClient::~DistributedTestClient() = default;
 auto DistributedTestClient::connect() -> bool {
     try {
         // Create gRPC channel to coordinator
+        // T261: Use TLS credentials if configured, otherwise use insecure
+        std::shared_ptr<grpc::ChannelCredentials> credentials;
+        if (use_tls_) {
+            credentials = tls_credentials_;
+        } else {
+            credentials = grpc::InsecureChannelCredentials();
+        }
+        
         channel_ = grpc::CreateChannel(
             coordinator_address_,
-            grpc::InsecureChannelCredentials()
+            credentials
         );
         
         if (!channel_) {

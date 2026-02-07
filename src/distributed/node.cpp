@@ -42,7 +42,18 @@ public:
         std::string coordinator_addr =
             config_.coordinator_address + ":" + std::to_string(config_.coordinator_port);
 
-        grpc_client_ = DistributedTestClient::create(coordinator_addr);
+        // T261: Use TLS client if certificates are configured
+        if (!config_.tls_cert_path.empty() && !config_.tls_key_path.empty()) {
+            grpc_client_ = DistributedTestClient::create_with_tls(
+                coordinator_addr,
+                config_.tls_cert_path.string(),
+                config_.tls_key_path.string(),
+                config_.tls_ca_path.string()
+            );
+        } else {
+            grpc_client_ = DistributedTestClient::create(coordinator_addr);
+        }
+        
         if (!grpc_client_) {
             return Result<void>(Error::make(
                 "GRPC_CONNECT_FAILED", "Failed to connect to coordinator at " + coordinator_addr));

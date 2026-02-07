@@ -1,8 +1,8 @@
 #include "wadjet/distributed/coordinator.hpp"
 
 #include "wadjet/distributed/grpc/service.hpp"
-#include "wadjet/distributed/scenario.hpp"
 #include "wadjet/distributed/result_aggregation.hpp"
+#include "wadjet/distributed/scenario.hpp"
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server.h>
@@ -11,10 +11,11 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
-#include <fstream>
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <set>
+#include <sstream>
 #include <thread>
 #include <unordered_map>
 
@@ -52,7 +53,44 @@ public:
             // Bind to the configured address and port
             std::string server_address =
                 config_.bind_address + ":" + std::to_string(config_.grpc_port);
-            builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+
+            // T261: Wire TLS credentials if configured, otherwise use insecure
+            std::shared_ptr<grpc::ServerCredentials> credentials;
+            if (!config_.tls_cert_path.empty() && !config_.tls_key_path.empty()) {
+                // Load TLS certificate and key files
+                std::ifstream cert_file(config_.tls_cert_path);
+                std::ifstream key_file(config_.tls_key_path);
+
+                if (cert_file && key_file) {
+                    std::stringstream cert_stream, key_stream;
+                    cert_stream << cert_file.rdbuf();
+                    key_stream << key_file.rdbuf();
+
+                    grpc::SslServerCredentialsOptions opts;
+                    opts.pem_key_cert_pairs.push_back({key_stream.str(), cert_stream.str()});
+
+                    // Optionally load CA certificate for mutual TLS
+                    if (!config_.tls_ca_path.empty()) {
+                        std::ifstream ca_file(config_.tls_ca_path);
+                        if (ca_file) {
+                            std::stringstream ca_stream;
+                            ca_stream << ca_file.rdbuf();
+                            opts.pem_root_certs = ca_stream.str();
+                            opts.client_authentication_check = grpc::SslServerCredentialsOptions::
+                                ClientAuthenticationCheck::OPTIONAL;
+                        }
+                    }
+
+                    credentials = grpc::SslServerCredentials(opts);
+                } else {
+                    // TLS file not found, warn and fall back to insecure
+                    credentials = grpc::InsecureServerCredentials();
+                }
+            } else {
+                credentials = grpc::InsecureServerCredentials();
+            }
+
+            builder.AddListeningPort(server_address, credentials);
 
             // Register service
             builder.RegisterService(service.get());
