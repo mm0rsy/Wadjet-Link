@@ -1,4 +1,5 @@
 #include "wadjet/distributed/grpc/service.hpp"
+
 #include "wadjet/distributed/coordinator.hpp"
 #include "wadjet/distributed/types.hpp"
 
@@ -12,8 +13,8 @@
 #include "distributed_test.pb.h"
 #pragma GCC diagnostic pop
 
-#include <nlohmann/json.hpp>
 #include <grpcpp/support/status.h>
+#include <nlohmann/json.hpp>
 
 #include <chrono>
 #include <ctime>
@@ -30,31 +31,29 @@ DistributedTestServiceImpl::DistributedTestServiceImpl(TestCoordinator* coordina
 DistributedTestServiceImpl::~DistributedTestServiceImpl() = default;
 
 // T200: RegisterNode RPC handler
-grpc::Status DistributedTestServiceImpl::RegisterNode(
-    grpc::ServerContext* /*context*/,
-    const RegisterNodeRequest* request,
-    RegisterNodeResponse* response) {
-    
+grpc::Status DistributedTestServiceImpl::RegisterNode(grpc::ServerContext* /*context*/,
+                                                      const RegisterNodeRequest* request,
+                                                      RegisterNodeResponse* response) {
     if (!coordinator_ || !request || !response) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     // Extract node information from proto request
     NodeInfo node_info;
     node_info.id = request->node_id();
     node_info.hostname = request->hostname();
     node_info.version = "1.0";  // Set version
-    
+
     // Add capture interfaces
     for (const auto& iface : request->capture_interfaces()) {
         node_info.capture_interfaces.push_back(iface);
     }
-    
+
     // Add metadata
     for (const auto& [key, value] : request->metadata()) {
         node_info.metadata[key] = value;
     }
-    
+
     // Register node with coordinator
     auto result = coordinator_->register_node(node_info);
     if (result.is_err()) {
@@ -62,33 +61,30 @@ grpc::Status DistributedTestServiceImpl::RegisterNode(
         response->set_error_message(result.unwrap_err().message);
         return grpc::Status::OK;
     }
-    
+
     // Set success response
     response->set_success(true);
     response->set_assigned_node_id(node_info.id);
-    response->set_server_timestamp_ns(
-        static_cast<int64_t>(std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count())
-    );
-    
+    response->set_server_timestamp_ns(static_cast<int64_t>(
+        std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count()));
+
     // Return coordinator protocol version
     auto coord_version = response->mutable_coordinator_version();
     coord_version->set_major(1);
     coord_version->set_minor(0);
     coord_version->set_patch(0);
-    
+
     return grpc::Status::OK;
 }
 
 // T201: UnregisterNode RPC handler
-grpc::Status DistributedTestServiceImpl::UnregisterNode(
-    grpc::ServerContext* /*context*/,
-    const UnregisterNodeRequest* request,
-    UnregisterNodeResponse* response) {
-    
+grpc::Status DistributedTestServiceImpl::UnregisterNode(grpc::ServerContext* /*context*/,
+                                                        const UnregisterNodeRequest* request,
+                                                        UnregisterNodeResponse* response) {
     if (!coordinator_ || !request || !response) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     // Unregister node from coordinator
     auto result = coordinator_->unregister_node(request->node_id());
     if (result.is_err()) {
@@ -96,7 +92,7 @@ grpc::Status DistributedTestServiceImpl::UnregisterNode(
         response->set_error_message(result.unwrap_err().message);
         return grpc::Status::OK;
     }
-    
+
     response->set_success(true);
     return grpc::Status::OK;
 }
@@ -105,11 +101,10 @@ grpc::Status DistributedTestServiceImpl::UnregisterNode(
 grpc::Status DistributedTestServiceImpl::Heartbeat(
     grpc::ServerContext* /*context*/,
     grpc::ServerReaderWriter<HeartbeatResponse, HeartbeatRequest>* stream) {
-    
     if (!coordinator_ || !stream) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     HeartbeatRequest request;
     while (stream->Read(&request)) {
         const auto& node_id = request.node_id();
@@ -118,12 +113,11 @@ grpc::Status DistributedTestServiceImpl::Heartbeat(
         auto hb_result = coordinator_->update_node_heartbeat(node_id);
 
         HeartbeatResponse response;
-        
+
         // Acknowledge heartbeat
         response.set_acknowledged(true);
-        response.set_server_timestamp_ns(
-            static_cast<int64_t>(std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count())
-        );
+        response.set_server_timestamp_ns(static_cast<int64_t>(
+            std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count()));
 
         // Set heartbeat status from coordinator update
         if (hb_result.is_ok()) {
@@ -140,37 +134,35 @@ grpc::Status DistributedTestServiceImpl::Heartbeat(
             return grpc::Status(grpc::StatusCode::INTERNAL, "Failed to write response");
         }
     }
-    
+
     return grpc::Status::OK;
 }
 
 // T203: WaitBarrier RPC handler
-grpc::Status DistributedTestServiceImpl::WaitBarrier(
-    grpc::ServerContext* /*context*/,
-    const WaitBarrierRequest* request,
-    WaitBarrierResponse* response) {
-    
+grpc::Status DistributedTestServiceImpl::WaitBarrier(grpc::ServerContext* /*context*/,
+                                                     const WaitBarrierRequest* request,
+                                                     WaitBarrierResponse* response) {
     if (!coordinator_ || !request || !response) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     const auto& node_id = request->node_id();
     const auto& barrier_id = request->barrier_id();
-    
+
     // Create or get barrier
     auto barrier_result = coordinator_->create_barrier(barrier_id);
     if (barrier_result.is_err()) {
         response->set_proceed(false);
         return grpc::Status(grpc::StatusCode::INTERNAL, barrier_result.unwrap_err().message);
     }
-    
+
     // For now, immediately proceed (real implementation would coordinate with all nodes)
     response->set_proceed(true);
     response->set_state(BarrierState::BARRIER_ALL_ARRIVED);
     response->set_sync_timestamp_ns(request->arrival_timestamp_ns());
     response->add_participating_nodes(node_id);
     response->set_wait_duration_ms(0);
-    
+
     return grpc::Status::OK;
 }
 
@@ -182,7 +174,7 @@ static auto evaluate_distributed_matcher(
     try {
         // Parse matcher type and instantiate appropriate matcher
         std::unique_ptr<DistributedMatcher> matcher;
-        
+
         if (matcher_type == "ExpectMessageFlow") {
             // Extract src/dst nodes from config JSON
             // For now, create a default matcher
@@ -198,7 +190,7 @@ static auto evaluate_distributed_matcher(
             // Create MustNotSeeOn matcher for absence assertions
             return R"({"matched": true})";
         }
-        
+
         return R"({"error": "Unknown matcher type"})";
     } catch (const std::exception& e) {
         return R"({"error": "Matcher evaluation failed"})";
@@ -209,11 +201,10 @@ static auto evaluate_distributed_matcher(
 grpc::Status DistributedTestServiceImpl::ControlChannel(
     grpc::ServerContext* /*context*/,
     grpc::ServerReaderWriter<CoordinatorMessage, NodeMessage>* stream) {
-    
     if (!coordinator_ || !stream) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     NodeMessage node_msg;
     while (stream->Read(&node_msg)) {
         const auto& node_id = node_msg.node_id();
@@ -252,54 +243,50 @@ grpc::Status DistributedTestServiceImpl::ControlChannel(
             return grpc::Status(grpc::StatusCode::INTERNAL, "Failed to write response");
         }
     }
-    
+
     return grpc::Status::OK;
 }
 
 // T240: ReportResult RPC handler
-grpc::Status DistributedTestServiceImpl::ReportResult(
-    grpc::ServerContext* /*context*/,
-    const ReportResultRequest* request,
-    ReportResultResponse* response) {
-    
+grpc::Status DistributedTestServiceImpl::ReportResult(grpc::ServerContext* /*context*/,
+                                                      const ReportResultRequest* request,
+                                                      ReportResultResponse* response) {
     if (!coordinator_ || !request || !response) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     const auto& node_id = request->node_id();
     const auto& test_result_json = request->result_json();
-    
+
     try {
         // Parse JSON result using nlohmann_json
         auto result_obj = nlohmann::json::parse(test_result_json);
-        
+
         // Extract assertion results, passed/failed counts, timestamps
         // Store in coordinator's aggregation buffer indexed by node_id
         // In full implementation, would:
         // 1. Deserialize AssertionResult array
         // 2. Validate against scenario expectations
         // 3. Aggregate with other node results for final report
-        
+
         response->set_success(true);
         response->set_message("Result received and stored for aggregation");
     } catch (const std::exception& e) {
         response->set_success(false);
         response->set_message(std::string("Failed to parse result: ") + e.what());
     }
-    
+
     return grpc::Status::OK;
 }
 
 // T206: UploadPcap RPC handler (client streaming)
-grpc::Status DistributedTestServiceImpl::UploadPcap(
-    grpc::ServerContext* /*context*/,
-    grpc::ServerReader<PcapChunk>* reader,
-    UploadPcapResponse* response) {
-    
+grpc::Status DistributedTestServiceImpl::UploadPcap(grpc::ServerContext* /*context*/,
+                                                    grpc::ServerReader<PcapChunk>* reader,
+                                                    UploadPcapResponse* response) {
     if (!coordinator_ || !reader || !response) {
         return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "Invalid request");
     }
-    
+
     PcapChunk chunk;
     uint64_t total_bytes = 0;
     std::string node_id;
@@ -363,4 +350,3 @@ grpc::Status DistributedTestServiceImpl::UploadPcap(
 }
 
 }  // namespace wadjet::distributed
-

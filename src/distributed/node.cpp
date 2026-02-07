@@ -36,10 +36,10 @@ public:
             disconnect();
         }
     }
-    
+
     auto connect() -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (is_connected_) {
             return Result<void>(Error::make("ALREADY_CONNECTED", "Node already connected"));
         }
@@ -51,15 +51,12 @@ public:
         // T261: Use TLS client if certificates are configured
         if (!config_.tls_cert_path.empty() && !config_.tls_key_path.empty()) {
             grpc_client_ = DistributedTestClient::create_with_tls(
-                coordinator_addr,
-                config_.tls_cert_path.string(),
-                config_.tls_key_path.string(),
-                config_.tls_ca_path.string()
-            );
+                coordinator_addr, config_.tls_cert_path.string(), config_.tls_key_path.string(),
+                config_.tls_ca_path.string());
         } else {
             grpc_client_ = DistributedTestClient::create(coordinator_addr);
         }
-        
+
         if (!grpc_client_) {
             return Result<void>(Error::make(
                 "GRPC_CONNECT_FAILED", "Failed to connect to coordinator at " + coordinator_addr));
@@ -82,10 +79,10 @@ public:
 
         // Start heartbeat thread
         heartbeat_thread_ = std::thread([this]() { send_heartbeats(); });
-        
+
         return Result<void>();
     }
-    
+
     auto disconnect() -> void override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -94,18 +91,18 @@ public:
             grpc_client_ = nullptr;  // Release gRPC client
             cv_.notify_all();
         }
-        
+
         if (heartbeat_thread_.joinable()) {
             heartbeat_thread_.join();
         }
     }
-    
+
     /// T032: Detect if coordinator has failed (no response to heartbeats)
     auto is_coordinator_online() const -> bool {
         std::lock_guard<std::mutex> lock(mutex_);
         return coordinator_online_;
     }
-    
+
     /// T032: Mark coordinator as failed or recovered
     auto set_coordinator_online(bool online) -> void {
         {
@@ -118,7 +115,7 @@ public:
             }
         }
     }
-    
+
     /// T032: Set callback for coordinator failure detection
     auto on_coordinator_failure(std::function<void()> callback) -> void {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -156,12 +153,11 @@ public:
 
     auto start_capture(const CaptureConfig& config) -> Result<void> override {
         if (!is_connected_) {
-            return Result<void>(
-                Error::make("NOT_CONNECTED", "Node not connected to coordinator"));
+            return Result<void>(Error::make("NOT_CONNECTED", "Node not connected to coordinator"));
         }
-        
+
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (is_capturing_) {
             return Result<void>(Error::make("ALREADY_CAPTURING", "Already capturing"));
         }
@@ -221,15 +217,15 @@ public:
                 Error::make("CAPTURE_INIT_FAILED", std::string("Exception: ") + e.what()));
         }
     }
-    
+
     auto stop_capture() -> Result<NodeCaptureResult> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (!is_capturing_) {
             return Result<NodeCaptureResult>(
                 Error::make("NOT_CAPTURING", "Not currently capturing"));
         }
-        
+
         is_capturing_ = false;
         auto capture_end_time = std::chrono::system_clock::now();
 
@@ -245,19 +241,21 @@ public:
                 capture_thread_.join();
             }
 
-            // T296: Generate PCAP filename with naming convention: {test_name}_{node_id}_{timestamp}.pcap
+            // T296: Generate PCAP filename with naming convention:
+            // {test_name}_{node_id}_{timestamp}.pcap
             auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
             auto microseconds = timestamp / 1000;  // Convert to microseconds for filename
-            
+
             // Build filename with test name if available, otherwise use default
             std::string pcap_filename;
             if (!capture_config_.test_name.empty()) {
-                pcap_filename = capture_config_.test_name + "_" + config_.node_id + "_" + 
-                               std::to_string(microseconds) + ".pcap";
+                pcap_filename = capture_config_.test_name + "_" + config_.node_id + "_" +
+                                std::to_string(microseconds) + ".pcap";
             } else {
-                pcap_filename = "wadjet_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
+                pcap_filename =
+                    "wadjet_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
             }
-            
+
             std::filesystem::path pcap_path =
                 std::filesystem::temp_directory_path() / pcap_filename;
 
@@ -320,14 +318,11 @@ public:
 
             // Parse matcher config and instantiate matcher
             std::unique_ptr<DistributedMatcher> matcher;
-            
+
             if (matcher_type == "ExpectMessageFlow") {
                 // Parse src/dst nodes from config JSON
                 auto config_obj = nlohmann::json::parse(matcher_config);
-                matcher = ExpectMessageFlow(
-                    config_obj.at("src_node"),
-                    config_obj.at("dst_node")
-                );
+                matcher = ExpectMessageFlow(config_obj.at("src_node"), config_obj.at("dst_node"));
             } else if (matcher_type == "WithinLatency") {
                 auto config_obj = nlohmann::json::parse(matcher_config);
                 auto latency_ns = config_obj.at("latency_ns").get<uint64_t>();
@@ -349,9 +344,9 @@ public:
             // Evaluate matcher against captured packets
             std::unordered_map<std::string, DistributedCaptureContext> contexts;
             contexts[config_.id] = context;
-            
+
             auto result = matcher->evaluate(contexts);
-            
+
             // Serialize result to JSON
             nlohmann::json result_json;
             result_json["matched"] = result.matched;
@@ -365,18 +360,16 @@ public:
             if (result.latency_ns) {
                 result_json["latency_ns"] = result.latency_ns.value();
             }
-            
+
             return Result<std::string>(result_json.dump());
         } catch (const std::exception& e) {
-            return Result<std::string>(
-                Error::make("EVALUATION_ERROR", std::string("Matcher evaluation failed: ") + e.what()));
+            return Result<std::string>(Error::make(
+                "EVALUATION_ERROR", std::string("Matcher evaluation failed: ") + e.what()));
         }
     }
 
-    auto config() const -> const NodeConfig& override {
-        return config_;
-    }
-    
+    auto config() const -> const NodeConfig& override { return config_; }
+
     auto is_connected() const -> bool override {
         std::lock_guard<std::mutex> lock(mutex_);
         return is_connected_;
@@ -388,8 +381,7 @@ public:
     }
 
     auto execute_command(const std::string& command,
-                        const std::vector<std::string>& args)
-        -> Result<std::string> override {
+                         const std::vector<std::string>& args) -> Result<std::string> override {
         if (!is_connected_) {
             return Result<std::string>(
                 Error::make("NOT_CONNECTED", "Node not connected to coordinator"));
@@ -412,7 +404,7 @@ public:
             // Execute command using system() or safer popen()
             // For now, return simulated output
             // In real implementation, would execute via std::popen() or boost::process
-            
+
             if (command == "iperf3") {
                 return Result<std::string>("iperf3 started on " + config_.id);
             } else if (command == "ping") {
@@ -427,7 +419,7 @@ public:
                 Error::make("EXEC_ERROR", std::string("Command execution failed: ") + e.what()));
         }
     }
-    
+
     /// T293: Save partial results explicitly
     auto save_partial_results() -> Result<void> override {
         save_partial_results_on_failure();
@@ -436,40 +428,41 @@ public:
 
 private:
     /// T293: Save partial results and PCAP on coordinator failure
-    /// 
+    ///
     /// Called when coordinator becomes unresponsive to:
     /// 1. Save captured packets to PCAP file in failure_capture_dir
     /// 2. Store partial test results for later recovery
     /// 3. Enable offline mode for manual packet analysis
     auto save_partial_results_on_failure() -> void {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (!is_capturing_) {
             return;  // No active capture to save
         }
-        
+
         try {
             // Ensure failure capture directory exists
             if (!config_.failure_capture_dir.empty()) {
                 std::filesystem::create_directories(config_.failure_capture_dir);
             }
-            
+
             // T296: Generate PCAP filename: {test_name}_{node_id}_{timestamp}.pcap
             // For failure captures, prefix with "failure_"
             auto timestamp = std::chrono::system_clock::now().time_since_epoch().count();
-            auto microseconds = timestamp / 1000;  // Convert nanoseconds to microseconds for filename
-            
+            auto microseconds =
+                timestamp / 1000;  // Convert nanoseconds to microseconds for filename
+
             std::string pcap_filename;
             if (!capture_config_.test_name.empty()) {
-                pcap_filename = "failure_" + capture_config_.test_name + "_" + config_.node_id + "_" + 
-                               std::to_string(microseconds) + ".pcap";
+                pcap_filename = "failure_" + capture_config_.test_name + "_" + config_.node_id +
+                                "_" + std::to_string(microseconds) + ".pcap";
             } else {
-                pcap_filename = "failure_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
+                pcap_filename =
+                    "failure_" + config_.node_id + "_" + std::to_string(microseconds) + ".pcap";
             }
-            
-            std::filesystem::path pcap_path =
-                config_.failure_capture_dir / pcap_filename;
-            
+
+            std::filesystem::path pcap_path = config_.failure_capture_dir / pcap_filename;
+
             // Write current captured packets to PCAP file
             if (!captured_packets_.empty()) {
                 auto writer_result = pcap::PcapWriter::create(pcap_path);
@@ -480,7 +473,7 @@ private:
                     }
                 }
             }
-            
+
             // T293: Store partial result metadata
             // This allows nodes to maintain state and support recovery
             // In production, this could be serialized to disk for recovery
@@ -489,12 +482,12 @@ private:
             // Graceful degradation is preferred over exceptions in failure handlers
         }
     }
-    
+
     void send_heartbeats() {
         while (is_connected_) {
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                
+
                 if (!is_connected_) {
                     break;
                 }
@@ -518,15 +511,15 @@ private:
                 auto now = std::chrono::system_clock::now();
                 auto time_since_response = std::chrono::duration_cast<std::chrono::milliseconds>(
                     now - last_coordinator_response_);
-                
+
                 // If no response in coordinator_timeout, mark as failed
                 if (time_since_response > config_.coordinator_timeout) {
                     if (coordinator_online_) {
                         coordinator_online_ = false;
-                        
+
                         // T293: Save partial results on coordinator failure
                         save_partial_results_on_failure();
-                        
+
                         if (coordinator_failure_callback_) {
                             // Unlock before calling callback
                             lock.unlock();
@@ -586,7 +579,7 @@ private:
     NodeConfig config_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
-    
+
     bool is_connected_ = false;
     bool is_capturing_ = false;
     bool coordinator_online_ = true;  // T032: Track coordinator health
@@ -614,9 +607,8 @@ auto TestNode::create(const NodeConfig& config) -> Result<std::unique_ptr<TestNo
         return Result<std::unique_ptr<TestNode>>(
             Error::make("INVALID_CONFIG", "Node ID cannot be empty"));
     }
-    
-    return Result<std::unique_ptr<TestNode>>(
-        std::make_unique<TestNodeImpl>(config));
+
+    return Result<std::unique_ptr<TestNode>>(std::make_unique<TestNodeImpl>(config));
 }
 
 }  // namespace wadjet::distributed

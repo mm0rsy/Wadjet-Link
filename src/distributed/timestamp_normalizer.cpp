@@ -14,7 +14,7 @@ auto TimestampNormalizer::detect_sync_status() -> ClockSyncStatus {
     ClockSyncStatus status;
     status.method = ClockSyncMethod::None;
     status.is_synchronized = false;
-    
+
     // Try to detect NTP status using adjtimex()
     struct timex ntx = {};
     if (adjtimex(&ntx) >= 0) {
@@ -25,20 +25,22 @@ auto TimestampNormalizer::detect_sync_status() -> ClockSyncStatus {
             // PPS source is active (gPTP uses PPS frequency/time discipline)
             status.is_synchronized = true;
             status.method = ClockSyncMethod::GPTP;
-            status.estimated_offset_ns = ntx.offset * 1000LL;  // Convert microseconds to nanoseconds
+            status.estimated_offset_ns =
+                ntx.offset * 1000LL;       // Convert microseconds to nanoseconds
             status.max_error_ns = 1000LL;  // Typical 1 microsecond PPS error
         } else if ((ntx.status & STA_PLL) || (ntx.status & STA_FLL)) {
             // NTP uses PLL (Phase-Locked Loop) or FLL (Frequency-Locked Loop)
             status.is_synchronized = true;
             status.method = ClockSyncMethod::NTP;
-            status.estimated_offset_ns = ntx.offset * 1000LL;  // Convert microseconds to nanoseconds
+            status.estimated_offset_ns =
+                ntx.offset * 1000LL;                      // Convert microseconds to nanoseconds
             status.max_error_ns = ntx.maxerror * 1000LL;  // Convert to nanoseconds
         } else {
             status.method = ClockSyncMethod::None;
             status.is_synchronized = false;
         }
     }
-    
+
     return status;
 }
 
@@ -55,8 +57,7 @@ auto TimestampNormalizer::hardware_to_utc(const struct timespec& ts) -> int64_t 
 }
 
 // Constructor
-TimestampNormalizer::TimestampNormalizer(const ClockSyncStatus& status)
-    : status_(status) {}
+TimestampNormalizer::TimestampNormalizer(const ClockSyncStatus& status) : status_(status) {}
 
 // Get estimated precision in nanoseconds
 auto TimestampNormalizer::estimated_precision() const -> std::chrono::nanoseconds {
@@ -79,7 +80,7 @@ auto TimestampNormalizer::estimated_precision() const -> std::chrono::nanosecond
 
 // Check if timestamps are within acceptable drift
 auto TimestampNormalizer::within_drift(int64_t ts1, int64_t ts2,
-                                      std::chrono::nanoseconds max_drift) const -> bool {
+                                       std::chrono::nanoseconds max_drift) const -> bool {
     int64_t delta = std::abs(ts1 - ts2);
     return delta <= max_drift.count();
 }

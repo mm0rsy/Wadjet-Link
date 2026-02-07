@@ -30,18 +30,17 @@ namespace wadjet::distributed {
  */
 class TestCoordinatorImpl : public TestCoordinator {
 public:
-    explicit TestCoordinatorImpl(const CoordinatorConfig& config)
-        : config_(config) {}
-    
+    explicit TestCoordinatorImpl(const CoordinatorConfig& config) : config_(config) {}
+
     ~TestCoordinatorImpl() override {
         if (is_running()) {
             stop();
         }
     }
-    
+
     auto start() -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (is_running_) {
             return Result<void>(Error::make("ALREADY_RUNNING", "Coordinator already started"));
         }
@@ -144,7 +143,7 @@ public:
                 "GRPC_EXCEPTION", std::string("Failed to start gRPC server: ") + e.what()));
         }
     }
-    
+
     auto stop() -> void override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
@@ -160,74 +159,75 @@ public:
             // Notify heartbeat thread to stop
             cv_.notify_all();
         }
-        
+
         if (heartbeat_thread_.joinable()) {
             heartbeat_thread_.join();
         }
     }
-    
+
     auto register_node(const NodeInfo& node_info) -> Result<void> override {
         if (!node_info.is_valid()) {
             return Result<void>(Error::make("INVALID_NODE", "Invalid node information"));
         }
-        
+
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (nodes_.count(node_info.id) > 0) {
             return Result<void>(Error::make("DUPLICATE_NODE", "Node already registered"));
         }
-        
+
         if (nodes_.size() >= static_cast<size_t>(config_.max_nodes)) {
-            return Result<void>(Error::make("MAX_NODES_EXCEEDED", "Maximum number of nodes reached"));
+            return Result<void>(
+                Error::make("MAX_NODES_EXCEEDED", "Maximum number of nodes reached"));
         }
-        
+
         nodes_[node_info.id] = node_info;
         node_last_heartbeat_[node_info.id] = std::chrono::system_clock::now();
-        
+
         // Notify on node status change callback
         if (node_status_callback_) {
             node_status_callback_(node_info.id, true);
         }
-        
+
         cv_.notify_all();
         return Result<void>();
     }
-    
+
     auto unregister_node(const NodeId& node_id) -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         auto it = nodes_.find(node_id);
         if (it == nodes_.end()) {
             return Result<void>(Error::make("NOT_FOUND", "Node not found"));
         }
-        
+
         nodes_.erase(it);
         node_last_heartbeat_.erase(node_id);
-        
+
         // Notify on node status change callback
         if (node_status_callback_) {
             node_status_callback_(node_id, false);
         }
-        
+
         return Result<void>();
     }
-    
+
     auto registered_nodes() const -> std::vector<NodeId> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         std::vector<NodeId> result;
         for (const auto& [id, _] : nodes_) {
             result.push_back(id);
         }
         return result;
     }
-    
+
     auto online_nodes() const -> std::vector<NodeId> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         std::vector<NodeId> result;
         auto now = std::chrono::system_clock::now();
-        
+
         for (const auto& [id, last_hb] : node_last_heartbeat_) {
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_hb);
             if (elapsed < config_.heartbeat_timeout) {
@@ -236,15 +236,15 @@ public:
         }
         return result;
     }
-    
+
     auto get_node_info(const NodeId& node_id) const -> Result<NodeInfo> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         auto it = nodes_.find(node_id);
         if (it == nodes_.end()) {
             return Result<NodeInfo>(Error::make("NOT_FOUND", "Node not found"));
         }
-        
+
         return Result<NodeInfo>(it->second);
     }
 
@@ -263,78 +263,79 @@ public:
         return Result<void>();
     }
 
-    auto create_barrier(const std::string& barrier_id) -> Result<std::unique_ptr<SyncBarrier>> override {
+    auto create_barrier(const std::string& barrier_id)
+        -> Result<std::unique_ptr<SyncBarrier>> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (barriers_.count(barrier_id) > 0) {
             return Result<std::unique_ptr<SyncBarrier>>(
                 Error::make("DUPLICATE_BARRIER", "Barrier already exists"));
         }
-        
+
         auto barrier = std::make_unique<SyncBarrier>(barrier_id);
         barriers_.insert(barrier_id);
-        
+
         // T297: Log barrier creation with timestamp
         auto now = std::chrono::system_clock::now();
         auto timestamp_ns = now.time_since_epoch().count();
         log_barrier_event("BARRIER_CREATED", barrier_id, timestamp_ns);
-        
+
         return Result<std::unique_ptr<SyncBarrier>>(std::move(barrier));
     }
-    
+
     auto on_node_status_changed(NodeStatusCallback callback) -> void override {
         std::lock_guard<std::mutex> lock(mutex_);
         node_status_callback_ = callback;
     }
-    
+
     auto on_partition_detected(PartitionCallback callback) -> void override {
         std::lock_guard<std::mutex> lock(mutex_);
         partition_callback_ = callback;
     }
-    
+
     auto is_running() const -> bool override {
         std::lock_guard<std::mutex> lock(mutex_);
         return is_running_;
     }
-    
+
     auto wait_for_nodes(const std::vector<NodeId>& expected_nodes,
-                       std::chrono::milliseconds timeout)
-        -> Result<int> override {
+                        std::chrono::milliseconds timeout) -> Result<int> override {
         auto deadline = std::chrono::system_clock::now() + timeout;
         std::unique_lock<std::mutex> lock(mutex_);
-        
+
         while (true) {
             // Check how many expected nodes are online
             int online_count = 0;
             auto now = std::chrono::system_clock::now();
-            
+
             for (const auto& node_id : expected_nodes) {
                 auto it = node_last_heartbeat_.find(node_id);
                 if (it != node_last_heartbeat_.end()) {
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second);
+                    auto elapsed =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(now - it->second);
                     if (elapsed < config_.heartbeat_timeout) {
                         online_count++;
                     }
                 }
             }
-            
+
             if (online_count == static_cast<int>(expected_nodes.size())) {
                 return Result<int>(online_count);
             }
-            
+
             if (now >= deadline) {
                 return Result<int>(Error::make("TIMEOUT", "Timeout waiting for nodes"));
             }
-            
+
             auto wait_time = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now);
             cv_.wait_for(lock, std::min(wait_time, config_.heartbeat_interval));
         }
     }
-    
+
     /// Update heartbeat timestamp for a node
     auto update_node_heartbeat(const NodeId& node_id) -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         auto it = node_last_heartbeat_.find(node_id);
         if (it == node_last_heartbeat_.end()) {
             return Result<void>(Error::make("NOT_FOUND", "Node not registered"));
@@ -343,51 +344,51 @@ public:
         it->second = std::chrono::system_clock::now();
         return Result<void>();
     }
-    
+
     /// T033: Abort test execution with partial result collection
     auto abort_test(const std::string& reason) -> Result<void> {
         std::lock_guard<std::mutex> lock(mutex_);
-        
+
         if (!is_running_) {
             return Result<void>(Error::make("NOT_RUNNING", "Coordinator not running"));
         }
-        
+
         // Mark as aborted
         is_aborted_ = true;
         abort_reason_ = reason;
-        
+
         // Collect results from online nodes before abort
         std::vector<NodeId> online = online_nodes();
         std::vector<NodeId> offline;
-        
+
         for (const auto& [node_id, _] : nodes_) {
             auto it = std::find(online.begin(), online.end(), node_id);
             if (it == online.end()) {
                 offline.push_back(node_id);
             }
         }
-        
+
         // Store abort state for retrieval
         aborted_nodes_ = offline;
-        
+
         // Notify all waiting threads
         cv_.notify_all();
-        
+
         return Result<void>();
     }
-    
+
     /// T033: Get abort status
     auto is_aborted() const -> bool {
         std::lock_guard<std::mutex> lock(mutex_);
         return is_aborted_;
     }
-    
+
     /// T033: Get abort reason
     auto get_abort_reason() const -> std::string {
         std::lock_guard<std::mutex> lock(mutex_);
         return abort_reason_;
     }
-    
+
     /// T033: Get nodes that failed (for partial result collection)
     auto get_failed_nodes() const -> std::vector<NodeId> {
         std::lock_guard<std::mutex> lock(mutex_);
@@ -512,7 +513,7 @@ public:
 
     /// T083: Execute loaded scenario across all nodes
     auto run_scenario(std::chrono::milliseconds timeout = std::chrono::milliseconds{
-        30000 }) -> Result<void> override {
+                          30000}) -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
 
         if (!is_running_) {
@@ -533,8 +534,8 @@ public:
     }
 
     /// T090: Collect results from all nodes
-    auto collect_results(
-        std::vector<NodeId> target_nodes = {}) -> Result<std::vector<AssertionResult>> override {
+    auto collect_results(std::vector<NodeId> target_nodes = {})
+        -> Result<std::vector<AssertionResult>> override {
         std::lock_guard<std::mutex> lock(mutex_);
 
         if (!is_running_) {
@@ -563,8 +564,7 @@ public:
 
     /// T091-T093: Export aggregated result to JUnit XML
     auto export_junit(const AggregatedResult& aggregated_result,
-                      const std::filesystem::path& output_file)
-        -> Result<void> override {
+                      const std::filesystem::path& output_file) -> Result<void> override {
         try {
             auto xml_content = aggregated_result.to_junit_xml();
             std::ofstream file(output_file);
@@ -576,8 +576,8 @@ public:
             file.close();
             return Result<void>();
         } catch (const std::exception& e) {
-            return Result<void>(
-                Error::make("EXPORT_ERROR", std::string("Failed to export JUnit XML: ") + e.what()));
+            return Result<void>(Error::make(
+                "EXPORT_ERROR", std::string("Failed to export JUnit XML: ") + e.what()));
         }
     }
 
@@ -642,13 +642,11 @@ public:
         // T294: Check if clock synchronization is available
         // Fail test initialization explicitly if neither gPTP nor NTP is detected
         auto sync_status = TimestampNormalizer::detect_sync_status();
-        if (!sync_status.is_synchronized && 
-            sync_status.method == ClockSyncMethod::None) {
+        if (!sync_status.is_synchronized && sync_status.method == ClockSyncMethod::None) {
             return Result<BarrierResult>(
-                Error::make("NO_CLOCK_SYNC", 
-                           "Test initialization failed: no clock synchronization detected. "
-                           "Please configure NTP or IEEE 802.1AS (gPTP) on all nodes.")
-            );
+                Error::make("NO_CLOCK_SYNC",
+                            "Test initialization failed: no clock synchronization detected. "
+                            "Please configure NTP or IEEE 802.1AS (gPTP) on all nodes."));
         }
 
         // Verify all nodes are registered
@@ -693,13 +691,12 @@ public:
 
 private:
     /// T297: Log barrier synchronization events with precise timestamps
-    /// 
+    ///
     /// @param event_type Type of barrier event (CREATED, SYNC_START, SYNC_END, TIMEOUT)
     /// @param barrier_id ID of the barrier
     /// @param timestamp_ns Event timestamp in nanoseconds since epoch
-    auto log_barrier_event(const std::string& event_type,
-                          const std::string& barrier_id,
-                          int64_t timestamp_ns) -> void {
+    auto log_barrier_event(const std::string& event_type, const std::string& barrier_id,
+                           int64_t timestamp_ns) -> void {
         try {
             // T297: Store barrier events with timestamps for analysis
             // Events logged:
@@ -708,71 +705,69 @@ private:
             // - BARRIER_SYNC_END: When synchronization completes (success)
             // - BARRIER_TIMEOUT: When barrier times out
             // - BARRIER_CANCELLED: When barrier is cancelled
-            
+
             // Calculate human-readable timestamp
             auto duration = std::chrono::nanoseconds(timestamp_ns);
             auto time_point = std::chrono::time_point<std::chrono::system_clock>(duration);
             auto time_t = std::chrono::system_clock::to_time_t(time_point);
-            
+
             // In production, these would be stored to a structured log
             // For now, we track them for test verification
-            barrier_events_.push_back({
-                .event_type = event_type,
-                .barrier_id = barrier_id,
-                .timestamp_ns = timestamp_ns
-            });
+            barrier_events_.push_back(
+                {.event_type = event_type, .barrier_id = barrier_id, .timestamp_ns = timestamp_ns});
         } catch (...) {
             // Silently ignore logging errors - don't impact test execution
         }
     }
-    
+
     void monitor_heartbeats() {
         while (is_running_) {
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                
+
                 if (!is_running_) {
                     break;
                 }
-                
+
                 auto now = std::chrono::system_clock::now();
                 std::vector<NodeId> lost_nodes;
-                
+
                 // Check for nodes that haven't heartbeat in time
                 for (auto& [node_id, last_hb] : node_last_heartbeat_) {
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_hb);
+                    auto elapsed =
+                        std::chrono::duration_cast<std::chrono::milliseconds>(now - last_hb);
                     if (elapsed > config_.heartbeat_timeout) {
                         lost_nodes.push_back(node_id);
-                        
+
                         // Notify on node status change callback
                         if (node_status_callback_) {
                             node_status_callback_(node_id, false);
                         }
                     }
                 }
-                
+
                 // Remove lost nodes
                 for (const auto& node_id : lost_nodes) {
                     nodes_.erase(node_id);
                     node_last_heartbeat_.erase(node_id);
                 }
-                
+
                 lock.unlock();
-                
+
                 // Sleep before next check
                 std::this_thread::sleep_for(config_.heartbeat_interval);
             }
         }
     }
-    
+
     CoordinatorConfig config_;
     mutable std::mutex mutex_;
     std::condition_variable cv_;
-    
+
     bool is_running_ = false;
-    bool is_aborted_ = false;                           // T033: Track abort state
-    std::string abort_reason_;                          // T033: Reason for abort
-    std::vector<NodeId> aborted_nodes_;                // T033: Nodes that failed
+    bool is_aborted_ = false;            // T033: Track abort state
+    std::string abort_reason_;           // T033: Reason for abort
+    std::vector<NodeId> aborted_nodes_;  // T033: Nodes that failed
     std::thread heartbeat_thread_;
 
     // T227: gRPC server and service
@@ -786,15 +781,15 @@ private:
     std::unordered_map<NodeId, NodeInfo> nodes_;
     std::unordered_map<NodeId, std::chrono::system_clock::time_point> node_last_heartbeat_;
     std::set<std::string> barriers_;
-    
+
     // T297: Barrier synchronization event logging
     struct BarrierEvent {
-        std::string event_type;      ///< Type of event (CREATED, SYNC_START, SYNC_END, TIMEOUT)
-        std::string barrier_id;      ///< ID of the barrier
-        int64_t timestamp_ns = 0;    ///< Event timestamp in nanoseconds since epoch
+        std::string event_type;    ///< Type of event (CREATED, SYNC_START, SYNC_END, TIMEOUT)
+        std::string barrier_id;    ///< ID of the barrier
+        int64_t timestamp_ns = 0;  ///< Event timestamp in nanoseconds since epoch
     };
     std::vector<BarrierEvent> barrier_events_;  ///< Log of all barrier events with timestamps
-    
+
     NodeStatusCallback node_status_callback_;
     PartitionCallback partition_callback_;
 };
@@ -802,8 +797,7 @@ private:
 // T020: Factory function
 auto TestCoordinator::create(const CoordinatorConfig& config)
     -> Result<std::unique_ptr<TestCoordinator>> {
-    return Result<std::unique_ptr<TestCoordinator>>(
-        std::make_unique<TestCoordinatorImpl>(config));
+    return Result<std::unique_ptr<TestCoordinator>>(std::make_unique<TestCoordinatorImpl>(config));
 }
 
 }  // namespace wadjet::distributed

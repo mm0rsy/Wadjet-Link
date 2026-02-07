@@ -4,9 +4,9 @@
 #include "wadjet/distributed/distributed_matcher.hpp"
 #include "wadjet/net/packet_view.hpp"
 
-#include <unordered_map>
 #include <optional>
 #include <sstream>
+#include <unordered_map>
 
 // Forward declaration for GoogleTest Matcher
 namespace testing {
@@ -21,41 +21,35 @@ public:
     explicit ExpectMessageFlowImpl(std::string src_node, std::string dst_node)
         : src_node_(std::move(src_node)), dst_node_(std::move(dst_node)) {}
 
-    auto evaluate(
-        const std::unordered_map<std::string, DistributedCaptureContext>& contexts
-    ) -> DistributedMatchResult override {
-        
+    auto evaluate(const std::unordered_map<std::string, DistributedCaptureContext>& contexts)
+        -> DistributedMatchResult override {
         // Validate that both nodes have captured packets
         auto src_it = contexts.find(src_node_);
         auto dst_it = contexts.find(dst_node_);
-        
+
         if (src_it == contexts.end()) {
-            return DistributedMatchResult::failure(
-                "Source node '" + src_node_ + "' has no captured packets"
-            );
+            return DistributedMatchResult::failure("Source node '" + src_node_ +
+                                                   "' has no captured packets");
         }
-        
+
         if (dst_it == contexts.end()) {
-            return DistributedMatchResult::failure(
-                "Destination node '" + dst_node_ + "' has no captured packets"
-            );
+            return DistributedMatchResult::failure("Destination node '" + dst_node_ +
+                                                   "' has no captured packets");
         }
-        
+
         const auto& src_packets = src_it->second.packets;
         const auto& dst_packets = dst_it->second.packets;
-        
+
         if (src_packets.empty()) {
-            return DistributedMatchResult::failure(
-                "No packets captured on source node '" + src_node_ + "'"
-            );
+            return DistributedMatchResult::failure("No packets captured on source node '" +
+                                                   src_node_ + "'");
         }
-        
+
         if (dst_packets.empty()) {
-            return DistributedMatchResult::failure(
-                "No packets captured on destination node '" + dst_node_ + "'"
-            );
+            return DistributedMatchResult::failure("No packets captured on destination node '" +
+                                                   dst_node_ + "'");
         }
-        
+
         // For each packet on the source node, try to find a correlated packet on destination
         for (const auto& src_pkt : src_packets) {
             // Look for correlated packets in destination
@@ -64,17 +58,14 @@ public:
                 // Simple heuristic: packets that arrive within a reasonable time window
                 // and have similar sizes are likely correlated
                 if (packets_likely_correlated(src_pkt, dst_pkt)) {
-                    return DistributedMatchResult::success(
-                        src_pkt.timestamp().total_nanoseconds(),
-                        dst_pkt.timestamp().total_nanoseconds()
-                    );
+                    return DistributedMatchResult::success(src_pkt.timestamp().total_nanoseconds(),
+                                                           dst_pkt.timestamp().total_nanoseconds());
                 }
             }
         }
-        
-        return DistributedMatchResult::failure(
-            "No message flow detected from '" + src_node_ + "' to '" + dst_node_ + "'"
-        );
+
+        return DistributedMatchResult::failure("No message flow detected from '" + src_node_ +
+                                               "' to '" + dst_node_ + "'");
     }
 
     auto describe() const -> std::string override {
@@ -97,24 +88,21 @@ private:
         if (src.size() == 0 || dst.size() == 0) {
             return false;
         }
-        
+
         // Size should be within 10% or be similar protocol messages
         auto size_ratio = static_cast<double>(dst.size()) / static_cast<double>(src.size());
         if (size_ratio < 0.9 || size_ratio > 1.1) {
             return false;
         }
-        
+
         // Destination timestamp should be after source
         return dst.timestamp() >= src.timestamp();
     }
 };
 
-auto ExpectMessageFlow(std::string src_node, std::string dst_node)
-    -> std::unique_ptr<DistributedMatcher> {
-    return std::make_unique<ExpectMessageFlowImpl>(
-        std::move(src_node),
-        std::move(dst_node)
-    );
+auto ExpectMessageFlow(std::string src_node,
+                       std::string dst_node) -> std::unique_ptr<DistributedMatcher> {
+    return std::make_unique<ExpectMessageFlowImpl>(std::move(src_node), std::move(dst_node));
 }
 
 // T246, T311: ExpectMessageFlow with GoogleTest Matcher parameter
@@ -128,9 +116,8 @@ auto ExpectMessageFlow(std::string src_node, std::string dst_node,
     class GTestAwareExpectMessageFlow : public ExpectMessageFlowImpl {
     public:
         GTestAwareExpectMessageFlow(std::string src, std::string dst,
-                                   ::testing::Matcher<const PacketView&> inner_m)
-            : ExpectMessageFlowImpl(std::move(src), std::move(dst)),
-              inner_matcher_(inner_m) {}
+                                    ::testing::Matcher<const PacketView&> inner_m)
+            : ExpectMessageFlowImpl(std::move(src), std::move(dst)), inner_matcher_(inner_m) {}
 
         // Override evaluate to apply inner_matcher to filter candidate packets
         auto evaluate(const std::unordered_map<std::string, DistributedCaptureContext>& contexts)
@@ -195,9 +182,9 @@ auto ExpectMessageFlow(std::string src_node, std::string dst_node,
     private:
         ::testing::Matcher<const PacketView&> inner_matcher_;
     };
-    
-    return std::make_unique<GTestAwareExpectMessageFlow>(
-        std::move(src_node), std::move(dst_node), std::move(inner_matcher));
+
+    return std::make_unique<GTestAwareExpectMessageFlow>(std::move(src_node), std::move(dst_node),
+                                                         std::move(inner_matcher));
 }
 
 }  // namespace wadjet::distributed

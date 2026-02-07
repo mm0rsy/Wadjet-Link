@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
-
 #include "wadjet/distributed/config_loader.hpp"
+
+#include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include <filesystem>
 #include <fstream>
-#include <yaml-cpp/yaml.h>
-#include <nlohmann/json.hpp>
 
 namespace wadjet::distributed::testing {
 
@@ -17,18 +17,18 @@ using json = nlohmann::json;
 class ConfigLoaderTest : public ::testing::Test {
 protected:
     std::filesystem::path temp_dir_;
-    
+
     void SetUp() override {
         // Create temporary directory for test files
         temp_dir_ = std::filesystem::temp_directory_path() / "wadjet_config_test";
         std::filesystem::create_directories(temp_dir_);
     }
-    
+
     void TearDown() override {
         // Clean up temporary files
         std::filesystem::remove_all(temp_dir_);
     }
-    
+
     std::filesystem::path create_yaml_config(const std::string& content) {
         auto config_path = temp_dir_ / "nodes.yaml";
         std::ofstream file(config_path);
@@ -36,7 +36,7 @@ protected:
         file.close();
         return config_path;
     }
-    
+
     std::filesystem::path create_json_config(const std::string& content) {
         auto config_path = temp_dir_ / "nodes.json";
         std::ofstream file(config_path);
@@ -62,13 +62,13 @@ nodes:
       location: US-WEST
       priority: HIGH
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     ASSERT_EQ(result.value().size(), 1);
-    
+
     const auto& node = result.value()[0];
     EXPECT_EQ(node.id, "node-1");
     EXPECT_EQ(node.hostname, "192.168.1.1");
@@ -102,17 +102,17 @@ nodes:
     capture_interfaces:
       - eth0
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     ASSERT_EQ(result.value().size(), 3);
-    
+
     EXPECT_EQ(result.value()[0].id, "node-1");
     EXPECT_EQ(result.value()[1].id, "node-2");
     EXPECT_EQ(result.value()[2].id, "node-3");
-    
+
     EXPECT_EQ(result.value()[0].grpc_port, 50051);
     EXPECT_EQ(result.value()[1].grpc_port, 50052);
     EXPECT_EQ(result.value()[2].grpc_port, 50053);
@@ -124,7 +124,7 @@ nodes:
 TEST_F(ConfigLoaderTest, LoadNodesJSON) {
     json config_json;
     config_json["nodes"] = json::array();
-    
+
     json node1;
     node1["id"] = "node-1";
     node1["hostname"] = "192.168.1.1";
@@ -132,20 +132,20 @@ TEST_F(ConfigLoaderTest, LoadNodesJSON) {
     node1["capture_interfaces"] = {"eth0", "eth1"};
     node1["metadata"]["location"] = "US-WEST";
     config_json["nodes"].push_back(node1);
-    
+
     json node2;
     node2["id"] = "node-2";
     node2["hostname"] = "192.168.1.2";
     node2["grpc_port"] = 50052;
     node2["capture_interfaces"] = {"eth0"};
     config_json["nodes"].push_back(node2);
-    
+
     auto config_path = create_json_config(config_json.dump(2));
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     ASSERT_EQ(result.value().size(), 2);
-    
+
     const auto& node = result.value()[0];
     EXPECT_EQ(node.id, "node-1");
     EXPECT_EQ(node.hostname, "192.168.1.1");
@@ -163,10 +163,10 @@ nodes:
     hostname: 192.168.1.1
     # missing grpc_port
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), "MISSING_FIELD");
 }
@@ -181,10 +181,10 @@ nodes:
     hostname: 192.168.1.1
     grpc_port: 50051
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), "INVALID_NODE");
 }
@@ -194,10 +194,10 @@ nodes:
  */
 TEST_F(ConfigLoaderTest, ErrorEmptyConfiguration) {
     std::string yaml_content = "nodes: []";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), "EMPTY_CONFIG");
 }
@@ -208,7 +208,7 @@ TEST_F(ConfigLoaderTest, ErrorEmptyConfiguration) {
 TEST_F(ConfigLoaderTest, ErrorFileNotFound) {
     auto non_existent = temp_dir_ / "non_existent.yaml";
     auto result = ConfigLoader::load_nodes(non_existent);
-    
+
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), "CONFIG_NOT_FOUND");
 }
@@ -221,9 +221,9 @@ TEST_F(ConfigLoaderTest, ErrorUnsupportedFormat) {
     std::ofstream file(config_path);
     file << "invalid format";
     file.close();
-    
+
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code(), "UNSUPPORTED_FORMAT");
 }
@@ -238,10 +238,10 @@ nodes:
     hostname: 192.168.1.1
     grpc_port: 50051
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     EXPECT_EQ(result.value()[0].version, "1.0");
 }
@@ -257,10 +257,10 @@ nodes:
     grpc_port: 50051
     version: "2.0"
 )";
-    
+
     auto config_path = create_yaml_config(yaml_content);
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     EXPECT_EQ(result.value()[0].version, "2.0");
 }
@@ -275,14 +275,14 @@ nodes:
     hostname: 192.168.1.1
     grpc_port: 50051
 )";
-    
+
     auto config_path = temp_dir_ / "nodes.yml";
     std::ofstream file(config_path);
     file << yaml_content;
     file.close();
-    
+
     auto result = ConfigLoader::load_nodes(config_path);
-    
+
     ASSERT_TRUE(result);
     EXPECT_EQ(result.value()[0].id, "node-1");
 }

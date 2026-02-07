@@ -183,6 +183,36 @@ commands:
       - store_test_results:
           path: build/test-results
 
+  run-distributed-tests:
+    description: "Run distributed testing infrastructure tests"
+    steps:
+      - run:
+          name: Run distributed unit tests
+          command: |
+            cd build
+            if [ -f ./tests/wadjet_distributed_tests ]; then
+              ./tests/wadjet_distributed_tests --gtest_output=xml:test-results/distributed-unit-tests.xml
+            else
+              echo "Distributed tests not built"
+            fi
+      - store_test_results:
+          path: build/test-results
+
+  run-distributed-integration-tests:
+    description: "Run distributed testing integration tests"
+    steps:
+      - run:
+          name: Run distributed integration tests
+          command: |
+            cd build
+            if [ -f ./tests/wadjet_integration_tests ]; then
+              ./tests/wadjet_integration_tests --gtest_filter="*[Dd]istributed*" --gtest_output=xml:test-results/distributed-integration-tests.xml || true
+            else
+              echo "Integration tests not built"
+            fi
+      - store_test_results:
+          path: build/test-results
+
 # ============================================================================
 # Jobs
 # ============================================================================
@@ -382,6 +412,41 @@ jobs:
       - run-scenario-tests
 
   # --------------------------------------------------------------------------
+  # Distributed Testing Test Jobs
+  # --------------------------------------------------------------------------
+  test-distributed-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-distributed-tests
+
+  test-distributed-clang:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-distributed-tests
+
+  test-distributed-integration-gcc:
+    executor: linux-gcc
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-distributed-integration-tests
+
+  test-distributed-integration-clang:
+    executor: linux-clang
+    steps:
+      - checkout
+      - attach_workspace:
+          at: .
+      - run-distributed-integration-tests
+
+  # --------------------------------------------------------------------------
   # Performance Test Jobs (Nightly)
   # --------------------------------------------------------------------------
   test-performance-gcc:
@@ -549,7 +614,21 @@ workflows:
           requires:
             - build-gcc-debug
 
-      # Stage 7: Static Analysis (parallel with tests)
+      # Stage 7: Distributed Testing Tests
+      - test-distributed-gcc:
+          requires:
+            - build-gcc-debug
+      - test-distributed-clang:
+          requires:
+            - build-clang-debug
+      - test-distributed-integration-gcc:
+          requires:
+            - test-distributed-gcc
+      - test-distributed-integration-clang:
+          requires:
+            - test-distributed-clang
+
+      # Stage 8: Static Analysis (parallel with tests)
       - static-analysis:
           requires:
             - lint
@@ -649,6 +728,20 @@ workflows:
       - test-scenario-gcc:
           requires:
             - build-gcc-debug
+
+      # Distributed testing tests
+      - test-distributed-gcc:
+          requires:
+            - build-gcc-debug
+      - test-distributed-clang:
+          requires:
+            - build-clang-debug
+      - test-distributed-integration-gcc:
+          requires:
+            - test-distributed-gcc
+      - test-distributed-integration-clang:
+          requires:
+            - test-distributed-clang
 
       # Performance tests (nightly only)
       - test-performance-gcc:

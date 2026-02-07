@@ -210,14 +210,10 @@ public:
     std::vector<NodeDefinition> nodes_;
     std::vector<NodeAssignment> node_assignments_;
     std::vector<DistributedStep> steps_;
-    
-    auto id() const -> const std::string& override {
-        return scenario_id;
-    }
-    
-    auto name() const -> const std::string& override {
-        return scenario_name;
-    }
+
+    auto id() const -> const std::string& override { return scenario_id; }
+
+    auto name() const -> const std::string& override { return scenario_name; }
 
     auto tags() const -> const std::vector<std::string>& override { return tags_; }
 
@@ -226,16 +222,13 @@ public:
     auto node_assignments() const -> const std::vector<NodeAssignment>& override {
         return node_assignments_;
     }
-    
-    auto steps() const -> const std::vector<DistributedStep>& override {
-        return steps_;
-    }
-    
-    auto steps_for_node(const std::string& node_id) const
-        -> std::vector<DistributedStep> override {
+
+    auto steps() const -> const std::vector<DistributedStep>& override { return steps_; }
+
+    auto steps_for_node(const std::string& node_id) const -> std::vector<DistributedStep> override {
         // T077: Scenario decomposition - return steps targeted to this node
         std::vector<DistributedStep> result;
-        
+
         for (const auto& step : steps_) {
             // Check if step targets this node or all nodes
             if (step.target_nodes.empty()) {
@@ -243,53 +236,50 @@ public:
                 result.push_back(step);
             } else {
                 // Check if node_id is in target_nodes
-                auto it = std::find(step.target_nodes.begin(), 
-                                   step.target_nodes.end(), 
-                                   node_id);
+                auto it = std::find(step.target_nodes.begin(), step.target_nodes.end(), node_id);
                 if (it != step.target_nodes.end()) {
                     result.push_back(step);
                 }
             }
         }
-        
+
         return result;
     }
-    
-    auto description() const -> const std::string& override {
-        return description_text;
-    }
-    
+
+    auto description() const -> const std::string& override { return description_text; }
+
     auto validate() const -> bool override {
         // T074: Validate scenario consistency
-        
+
         // Check required fields
         if (scenario_id.empty()) {
             return false;
         }
-        
+
         // Check that all referenced nodes in steps exist in assignments
         std::unordered_set<std::string> assigned_nodes;
         for (const auto& assignment : node_assignments_) {
             assigned_nodes.insert(assignment.node_id);
         }
-        
+
         for (const auto& step : steps_) {
             for (const auto& node_id : step.target_nodes) {
                 if (assigned_nodes.find(node_id) == assigned_nodes.end()) {
                     return false;  // Referenced node not assigned
                 }
             }
-            
+
             // Check dependencies
             if (!step.depends_on.empty()) {
-                auto it = std::find_if(steps_.begin(), steps_.end(),
+                auto it = std::find_if(
+                    steps_.begin(), steps_.end(),
                     [&step](const DistributedStep& s) { return s.step_id == step.depends_on; });
                 if (it == steps_.end()) {
                     return false;  // Dependency not found
                 }
             }
         }
-        
+
         return true;
     }
 };
@@ -297,12 +287,11 @@ public:
 // T075: Parse YAML scenario
 auto DistributedScenario::from_yaml(const std::string& yaml_file)
     -> std::unique_ptr<DistributedScenario> {
-    
     std::ifstream file(yaml_file);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open YAML file: " + yaml_file);
     }
-    
+
     std::stringstream buffer;
     buffer << file.rdbuf();
     return from_yaml_string(buffer.str());
@@ -315,7 +304,7 @@ auto DistributedScenario::from_yaml_string(const std::string& yaml_content)
     // Parses: scenario metadata, node_assignments array, and all step types
 
     auto scenario = std::make_unique<DistributedScenarioImpl>();
-    
+
     try {
         // Parse YAML content using yaml-cpp
         YAML::Node root = YAML::Load(yaml_content);
@@ -379,7 +368,7 @@ auto DistributedScenario::from_yaml_string(const std::string& yaml_content)
             throw std::runtime_error(
                 "Scenario validation failed: missing nodes or broken dependencies");
         }
-        
+
         return scenario;
     } catch (const YAML::Exception& e) {
         throw std::runtime_error(std::string("YAML parsing error: ") + e.what());
@@ -391,12 +380,11 @@ auto DistributedScenario::from_yaml_string(const std::string& yaml_content)
 // T076: Parse JSON scenario
 auto DistributedScenario::from_json(const std::string& json_file)
     -> std::unique_ptr<DistributedScenario> {
-    
     std::ifstream file(json_file);
     if (!file.is_open()) {
         throw std::runtime_error("Cannot open JSON file: " + json_file);
     }
-    
+
     std::stringstream buffer;
     buffer << file.rdbuf();
     return from_json_string(buffer.str());
@@ -408,24 +396,24 @@ auto DistributedScenario::from_json_string(const std::string& json_content)
     // T304-T305: JSON parsing using nlohmann_json library with full step parsing
 
     auto scenario = std::make_unique<DistributedScenarioImpl>();
-    
+
     try {
         // Parse JSON content using nlohmann_json
         auto root = nlohmann::json::parse(json_content);
-        
+
         // Extract scenario metadata
         if (root.contains("scenario_id")) {
             scenario->scenario_id = root["scenario_id"].get<std::string>();
         } else {
             scenario->scenario_id = "default-scenario";
         }
-        
+
         if (root.contains("scenario_name")) {
             scenario->scenario_name = root["scenario_name"].get<std::string>();
         } else {
             scenario->scenario_name = "JSON Scenario";
         }
-        
+
         if (root.contains("description")) {
             scenario->description_text = root["description"].get<std::string>();
         } else {

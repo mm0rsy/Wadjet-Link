@@ -1,6 +1,7 @@
 #include "wadjet/distributed/grpc/client.hpp"
-#include "wadjet/distributed/types.hpp"
+
 #include "wadjet/distributed/sync_barrier.hpp"
+#include "wadjet/distributed/types.hpp"
 
 // Proto generated includes with compiler warning suppression
 #pragma GCC diagnostic push
@@ -13,6 +14,7 @@
 
 #include <grpcpp/client_context.h>
 #include <grpcpp/create_channel.h>
+
 #include <fstream>
 #include <sstream>
 
@@ -30,29 +32,28 @@ auto DistributedTestClient::create(const std::string& coordinator_address)
 }
 
 // T261: Create client with TLS credentials
-auto DistributedTestClient::create_with_tls(const std::string& coordinator_address,
-                                            const std::string& tls_cert_path,
-                                            const std::string& tls_key_path,
-                                            const std::string& tls_ca_path)
-    -> std::unique_ptr<DistributedTestClient> {
+auto DistributedTestClient::create_with_tls(
+    const std::string& coordinator_address, const std::string& tls_cert_path,
+    const std::string& tls_key_path,
+    const std::string& tls_ca_path) -> std::unique_ptr<DistributedTestClient> {
     auto client = std::make_unique<DistributedTestClient>(coordinator_address);
-    
+
     // Load TLS credentials from files
     std::ifstream cert_file(tls_cert_path);
     std::ifstream key_file(tls_key_path);
     std::ifstream ca_file(tls_ca_path);
-    
+
     if (!cert_file || !key_file) {
         return nullptr;  // TLS files not found
     }
-    
+
     std::stringstream cert_stream, key_stream, ca_stream;
     cert_stream << cert_file.rdbuf();
     key_stream << key_file.rdbuf();
     if (ca_file) {
         ca_stream << ca_file.rdbuf();
     }
-    
+
     // Create SslCredentialsOptions with client certificate
     grpc::SslCredentialsOptions opts;
     opts.pem_client_cert_chain = cert_stream.str();
@@ -60,10 +61,10 @@ auto DistributedTestClient::create_with_tls(const std::string& coordinator_addre
     if (!ca_stream.str().empty()) {
         opts.pem_root_certs = ca_stream.str();
     }
-    
+
     client->tls_credentials_ = grpc::SslCredentials(opts);
     client->use_tls_ = true;
-    
+
     if (client->connect()) {
         return client;
     }
@@ -88,19 +89,16 @@ auto DistributedTestClient::connect() -> bool {
         } else {
             credentials = grpc::InsecureChannelCredentials();
         }
-        
-        channel_ = grpc::CreateChannel(
-            coordinator_address_,
-            credentials
-        );
-        
+
+        channel_ = grpc::CreateChannel(coordinator_address_, credentials);
+
         if (!channel_) {
             return false;
         }
-        
+
         // Create stub for the DistributedTestService
         stub_ = DistributedTestService::NewStub(channel_);
-        
+
         return true;
     } catch (...) {
         return false;
@@ -112,35 +110,35 @@ auto DistributedTestClient::register_node(const NodeInfo& node_info) -> bool {
     if (!stub_) {
         return false;
     }
-    
+
     try {
         RegisterNodeRequest request;
         RegisterNodeResponse response;
-        
+
         // Populate request from node info
         request.set_node_id(node_info.id);
         request.set_hostname(node_info.hostname);
-        
+
         for (const auto& iface : node_info.capture_interfaces) {
             request.add_capture_interfaces(iface);
         }
-        
+
         for (const auto& [key, value] : node_info.metadata) {
             (*request.mutable_metadata())[key] = value;
         }
-        
+
         // Set protocol version
         auto version = request.mutable_protocol_version();
         version->set_major(1);
         version->set_minor(0);
         version->set_patch(0);
-        
+
         // Call RegisterNode RPC
         grpc::ClientContext context;
         context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(5));
-        
+
         grpc::Status status = stub_->RegisterNode(&context, request, &response);
-        
+
         return status.ok() && response.success();
     } catch (...) {
         return false;
@@ -153,34 +151,33 @@ auto DistributedTestClient::send_heartbeat(const std::string& node_id,
     if (!stub_) {
         return false;
     }
-    
+
     try {
         grpc::ClientContext context;
         context.set_deadline(std::chrono::system_clock::now() + timeout_ms);
-        
+
         auto stream = stub_->Heartbeat(&context);
-        
+
         // Send heartbeat request
         HeartbeatRequest request;
         request.set_node_id(node_id);
-        request.set_timestamp_ns(
-            static_cast<int64_t>(std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count())
-        );
-        
+        request.set_timestamp_ns(static_cast<int64_t>(
+            std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count()));
+
         if (!stream->Write(request)) {
             return false;
         }
-        
+
         // Read response
         HeartbeatResponse response;
         if (!stream->Read(&response)) {
             return false;
         }
-        
+
         // Close stream
         stream->WritesDone();
         grpc::Status status = stream->Finish();
-        
+
         return status.ok() && response.acknowledged();
     } catch (...) {
         return false;
@@ -188,48 +185,46 @@ auto DistributedTestClient::send_heartbeat(const std::string& node_id,
 }
 
 // T206: WaitBarrier RPC client call
-auto DistributedTestClient::wait_barrier(const std::string& node_id,
-                                        const std::string& barrier_id,
-                                        std::chrono::milliseconds timeout_ms) -> BarrierResult {
+auto DistributedTestClient::wait_barrier(const std::string& node_id, const std::string& barrier_id,
+                                         std::chrono::milliseconds timeout_ms) -> BarrierResult {
     BarrierResult result;
-    
+
     if (!stub_) {
         return result;
     }
-    
+
     try {
         WaitBarrierRequest request;
         WaitBarrierResponse response;
-        
+
         request.set_node_id(node_id);
         request.set_barrier_id(barrier_id);
-        request.set_arrival_timestamp_ns(
-            static_cast<int64_t>(std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count())
-        );
-        
+        request.set_arrival_timestamp_ns(static_cast<int64_t>(
+            std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count()));
+
         // Call WaitBarrier RPC
         grpc::ClientContext context;
         context.set_deadline(std::chrono::system_clock::now() + timeout_ms);
-        
+
         grpc::Status status = stub_->WaitBarrier(&context, request, &response);
-        
+
         if (!status.ok()) {
             return result;
         }
-        
+
         // Convert proto response to BarrierResult
         result.proceed = response.proceed();
         result.sync_timestamp_ns = response.sync_timestamp_ns();
         result.wait_duration = std::chrono::milliseconds(response.wait_duration_ms());
-        
+
         for (const auto& node : response.participating_nodes()) {
             result.participating_nodes.push_back(node);
         }
-        
+
         for (const auto& node : response.missing_nodes()) {
             result.missing_nodes.push_back(node);
         }
-        
+
         return result;
     } catch (...) {
         return result;

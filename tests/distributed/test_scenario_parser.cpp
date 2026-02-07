@@ -1,5 +1,6 @@
-#include <gtest/gtest.h>
 #include "wadjet/distributed/scenario.hpp"
+
+#include <gtest/gtest.h>
 
 namespace wadjet::distributed {
 
@@ -481,8 +482,9 @@ TEST_F(DistributedScenarioParserTest, JSONBarrierStepParsing) {
     ASSERT_NE(nullptr, scenario);
     const auto& steps = scenario->steps();
 
-    auto barrier_it = std::find_if(steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.type == StepType::BARRIER; });
+    auto barrier_it = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.type == StepType::BARRIER;
+    });
 
     ASSERT_NE(barrier_it, steps.end());
     const auto& barrier_cfg = std::get<BarrierStepConfig>(barrier_it->config);
@@ -498,8 +500,9 @@ TEST_F(DistributedScenarioParserTest, JSONCaptureStepParsing) {
     ASSERT_NE(nullptr, scenario);
     const auto& steps = scenario->steps();
 
-    auto capture_it = std::find_if(steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.type == StepType::CAPTURE; });
+    auto capture_it = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.type == StepType::CAPTURE;
+    });
 
     ASSERT_NE(capture_it, steps.end());
     const auto& cap_cfg = std::get<CaptureStepConfig>(capture_it->config);
@@ -517,8 +520,9 @@ TEST_F(DistributedScenarioParserTest, JSONExpectStepParsing) {
     ASSERT_NE(nullptr, scenario);
     const auto& steps = scenario->steps();
 
-    auto expect_it = std::find_if(steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.type == StepType::EXPECT; });
+    auto expect_it = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.type == StepType::EXPECT;
+    });
 
     ASSERT_NE(expect_it, steps.end());
     const auto& exp_cfg = std::get<ExpectStepConfig>(expect_it->config);
