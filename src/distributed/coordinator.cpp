@@ -1,6 +1,8 @@
 #include "wadjet/distributed/coordinator.hpp"
 
 #include "wadjet/distributed/grpc/service.hpp"
+#include "wadjet/distributed/scenario.hpp"
+#include "wadjet/distributed/result_aggregation.hpp"
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server.h>
@@ -9,6 +11,8 @@
 #include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <fstream>
+#include <filesystem>
 #include <mutex>
 #include <set>
 #include <thread>
@@ -261,12 +265,16 @@ public:
     }
     
     /// Update heartbeat timestamp for a node
-    auto update_node_heartbeat(const NodeId& node_id) -> void {
+    auto update_node_heartbeat(const NodeId& node_id) -> Result<void> override {
         std::lock_guard<std::mutex> lock(mutex_);
         
-        if (node_last_heartbeat_.count(node_id) > 0) {
-            node_last_heartbeat_[node_id] = std::chrono::system_clock::now();
+        auto it = node_last_heartbeat_.find(node_id);
+        if (it == node_last_heartbeat_.end()) {
+            return Result<void>(Error::make("NOT_FOUND", "Node not registered"));
         }
+
+        it->second = std::chrono::system_clock::now();
+        return Result<void>();
     }
     
     /// T033: Abort test execution with partial result collection
@@ -317,6 +325,108 @@ public:
     auto get_failed_nodes() const -> std::vector<NodeId> {
         std::lock_guard<std::mutex> lock(mutex_);
         return aborted_nodes_;
+    }
+
+    /// T082: Load scenario from file (YAML or JSON)
+    auto load_scenario(const std::string& scenario_file) -> Result<void> override {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if (!is_running_) {
+            return Result<void>(Error::make("NOT_RUNNING", "Coordinator not running"));
+        }
+
+        // Parse scenario file using DistributedScenario
+        auto parse_result = DistributedScenario::parse_yaml_file(scenario_file);
+        if (!parse_result.is_ok()) {
+            return Result<void>(parse_result.unwrap_err());
+        }
+
+        // Store scenario for later execution
+        current_scenario_ = parse_result.unwrap();
+
+        return Result<void>();
+    }
+
+    /// T083: Execute loaded scenario across all nodes
+    auto run_scenario(std::chrono::milliseconds timeout = std::chrono::milliseconds{
+        30000 }) -> Result<void> override {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if (!is_running_) {
+            return Result<void>(Error::make("NOT_RUNNING", "Coordinator not running"));
+        }
+
+        if (!current_scenario_) {
+            return Result<void>(Error::make("NO_SCENARIO", "No scenario loaded"));
+        }
+
+        // Execute scenario steps sequentially or in parallel based on step configuration
+        for (const auto& step : current_scenario_->steps) {
+            // TODO T078-T080: Implement scenario step execution logic
+            // This includes barrier synchronization, capture control, assertions
+        }
+
+        return Result<void>();
+    }
+
+    /// T090: Collect results from all nodes
+    auto collect_results(
+        std::vector<NodeId> target_nodes = {}) -> Result<std::vector<AssertionResult>> override {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if (!is_running_) {
+            return Result<std::vector<AssertionResult>>(
+                Error::make("NOT_RUNNING", "Coordinator not running"));
+        }
+
+        if (target_nodes.empty()) {
+            // Collect from all registered nodes
+            for (const auto& [node_id, _] : nodes_) {
+                target_nodes.push_back(node_id);
+            }
+        }
+
+        std::vector<AssertionResult> all_results;
+
+        // TODO T089: Implement RPC to ReportResult for each node to gather results
+        // For now, return empty results
+        for (const auto& node_id : target_nodes) {
+            // In real implementation, call gRPC ReportResult RPC
+            // all_results.push_back(...);
+        }
+
+        return Result<std::vector<AssertionResult>>(all_results);
+    }
+
+    /// T091-T093: Export aggregated result to JUnit XML
+    auto export_junit(const AggregatedResult& aggregated_result,
+                      const std::filesystem::path& output_file)
+        -> Result<void> override {
+        try {
+            auto xml_content = aggregated_result.to_junit_xml();
+            std::ofstream file(output_file);
+            if (!file) {
+                return Result<void>(
+                    Error::make("FILE_ERROR", "Cannot open file: " + output_file.string()));
+            }
+            file << xml_content;
+            file.close();
+            return Result<void>();
+        } catch (const std::exception& e) {
+            return Result<void>(
+                Error::make("EXPORT_ERROR", std::string("Failed to export JUnit XML: ") + e.what()));
+        }
+    }
+
+    /// T090: Get aggregated result from all nodes
+    auto get_aggregated_result() const -> std::optional<AggregatedResult> override {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        if (!aggregated_result_) {
+            return std::nullopt;
+        }
+
+        return aggregated_result_;
     }
 
     /// T042: Synchronize capture start across nodes with <10ms jitter
@@ -420,6 +530,10 @@ private:
     // T227: gRPC server and service
     std::unique_ptr<grpc::Server> grpc_server_;
     std::unique_ptr<DistributedTestServiceImpl> grpc_service_;
+
+    // T082-T090: Scenario management and results
+    std::optional<DistributedScenario> current_scenario_;
+    std::optional<AggregatedResult> aggregated_result_;
 
     std::unordered_map<NodeId, NodeInfo> nodes_;
     std::unordered_map<NodeId, std::chrono::system_clock::time_point> node_last_heartbeat_;

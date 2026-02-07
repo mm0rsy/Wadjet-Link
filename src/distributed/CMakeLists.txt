@@ -29,6 +29,12 @@ add_library(wadjet_distributed
     matchers/happens_before.cpp
     matchers/must_not_see_on.cpp
     
+    # Scenario management
+    scenario.cpp
+    
+    # Results aggregation
+    result_aggregation.cpp
+    
     # Coordinator and Node
     coordinator.cpp
     node.cpp
