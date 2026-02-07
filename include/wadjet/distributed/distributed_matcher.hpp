@@ -8,6 +8,12 @@
 
 #include "wadjet/net/packet.hpp"
 
+// Forward declaration for GoogleTest Matcher support (T217)
+namespace testing {
+template <typename T>
+class Matcher;
+}
+
 namespace wadjet::distributed {
 
 /**
@@ -113,6 +119,21 @@ auto ExpectMessageFlow(std::string src_node,
     -> std::unique_ptr<DistributedMatcher>;
 
 /**
+ * @brief Factory for ExpectMessageFlow matcher with packet content matching
+ *
+ * T217: Version that filters packets by content using GoogleTest Matcher.
+ * Only packets matching the inner_matcher are considered for correlation.
+ *
+ * @param src_node Source node ID
+ * @param dst_node Destination node ID
+ * @param inner_matcher GoogleTest Matcher for packet content
+ * @return Unique pointer to matcher
+ */
+auto ExpectMessageFlow(std::string src_node, std::string dst_node,
+                       ::testing::Matcher<const PacketView&> inner_matcher)
+    -> std::unique_ptr<DistributedMatcher>;
+
+/**
  * @brief Factory for WithinLatency matcher
  * 
  * T060: Asserts that latency between nodes is within specified limit
@@ -139,6 +160,22 @@ auto HappensBefore(std::string event_a_node,
     -> std::unique_ptr<DistributedMatcher>;
 
 /**
+ * @brief Factory for HappensBefore matcher with packet content matching
+ *
+ * T217: Version that filters packets by content using GoogleTest Matcher.
+ * Only packets matching the respective matchers are considered for causality check.
+ *
+ * @param event_a_node Node where first event occurs
+ * @param event_a_matcher GoogleTest Matcher for first event packets
+ * @param event_b_node Node where second event occurs
+ * @param event_b_matcher GoogleTest Matcher for second event packets
+ * @return Unique pointer to matcher
+ */
+auto HappensBefore(std::string event_a_node, ::testing::Matcher<const PacketView&> event_a_matcher,
+                   std::string event_b_node, ::testing::Matcher<const PacketView&> event_b_matcher)
+    -> std::unique_ptr<DistributedMatcher>;
+
+/**
  * @brief Factory for MustNotSeeOn matcher
  * 
  * T061: Asserts negative condition (packet must NOT appear on specified node)
@@ -147,6 +184,19 @@ auto HappensBefore(std::string event_a_node,
  * @return Unique pointer to matcher
  */
 auto MustNotSeeOn(std::string node)
+    -> std::unique_ptr<DistributedMatcher>;
+
+/**
+ * @brief Factory for MustNotSeeOn matcher with packet content matching
+ *
+ * T217: Version that filters packets by content using GoogleTest Matcher.
+ * Asserts that no packets matching the matcher appear on the specified node.
+ *
+ * @param node Node ID to check
+ * @param matcher GoogleTest Matcher for packet content to exclude
+ * @return Unique pointer to matcher
+ */
+auto MustNotSeeOn(std::string node, ::testing::Matcher<const PacketView&> matcher)
     -> std::unique_ptr<DistributedMatcher>;
 
 }  // namespace wadjet::distributed
