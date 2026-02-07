@@ -5,10 +5,12 @@
 #include <memory>
 #include <chrono>
 #include <functional>
+#include <optional>
 
 #include "types.hpp"
 #include "result.hpp"
 #include "sync_barrier.hpp"
+#include "result_aggregation.hpp"
 
 namespace wadjet::distributed {
 
@@ -250,6 +252,41 @@ public:
      */
     virtual auto run_scenario(std::chrono::milliseconds timeout = std::chrono::milliseconds{
                                   60000}) -> Result<void> = 0;
+
+    /**
+     * @brief Collect results from all nodes
+     *
+     * T090: Aggregate test results from all participating nodes
+     * Waits for each node to report its results and combines them into
+     * a single AggregatedResult structure.
+     *
+     * @param timeout Maximum time to wait for all nodes to report
+     * @return Result containing aggregated results from all nodes
+     */
+    virtual auto collect_results(
+        std::chrono::milliseconds timeout = std::chrono::milliseconds{30000})
+        -> Result<AggregatedResult> = 0;
+
+    /**
+     * @brief Export aggregated results to JUnit XML file
+     *
+     * T096: Write test results to JUnit XML format for CI integration
+     * Saves aggregated results in standard JUnit XML format that can be
+     * parsed by Jenkins, GitLab CI, GitHub Actions, etc.
+     *
+     * @param aggregated_result The aggregated test results
+     * @param output_file Path to write the XML file to
+     * @return Result indicating success or failure
+     */
+    virtual auto export_junit(const AggregatedResult& aggregated_result,
+                             const std::string& output_file) -> Result<void> = 0;
+
+    /**
+     * @brief Get current aggregated results
+     *
+     * @return Reference to current aggregated result (if any)
+     */
+    virtual auto get_aggregated_result() const -> std::optional<AggregatedResult> = 0;
 
 protected:
     TestCoordinator() = default;

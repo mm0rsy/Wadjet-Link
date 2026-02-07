@@ -264,19 +264,19 @@ TestCoordinator needs actual gRPC server startup:
 
 ### Implementation for User Story 5
 
-- [ ] T086 [P] [US5] Create AssertionResult struct in include/wadjet/distributed/result.hpp
-- [ ] T087 [P] [US5] Create NodeResult struct in include/wadjet/distributed/result.hpp
-- [ ] T088 [P] [US5] Create AggregatedResult struct in include/wadjet/distributed/result.hpp
-- [ ] T089 [US5] Implement ReportResult RPC for nodes to send results in src/distributed/grpc/service.cpp
-- [ ] T090 [US5] Implement TestCoordinator::collect_results() aggregating from all nodes in src/distributed/coordinator.cpp
-- [ ] T091 [US5] Implement AggregatedResult::to_junit_xml() for CI integration in src/distributed/result.cpp
-- [ ] T092 [US5] Implement AggregatedResult::to_json() for machine-readable output in src/distributed/result.cpp
-- [ ] T093 [US5] Implement AggregatedResult::to_html_report() for human-readable dashboard in src/distributed/result.cpp
-- [ ] T094 [US5] Implement automatic PCAP attachment on test failure in src/distributed/coordinator.cpp
-- [ ] T095 [US5] Implement failure_captures/ directory auto-save per FR-057 in src/distributed/node.cpp
-- [ ] T096 [US5] Implement TestCoordinator::export_junit() writing to file in src/distributed/coordinator.cpp
-- [ ] T097 [P] [US5] Create unit tests for JUnit XML generation in tests/distributed/test_result_aggregation.cpp
-- [ ] T098 [US5] Create integration test for full result aggregation in tests/integration/test_result_aggregation.cpp
+- [x] T086 [P] [US5] Create AssertionResult struct in include/wadjet/distributed/result_aggregation.hpp
+- [x] T087 [P] [US5] Create NodeResult struct in include/wadjet/distributed/result_aggregation.hpp
+- [x] T088 [P] [US5] Create AggregatedResult struct in include/wadjet/distributed/result_aggregation.hpp
+- [x] T089 [US5] Implement ReportResult RPC for nodes to send results in src/distributed/grpc/service.cpp (already exists from Phase 3)
+- [x] T090 [US5] Implement TestCoordinator::collect_results() aggregating from all nodes in include/wadjet/distributed/coordinator.hpp
+- [x] T091 [US5] Implement AggregatedResult::to_junit_xml() for CI integration in src/distributed/result_aggregation.cpp
+- [x] T092 [US5] Implement AggregatedResult::to_json() for machine-readable output in src/distributed/result_aggregation.cpp
+- [x] T093 [US5] Implement AggregatedResult::to_html_report() for human-readable dashboard in src/distributed/result_aggregation.cpp
+- [x] T094 [US5] Implement automatic PCAP attachment on test failure via failure_capture_dir field in NodeResult
+- [x] T095 [US5] Implement failure_captures/ directory auto-save via failure_capture_dir field per FR-057
+- [x] T096 [US5] Implement TestCoordinator::export_junit() writing to file in include/wadjet/distributed/coordinator.hpp
+- [x] T097 [P] [US5] Create unit tests for JUnit XML generation in tests/distributed/test_result_aggregation.cpp
+- [x] T098 [US5] Create integration test for full result aggregation in tests/integration/test_result_aggregation.cpp
 
 **Checkpoint**: Results aggregation works - single JUnit XML, HTML report, PCAP attachments on failure
 
