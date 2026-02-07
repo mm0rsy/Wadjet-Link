@@ -1,11 +1,14 @@
 #include "wadjet/distributed/message_correlator.hpp"
 
-#include <map>
-#include <unordered_map>
+#include "wadjet/protocols/diagnostic/uds_doip_decoder.hpp"
+
 #include <openssl/evp.h>
 #include <openssl/sha.h>
+
 #include <iomanip>
+#include <map>
 #include <sstream>
+#include <unordered_map>
 
 namespace wadjet::distributed {
 
@@ -108,17 +111,54 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
                 break;
             }
             case CorrelationMethod::TransactionId: {
-                // T250: Extract transaction ID from protocol headers
-                // DoIP/UDS transaction ID, SOME/IP Request/Response ID, etc.
+                // T315: Extract transaction ID using M9 UdsOverDoipDecoder API
+                // Supports DoIP/UDS, SOME/IP Request/Response ID, and other protocols
+                corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+
                 try {
-                    // Try to extract DoIP transaction ID (UDS over IP)
-                    // DoIP header has transaction info at specific offsets
-                    corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
-                    
+                    // Try to decode as UDS over DoIP using M9 decoder
+                    protocols::diagnostic::UdsOverDoipDecoder doip_decoder;
+                    auto doip_result = doip_decoder.decode(packet.view().as_bytes());
+
+                    if (doip_result) {
+                        // Successfully decoded UDS over DoIP
+                        const auto& uds_doip = doip_result.value();
+
+                        // Create transaction ID from UDS header info
+                        // Use combination of source/target addresses and service ID
+                        uint32_t txn_id = 0;
+                        txn_id = (static_cast<uint32_t>(uds_doip.source_address) << 16) |
+                                 (static_cast<uint32_t>(uds_doip.target_address) & 0xFFFF);
+
+                        // Include UDS service ID for finer correlation
+                        uint8_t service_id = static_cast<uint8_t>(uds_doip.service_id());
+                        txn_id = (txn_id << 8) | service_id;
+
+                        if (txn_id != 0) {
+                            corr_id = "doip_txn_" + std::to_string(txn_id);
+                        }
+                    } else {
+                        // Not a UDS over DoIP message, try other correlation methods
+                        // Fall back to extracting potential transaction ID from raw headers
+                        if (packet.view().size() >= 8) {
+                            auto raw_data = packet.view().data();
+                            if (raw_data) {
+                                // Extract potential transaction ID from common protocol headers
+                                uint32_t txn_id = (static_cast<uint32_t>(raw_data[4]) << 24) |
+                                                  (static_cast<uint32_t>(raw_data[5]) << 16) |
+                                                  (static_cast<uint32_t>(raw_data[6]) << 8) |
+                                                  (static_cast<uint32_t>(raw_data[7]));
+                                if (txn_id != 0) {
+                                    corr_id = "txn_" + std::to_string(txn_id);
+                                }
+                            }
+                        }
+                    }
+                } catch (const std::exception& e) {
+                    // If M9 decoder throws, fall back to manual extraction
                     if (packet.view().size() >= 8) {
                         auto raw_data = packet.view().data();
                         if (raw_data) {
-                            // Extract potential transaction ID from common protocol headers
                             uint32_t txn_id = (static_cast<uint32_t>(raw_data[4]) << 24) |
                                              (static_cast<uint32_t>(raw_data[5]) << 16) |
                                              (static_cast<uint32_t>(raw_data[6]) << 8) |
@@ -128,8 +168,6 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
                             }
                         }
                     }
-                } catch (...) {
-                    corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
                 }
                 break;
             }
