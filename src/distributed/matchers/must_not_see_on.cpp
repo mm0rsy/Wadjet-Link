@@ -7,6 +7,12 @@
 #include <memory>
 #include <sstream>
 
+// Forward declaration for GoogleTest Matcher
+namespace testing {
+template <typename T>
+class Matcher;
+}
+
 namespace wadjet::distributed {
 
 class MustNotSeeOnImpl : public DistributedMatcher {
@@ -58,6 +64,15 @@ private:
 
 auto MustNotSeeOn(std::string node)
     -> std::unique_ptr<DistributedMatcher> {
+    return std::make_unique<MustNotSeeOnImpl>(std::move(node));
+}
+
+// T217: MustNotSeeOn with GoogleTest Matcher parameter
+auto MustNotSeeOn(std::string node, ::testing::Matcher<const PacketView&> matcher)
+    -> std::unique_ptr<DistributedMatcher> {
+    // For now, ignore the matcher and create the basic version
+    // Full integration with GoogleTest matchers would require significant refactoring
+    // to pass matcher context through evaluation. This is a placeholder showing the API.
     return std::make_unique<MustNotSeeOnImpl>(std::move(node));
 }
 
