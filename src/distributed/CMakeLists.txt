@@ -35,6 +35,9 @@ add_library(wadjet_distributed
     # Results aggregation
     result_aggregation.cpp
     
+    # Configuration loading
+    config_loader.cpp
+    
     # Coordinator and Node
     coordinator.cpp
     node.cpp

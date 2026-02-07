@@ -12,6 +12,7 @@
 
 #include "types.hpp"
 #include "result.hpp"
+#include "wadjet/net/packet.hpp"
 
 namespace wadjet::distributed {
 

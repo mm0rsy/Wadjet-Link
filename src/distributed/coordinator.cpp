@@ -3,6 +3,7 @@
 #include "wadjet/distributed/grpc/service.hpp"
 #include "wadjet/distributed/result_aggregation.hpp"
 #include "wadjet/distributed/scenario.hpp"
+#include "wadjet/distributed/config_loader.hpp"
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server.h>
@@ -110,6 +111,26 @@ public:
             grpc_service_ = std::move(service);
 
             is_running_ = true;
+
+            // T292: Load static node configuration from file if specified
+            if (!config_.config_path.empty()) {
+                auto nodes_result = ConfigLoader::load_nodes(config_.config_path);
+                if (nodes_result) {
+                    // Pre-register discovered nodes
+                    for (const auto& node_info : nodes_result.value()) {
+                        // Try to register each node from config
+                        // Nodes can override or add to discovered nodes
+                        auto reg_result = register_node(node_info);
+                        if (!reg_result) {
+                            // Log warning but continue - nodes may register later dynamically
+                            // In production, you might want stricter handling
+                        }
+                    }
+                } else {
+                    // Log warning about config load failure
+                    // Coordinator can still run with dynamic node discovery
+                }
+            }
 
             // Start heartbeat monitor thread
             heartbeat_thread_ = std::thread([this]() { monitor_heartbeats(); });
