@@ -83,15 +83,62 @@ struct CaptureConfig {
 
 /**
  * @brief Node capture result
+ *
+ * T038: Result of packet capture on a node
+ * T153: Performance metrics (throughput, packet loss)
  */
 struct NodeCaptureResult {
-    NodeId node_id;
-    int64_t packet_count = 0;
-    int64_t byte_count = 0;
-    std::string pcap_path;
-    int64_t start_time_ns = 0;
-    int64_t end_time_ns = 0;
-    bool success = false;
+  NodeId node_id;
+  int64_t packet_count = 0;
+  int64_t byte_count = 0;
+  std::string pcap_path;
+  int64_t start_time_ns = 0;
+  int64_t end_time_ns = 0;
+  bool success = false;
+
+  /**
+   * @brief T153: Calculated throughput in packets per second
+   *
+   * Computed from: packet_count / duration_seconds
+   */
+  double throughput_packets_per_sec = 0.0;
+
+  /**
+   * @brief T154: Count of lost packets (if detectable via gaps)
+   *
+   * Based on sequence number gaps in captured packets
+   */
+  int64_t packet_loss_count = 0;
+
+  /**
+   * @brief Calculate throughput from capture duration
+   *
+   * T155: Helper method for performance metrics calculation
+   *
+   * @return Throughput in packets/sec (0 if duration is 0)
+   */
+  double calculate_throughput() const {
+    if (start_time_ns >= end_time_ns) {
+      return 0.0;
+    }
+    int64_t duration_ns = end_time_ns - start_time_ns;
+    double duration_sec = duration_ns / 1e9;
+    return duration_sec > 0 ? packet_count / duration_sec : 0.0;
+  }
+
+  /**
+   * @brief Calculate packet loss percentage
+   *
+   * T155: Helper method for performance metrics calculation
+   *
+   * @return Packet loss as percentage (0.0-100.0)
+   */
+  double calculate_packet_loss_percentage() const {
+    if (packet_count + packet_loss_count == 0) {
+      return 0.0;
+    }
+    return (100.0 * packet_loss_count) / (packet_count + packet_loss_count);
+  }
 };
 
 }  // namespace wadjet::distributed

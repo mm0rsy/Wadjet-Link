@@ -513,47 +513,47 @@ FR requirements with no implementing code (only task references but empty implem
 
 ### Umbrella Headers & Fixtures (I1, I2)
 
-- [ ] T135 [P] Create main umbrella header in include/wadjet/distributed/distributed.hpp including all public headers
-- [ ] T136 [P] Create GoogleTest distributed fixture in include/wadjet/testing/distributed_fixture.hpp per plan.md
-- [ ] T137 Implement DistributedTestFixture class with setup/teardown for multi-node tests in src/testing/distributed_fixture.cpp
-- [ ] T138 [P] Create unit tests for DistributedTestFixture in tests/testing/test_distributed_fixture.cpp
+- [x] T135 [P] Create main umbrella header in include/wadjet/distributed/distributed.hpp including all public headers
+- [x] T136 [P] Create GoogleTest distributed fixture in include/wadjet/testing/distributed_fixture.hpp per plan.md
+- [x] T137 Implement DistributedTestFixture class with setup/teardown for multi-node tests in src/testing/distributed_fixture.cpp
+- [x] T138 [P] Create unit tests for DistributedTestFixture in tests/testing/test_distributed_fixture.cpp
 
 ### Topology Visualization (FR-019)
 
-- [ ] T139 [US2] Create NetworkTopology class interface in include/wadjet/distributed/topology.hpp
-- [ ] T140 [US2] Implement NetworkTopology::from_scenario() parsing node/interface layout in src/distributed/topology.cpp
-- [ ] T141 [US2] Implement NetworkTopology::visualize_flow() generating Mermaid/DOT diagram in src/distributed/topology.cpp
-- [ ] T142 [P] [US2] Create unit tests for NetworkTopology in tests/distributed/test_topology.cpp
+- [x] T139 [US2] Create NetworkTopology class interface in include/wadjet/distributed/topology.hpp
+- [x] T140 [US2] Implement NetworkTopology::from_scenario() parsing node/interface layout in src/distributed/topology.cpp
+- [x] T141 [US2] Implement NetworkTopology::visualize_flow() generating Mermaid/DOT diagram in src/distributed/topology.cpp
+- [x] T142 [P] [US2] Create unit tests for NetworkTopology in tests/distributed/test_topology.cpp
 
 ### Network Partition Handling (FR-045)
 
-- [ ] T143 [US1] Implement split-brain detection via heartbeat quorum in src/distributed/coordinator.cpp
-- [ ] T144 [US1] Add partition_detected callback to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp
-- [ ] T145 [US1] Implement graceful degradation when minority partition detected in src/distributed/coordinator.cpp
+- [x] T143 [US1] Implement split-brain detection via heartbeat quorum in src/distributed/coordinator.cpp
+- [x] T144 [US1] Add partition_detected callback to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp
+- [x] T145 [US1] Implement graceful degradation when minority partition detected in src/distributed/coordinator.cpp
 
 ### Parallel Scenario Execution (FR-048)
 
-- [ ] T146 [US4] Implement TestCoordinator::run_scenarios_parallel() for concurrent execution in src/distributed/coordinator.cpp
-- [ ] T147 [US4] Add scenario isolation (separate result aggregation per scenario) in src/distributed/coordinator.cpp
-- [ ] T148 [US4] Create integration test for parallel scenario execution in tests/integration/test_parallel_scenarios.cpp
+- [x] T146 [US4] Implement TestCoordinator::run_scenarios_parallel() for concurrent execution in src/distributed/coordinator.cpp
+- [x] T147 [US4] Add scenario isolation (separate result aggregation per scenario) in src/distributed/coordinator.cpp
+- [x] T148 [US4] Create integration test for parallel scenario execution in tests/integration/test_parallel_scenarios.cpp
 
 ### Observability Completeness (FR-058, FR-059, FR-061)
 
-- [ ] T149 [US5] Implement PCAP naming convention: {test_name}_{node_id}_{timestamp}.pcap in src/distributed/node.cpp
-- [ ] T150 [US5] Add barrier event logging with timestamps to coordinator log output in src/distributed/coordinator.cpp
-- [ ] T151 [US5] Implement TestCoordinator::run_replay() executing scenario against saved PCAPs in src/distributed/coordinator.cpp
-- [ ] T152 [US5] Create integration test for replay mode in tests/integration/test_replay_mode.cpp
+- [x] T149 [US5] Implement PCAP naming convention: {test_name}_{node_id}_{timestamp}.pcap in src/distributed/node.cpp
+- [x] T150 [US5] Add barrier event logging with timestamps to coordinator log output in src/distributed/coordinator.cpp
+- [x] T151 [US5] Implement TestCoordinator::run_replay() executing scenario against saved PCAPs in src/distributed/coordinator.cpp
+- [x] T152 [US5] Create integration test for replay mode in tests/integration/test_replay_mode.cpp
 
 ### Performance Metrics Completeness (FR-037)
 
-- [ ] T153 [US5] Add throughput_packets_per_sec field to NodeResult in include/wadjet/distributed/result.hpp
-- [ ] T154 [US5] Add packet_loss_count field to NodeResult in include/wadjet/distributed/result.hpp
-- [ ] T155 [US5] Implement throughput and packet loss calculation in src/distributed/node.cpp
+- [x] T153 [US5] Add throughput_packets_per_sec field to NodeResult in include/wadjet/distributed/result.hpp
+- [x] T154 [US5] Add packet_loss_count field to NodeResult in include/wadjet/distributed/result.hpp
+- [x] T155 [US5] Implement throughput and packet loss calculation in src/distributed/node.cpp
 
 ### Protocol Version Compatibility (Edge Case Resolution)
 
-- [ ] T156 [US1] Add protocol_version field to RegisterNodeRequest in proto/distributed_test.proto
-- [ ] T157 [US1] Implement version compatibility check in RegisterNode RPC handler in src/distributed/grpc/service.cpp
+- [x] T156 [US1] Add protocol_version field to RegisterNodeRequest in proto/distributed_test.proto
+- [x] T157 [US1] Implement version compatibility check in RegisterNode RPC handler in src/distributed/grpc/service.cpp
 
 **Checkpoint**: All spec requirements now have implementing tasks
 

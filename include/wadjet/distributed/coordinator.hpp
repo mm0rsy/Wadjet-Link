@@ -297,6 +297,85 @@ public:
      */
     virtual auto get_aggregated_result() const -> std::optional<AggregatedResult> = 0;
 
+    /**
+     * @brief Run multiple scenarios in parallel
+     *
+     * T146: Execute scenarios concurrently with isolation
+     * Each scenario runs on the same node topology but with separate
+     * result aggregation (FR-048).
+     *
+     * @param scenarios Vector of scenario definitions to execute
+     * @return Result with vector of results in same order as input
+     */
+    virtual auto run_scenarios_parallel(
+        const std::vector<ScenarioDefinition>& scenarios)
+        -> Result<std::vector<ScenarioResult>> = 0;
+
+    /**
+     * @brief Execute scenario against saved PCAPs (replay mode)
+     *
+     * T151: Run scenario validation against previously captured PCAPs
+     * Useful for deterministic debugging and regression testing.
+     *
+     * @param scenario The scenario to execute
+     * @param pcap_files Map of node_id to PCAP file path
+     * @param timeout Execution timeout
+     * @return Result with replay results
+     */
+    virtual auto run_replay(
+        const ScenarioDefinition& scenario,
+        const std::map<NodeId, std::string>& pcap_files,
+        std::chrono::milliseconds timeout = std::chrono::milliseconds{60000})
+        -> Result<ScenarioResult> = 0;
+
+    /**
+     * @brief Get result for a specific scenario (from parallel execution)
+     *
+     * T147: Retrieve isolated result for scenario run in parallel
+     *
+     * @param scenario_id The scenario identifier
+     * @return Result containing scenario result or error
+     */
+    virtual auto get_scenario_result(const std::string& scenario_id) const
+        -> Result<ScenarioResult> = 0;
+
+    /**
+     * @brief Check if a partition (split-brain) has been detected
+     *
+     * T143: Detect network partition via heartbeat quorum
+     *
+     * @return true if nodes are partitioned
+     */
+    virtual auto has_partition() const -> bool = 0;
+
+    /**
+     * @brief Get partition information
+     *
+     * T143: Return which nodes are in majority vs minority partitions
+     *
+     * @return Pair of (majority_nodes, minority_nodes)
+     */
+    virtual auto get_partition_info() const
+        -> std::pair<std::vector<NodeId>, std::vector<NodeId>> = 0;
+
+    /**
+     * @brief Check if test should continue (graceful degradation)
+     *
+     * T145: Check if minority partition or failed nodes are acceptable
+     *
+     * @return true if test can proceed with current node set
+     */
+    virtual auto can_proceed_with_partition() const -> bool = 0;
+
+    /**
+     * @brief Get check if any nodes have failed
+     *
+     * Helper for fixture/tests to check node health
+     *
+     * @return true if any registered nodes have failed
+     */
+    virtual auto has_failed_nodes() const -> bool = 0;
+
 protected:
     TestCoordinator() = default;
 };
