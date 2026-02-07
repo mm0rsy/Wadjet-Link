@@ -91,7 +91,7 @@
 - [x] T038 [P] [US2] Create NodeCaptureResult struct in include/wadjet/distributed/types.hpp
 - [x] T039 [US2] Implement TestNode::start_capture() integrating with M1 packet capture in src/distributed/node.cpp
 - [x] T040 [US2] Implement TestNode::stop_capture() returning NodeCaptureResult in src/distributed/node.cpp
-- [ ] T041 [US2] Implement StartCapture command via gRPC ControlChannel in src/distributed/grpc/service.cpp
+- [X] T041 [US2] Implement StartCapture command via gRPC ControlChannel in src/distributed/grpc/service.cpp
 - [X] T042 [US2] Implement capture synchronization using SyncBarrier (<10ms jitter) in src/distributed/coordinator.cpp
 - [x] T043 [US2] Implement MessageCorrelator class interface in include/wadjet/distributed/message_correlator.hpp
 - [x] T044 [US2] Implement MessageCorrelator::correlate() with PayloadHash method in src/distributed/message_correlator.cpp
@@ -100,9 +100,9 @@
 - [x] T047 [US2] Implement PcapMerger class for merging multi-node captures in src/distributed/pcap_merger.cpp
 - [x] T048 [US2] Implement timestamp-sorted merge algorithm in PcapMerger in src/distributed/pcap_merger.cpp
 - [x] T049 [P] [US2] Create unit tests for PcapMerger in tests/distributed/test_pcap_merger.cpp
-- [ ] T050 [US2] Implement PCAP upload streaming via gRPC UploadPcap RPC in src/distributed/grpc/service.cpp
+- [X] T050 [US2] Implement PCAP upload streaming via gRPC UploadPcap RPC in src/distributed/grpc/service.cpp
 - [X] T051 [US2] Integrate M8 gPTP decoder for clock sync health verification in src/distributed/timestamp_normalizer.cpp
-- [ ] T052 [US2] Create integration test for synchronized capture on 3 nodes in tests/integration/test_distributed_capture.cpp
+- [X] T052 [US2] Create integration test for synchronized capture on 3 nodes in tests/integration/test_distributed_capture.cpp
 
 **Checkpoint**: Synchronized capture works - nodes capture simultaneously, PCAPs merge with aligned timestamps
 
@@ -139,18 +139,18 @@ The matcher .cpp files contain only placeholders - need full evaluate() implemen
 
 The plan.md specifies headers under include/wadjet/distributed/matchers/ that don't exist:
 
-- [ ] T211 [P] [US3] Create include/wadjet/distributed/matchers/expect_message_flow.hpp per plan.md
-- [ ] T212 [P] [US3] Create include/wadjet/distributed/matchers/within_latency.hpp per plan.md
-- [ ] T213 [P] [US3] Create include/wadjet/distributed/matchers/happens_before.hpp per plan.md
-- [ ] T214 [P] [US3] Create include/wadjet/distributed/matchers/must_not_see_on.hpp per plan.md
+- [X] T211 [P] [US3] Create include/wadjet/distributed/matchers/expect_message_flow.hpp per plan.md
+- [X] T212 [P] [US3] Create include/wadjet/distributed/matchers/within_latency.hpp per plan.md
+- [X] T213 [P] [US3] Create include/wadjet/distributed/matchers/happens_before.hpp per plan.md
+- [X] T214 [P] [US3] Create include/wadjet/distributed/matchers/must_not_see_on.hpp per plan.md
 
 ### Category 4: Data Model Alignment
 
 The data-model.md specifies interfaces not fully matching implementations:
 
-- [ ] T215 [US2] Add TimestampNormalizer::normalize(const Packet&) method per data-model.md
-- [ ] T216 [US2] Add MessageCorrelator::find_correlation(Packet, string target_node) method per data-model.md (signature mismatch)
-- [ ] T217 [US3] Add matcher factory functions with GoogleTest Matcher<PacketView&> parameter per data-model.md
+- [X] T215 [US2] Add TimestampNormalizer::normalize(const Packet&) method per data-model.md
+- [X] T216 [US2] Add MessageCorrelator::find_correlation(Packet, string target_node) method per data-model.md (signature mismatch)
+- [X] T217 [US3] Add matcher factory functions with GoogleTest Matcher<PacketView&> parameter per data-model.md
 
 ### Category 5: CMake Proto Generation
 
@@ -164,34 +164,34 @@ Proto CMakeLists.txt has incorrect protoc invocation:
 Several test files mentioned in tasks don't exist or are incomplete:
 
 - [X] T046 [P] [US2] Create unit tests for MessageCorrelator in tests/distributed/test_message_correlator.cpp
-- [ ] T220 [P] [US1] Create unit tests for gRPC service handlers in tests/distributed/test_grpc_service.cpp
-- [ ] T221 [P] [US1] Create unit tests for gRPC client in tests/distributed/test_grpc_client.cpp
+- [X] T220 [P] [US1] Create unit tests for gRPC service handlers in tests/distributed/test_grpc_service.cpp
+- [X] T221 [P] [US1] Create unit tests for gRPC client in tests/distributed/test_grpc_client.cpp
 
 ### Category 7: PcapMerger PCAP File I/O
 
 PcapMerger::add_capture() and merge() have TODO placeholders for PCAP file reading/writing:
 
-- [ ] T222 [US2] Complete PcapMerger::add_capture() with PcapReader integration
-- [ ] T223 [US2] Complete PcapMerger::merge() with PcapWriter integration for actual file output
+- [X] T222 [US2] Complete PcapMerger::add_capture() with PcapReader integration
+- [X] T223 [US2] Complete PcapMerger::merge() with PcapWriter integration for actual file output
 
 ### Category 8: Node Integration Gaps
 
 TestNode implementation has placeholder gRPC calls:
 
-- [ ] T224 [US1] Complete TestNode::connect() with actual gRPC channel creation
-- [ ] T225 [US1] Complete TestNode::wait_at_barrier() with actual gRPC WaitBarrier call
-- [ ] T226 [US1] Complete TestNode heartbeat thread with actual gRPC Heartbeat streaming
+- [X] T224 [US1] Complete TestNode::connect() with actual gRPC channel creation
+- [X] T225 [US1] Complete TestNode::wait_at_barrier() with actual gRPC WaitBarrier call
+- [X] T226 [US1] Complete TestNode heartbeat thread with actual gRPC Heartbeat streaming
 
 ### Category 9: Coordinator gRPC Server
 
 TestCoordinator needs actual gRPC server startup:
 
-- [ ] T227 [US1] Complete TestCoordinator::start() with gRPC server binding and DistributedTestServiceImpl
-- [ ] T228 [US1] Integrate DistributedTestServiceImpl with TestCoordinatorImpl state
+- [X] T227 [US1] Complete TestCoordinator::start() with gRPC server binding and DistributedTestServiceImpl
+- [X] T228 [US1] Integrate DistributedTestServiceImpl with TestCoordinatorImpl state
 
 ### Category 10: Main Umbrella Header (plan.md I1)
 
-- [ ] T229 [P] Create include/wadjet/distributed/distributed.hpp umbrella header per plan.md
+- [X] T229 [P] Create include/wadjet/distributed/distributed.hpp umbrella header per plan.md
 
 **Checkpoint**: All placeholder implementations replaced with functional code, proto generation verified
 
@@ -208,22 +208,22 @@ TestCoordinator needs actual gRPC server startup:
 - [x] T053 [P] [US3] Create DistributedMatchResult struct in include/wadjet/distributed/distributed_matcher.hpp
 - [x] T054 [P] [US3] Create DistributedCaptureContext struct in include/wadjet/distributed/distributed_matcher.hpp
 - [x] T055 [US3] Implement DistributedMatcher base class interface in include/wadjet/distributed/distributed_matcher.hpp
-- [~] T056 [US3] Implement ExpectMessageFlow matcher in include/wadjet/distributed/matchers/expect_message_flow.hpp ⚠️ Header missing, see T211
-- [~] T057 [US3] Implement ExpectMessageFlow::evaluate() in src/distributed/matchers/expect_message_flow.cpp ⚠️ Placeholder only, see T207
-- [~] T058 [US3] Implement WithinLatency wrapper matcher in include/wadjet/distributed/matchers/within_latency.hpp ⚠️ Header missing, see T212
-- [~] T059 [US3] Implement WithinLatency::evaluate() with one-way latency calculation in src/distributed/matchers/within_latency.cpp ⚠️ Placeholder only, see T208
-- [~] T060 [US3] Implement HappensBefore causal ordering matcher in include/wadjet/distributed/matchers/happens_before.hpp ⚠️ Header missing, see T213
-- [~] T061 [US3] Implement HappensBefore::evaluate() in src/distributed/matchers/happens_before.cpp ⚠️ Placeholder only, see T209
-- [~] T062 [US3] Implement MustNotSeeOn absence assertion matcher in include/wadjet/distributed/matchers/must_not_see_on.hpp ⚠️ Header missing, see T214
-- [~] T063 [US3] Implement MustNotSeeOn::evaluate() in src/distributed/matchers/must_not_see_on.cpp ⚠️ Placeholder only, see T210
-- [ ] T064 [US3] Implement EvaluateMatcher RPC for remote matcher execution in src/distributed/grpc/service.cpp
-- [ ] T065 [US3] Implement TestNode::evaluate_matcher() using gRPC client in src/distributed/node.cpp
-- [ ] T066 [US3] Integrate with existing M3 GoogleTest matchers in src/distributed/distributed_matcher.cpp
-- [ ] T067 [P] [US3] Create unit tests for ExpectMessageFlow in tests/distributed/test_distributed_matchers.cpp
-- [ ] T068 [P] [US3] Create unit tests for WithinLatency in tests/distributed/test_distributed_matchers.cpp
-- [ ] T069 [P] [US3] Create unit tests for HappensBefore in tests/distributed/test_distributed_matchers.cpp
-- [ ] T070 [P] [US3] Create unit tests for MustNotSeeOn in tests/distributed/test_distributed_matchers.cpp
-- [ ] T071 [US3] Create integration test for distributed assertions across 3 nodes in tests/integration/test_distributed_assertions.cpp
+- [x] T056 [US3] Implement ExpectMessageFlow matcher in include/wadjet/distributed/matchers/expect_message_flow.hpp
+- [x] T057 [US3] Implement ExpectMessageFlow::evaluate() in src/distributed/matchers/expect_message_flow.cpp
+- [x] T058 [US3] Implement WithinLatency wrapper matcher in include/wadjet/distributed/matchers/within_latency.hpp
+- [x] T059 [US3] Implement WithinLatency::evaluate() with one-way latency calculation in src/distributed/matchers/within_latency.cpp
+- [x] T060 [US3] Implement HappensBefore causal ordering matcher in include/wadjet/distributed/matchers/happens_before.hpp
+- [x] T061 [US3] Implement HappensBefore::evaluate() in src/distributed/matchers/happens_before.cpp
+- [x] T062 [US3] Implement MustNotSeeOn absence assertion matcher in include/wadjet/distributed/matchers/must_not_see_on.hpp
+- [x] T063 [US3] Implement MustNotSeeOn::evaluate() in src/distributed/matchers/must_not_see_on.cpp
+- [x] T064 [US3] Implement EvaluateMatcher RPC for remote matcher execution in src/distributed/grpc/service.cpp
+- [x] T065 [US3] Implement TestNode::evaluate_matcher() using gRPC client in src/distributed/node.cpp
+- [x] T066 [US3] Integrate with existing M3 GoogleTest matchers in src/distributed/distributed_matcher.cpp
+- [x] T067 [P] [US3] Create unit tests for ExpectMessageFlow in tests/distributed/test_distributed_matchers.cpp
+- [x] T068 [P] [US3] Create unit tests for WithinLatency in tests/distributed/test_distributed_matchers.cpp
+- [x] T069 [P] [US3] Create unit tests for HappensBefore in tests/distributed/test_distributed_matchers.cpp
+- [x] T070 [P] [US3] Create unit tests for MustNotSeeOn in tests/distributed/test_distributed_matchers.cpp
+- [x] T071 [US3] Create integration test for distributed assertions across 3 nodes in tests/integration/test_distributed_assertions.cpp
 
 **Checkpoint**: Distributed assertions work - can validate message flow, latency, causality across nodes
 
