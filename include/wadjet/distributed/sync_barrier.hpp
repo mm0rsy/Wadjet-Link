@@ -84,10 +84,12 @@ public:
      * T012: Called by node to signal arrival at barrier
      * Blocks until all nodes have arrived or timeout
      * 
+     * @param node_id Identifier of the node arriving at barrier
      * @param timeout Maximum time to wait
      * @return BarrierResult or error
      */
-    auto arrive_and_wait(std::chrono::milliseconds timeout = std::chrono::milliseconds{5000})
+    auto arrive_and_wait(const std::string& node_id,
+                        std::chrono::milliseconds timeout = std::chrono::milliseconds{5000})
         -> Result<BarrierResult>;
     
     /**

@@ -75,19 +75,75 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
                 break;
             }
             case CorrelationMethod::SequenceNumber: {
-                // T045: Extract sequence number from packet (placeholder)
-                // In real implementation, would parse protocol headers
-                corr_id = "seq_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                // T249: Extract sequence number from packet protocol headers
+                // Parse based on packet type: IP header seq, TCP seq, SOME/IP seq, etc.
+                try {
+                    // Try to extract TCP sequence number if available
+                    if (packet.view().size() >= 34) {  // Minimum for TCP header
+                        // Extract 4-byte sequence number from TCP header (offset 24-27)
+                        // This is a basic implementation - full version would parse all protocol layers
+                        uint32_t seq_num = 0;
+                        if (packet.view().size() >= 28) {
+                            // Read 4 bytes at offset 24
+                            auto raw_data = packet.view().data();
+                            if (raw_data && raw_data + 28 <= packet.view().data() + packet.view().size()) {
+                                seq_num = (static_cast<uint32_t>(raw_data[24]) << 24) |
+                                         (static_cast<uint32_t>(raw_data[25]) << 16) |
+                                         (static_cast<uint32_t>(raw_data[26]) << 8) |
+                                         (static_cast<uint32_t>(raw_data[27]));
+                            }
+                        }
+                        if (seq_num != 0) {
+                            corr_id = "seq_" + std::to_string(seq_num);
+                        } else {
+                            // Fallback to address-based correlation
+                            corr_id = "seq_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                        }
+                    } else {
+                        corr_id = "seq_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                    }
+                } catch (...) {
+                    corr_id = "seq_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                }
                 break;
             }
             case CorrelationMethod::TransactionId: {
-                // Placeholder: would extract transaction ID from protocol
-                corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                // T250: Extract transaction ID from protocol headers
+                // DoIP/UDS transaction ID, SOME/IP Request/Response ID, etc.
+                try {
+                    // Try to extract DoIP transaction ID (UDS over IP)
+                    // DoIP header has transaction info at specific offsets
+                    corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                    
+                    if (packet.view().size() >= 8) {
+                        auto raw_data = packet.view().data();
+                        if (raw_data) {
+                            // Extract potential transaction ID from common protocol headers
+                            uint32_t txn_id = (static_cast<uint32_t>(raw_data[4]) << 24) |
+                                             (static_cast<uint32_t>(raw_data[5]) << 16) |
+                                             (static_cast<uint32_t>(raw_data[6]) << 8) |
+                                             (static_cast<uint32_t>(raw_data[7]));
+                            if (txn_id != 0) {
+                                corr_id = "txn_" + std::to_string(txn_id);
+                            }
+                        }
+                    }
+                } catch (...) {
+                    corr_id = "txn_" + std::to_string(reinterpret_cast<uintptr_t>(&packet));
+                }
                 break;
             }
             case CorrelationMethod::Timestamp: {
-                // Placeholder: group by timestamp proximity
-                corr_id = "ts_";
+                // T251: Group by timestamp proximity with tolerance
+                // Packets within a time window (e.g., 1ms) are correlated
+                try {
+                    int64_t timestamp_ms = packet.timestamp().total_nanoseconds() / 1000000;  // Convert to ms
+                    // Create correlation ID based on timestamp bucket (e.g., each 100ms window)
+                    int64_t bucket = timestamp_ms / 100;
+                    corr_id = "ts_" + std::to_string(bucket);
+                } catch (...) {
+                    corr_id = "ts_bucket_default";
+                }
                 break;
             }
             case CorrelationMethod::Custom: {

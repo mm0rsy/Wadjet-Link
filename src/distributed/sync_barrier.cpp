@@ -123,13 +123,14 @@ auto SyncBarrier::wait_for_nodes(const std::vector<std::string>& expected_nodes,
 }
 
 // T012: Signal arrival and wait for proceed (node-side)
-auto SyncBarrier::arrive_and_wait(std::chrono::milliseconds timeout)
+auto SyncBarrier::arrive_and_wait(const std::string& node_id,
+                                  std::chrono::milliseconds timeout)
     -> Result<BarrierResult> {
     std::unique_lock<std::mutex> lock(impl_->mutex);
     
     // Signal that this node has arrived
     impl_->node_arrived = true;
-    impl_->arrived_nodes.push_back("node_" + impl_->barrier_id);  // Placeholder node ID
+    impl_->arrived_nodes.push_back(node_id);  // T252: Use actual node ID parameter
     impl_->cv.notify_all();
     
     // Wait for proceed signal or timeout
