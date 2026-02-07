@@ -1,5 +1,8 @@
 #include "wadjet/distributed/pcap_merger.hpp"
 
+#include "wadjet/pcap/pcap_reader.hpp"
+#include "wadjet/pcap/pcap_writer.hpp"
+
 #include <algorithm>
 #include <map>
 #include <vector>
@@ -32,10 +35,6 @@ PcapMerger::~PcapMerger() = default;
 // Add a PCAP file from a node
 auto PcapMerger::add_capture(const std::string& node_id, const std::filesystem::path& pcap_path)
     -> wadjet::Result<void> {
-    
-    // TODO: T047 - Read PCAP file from path
-    // For now, return success (will be implemented with libpcap integration)
-    
     if (node_id.empty()) {
         return wadjet::Result<void>::err(
             wadjet::Error(-1, "Node ID cannot be empty"));
@@ -50,11 +49,37 @@ auto PcapMerger::add_capture(const std::string& node_id, const std::filesystem::
     if (impl_->node_captures.find(node_id) == impl_->node_captures.end()) {
         impl_->node_captures[node_id].node_id = node_id;
     }
-    
-    // TODO: Read PCAP file and add packets to node_captures[node_id].packets
-    // using libpcap or wadjet::pcap::PcapReader
-    
-    return wadjet::Result<void>::ok();
+
+    // T222: Read PCAP file using PcapReader
+    try {
+        auto reader_result = pcap::PcapReader::create(pcap_path);
+        if (!reader_result) {
+            return wadjet::Result<void>::err(
+                wadjet::Error(-1, "Failed to open PCAP file: " + pcap_path.string()));
+        }
+
+        auto& reader = reader_result.value();
+
+        // Read all packets from the PCAP file
+        std::vector<Packet> packets;
+        while (auto packet = reader.next_packet()) {
+            packets.push_back(packet.value());
+        }
+
+        // Add packets to the node capture
+        auto& node_capture = impl_->node_captures[node_id];
+        node_capture.packets.insert(node_capture.packets.end(), packets.begin(), packets.end());
+
+        // Update byte count
+        for (const auto& packet : packets) {
+            node_capture.total_bytes += static_cast<int64_t>(packet.data().size());
+        }
+
+        return wadjet::Result<void>::ok();
+    } catch (const std::exception& e) {
+        return wadjet::Result<void>::err(
+            wadjet::Error(-1, std::string("Exception reading PCAP: ") + e.what()));
+    }
 }
 
 // Add pre-captured packets from a node
@@ -119,10 +144,29 @@ auto PcapMerger::merge(const std::filesystem::path& output_path)
                 return a.node_id < b.node_id;
             });
     }
-    
-    // TODO: Write merged packets to output PCAP file using pcap::PcapWriter
-    // For now, create a placeholder result
-    
+
+    // T223: Write merged packets to output PCAP file using pcap::PcapWriter
+    try {
+        auto writer_result = pcap::PcapWriter::create(output_path);
+        if (!writer_result) {
+            return wadjet::Result<MergedPcapResult>::err(
+                wadjet::Error(-1, "Failed to create PCAP output file: " + output_path.string()));
+        }
+
+        auto& writer = writer_result.value();
+
+        // Write all packets to output file
+        for (const auto& packet_with_source : all_packets) {
+            if (!writer.write_packet(*packet_with_source.packet)) {
+                return wadjet::Result<MergedPcapResult>::err(
+                    wadjet::Error(-1, "Failed to write packet to PCAP file"));
+            }
+        }
+    } catch (const std::exception& e) {
+        return wadjet::Result<MergedPcapResult>::err(
+            wadjet::Error(-1, std::string("Exception writing PCAP: ") + e.what()));
+    }
+
     MergedPcapResult result;
     result.output_path = output_path;
     result.total_packets = static_cast<int64_t>(all_packets.size());
