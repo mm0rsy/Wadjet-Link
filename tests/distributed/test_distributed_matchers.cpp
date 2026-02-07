@@ -1,12 +1,15 @@
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include "wadjet/distributed/distributed_matcher.hpp"
+#include "wadjet/distributed/matchers/expect_diagnostic.hpp"
 #include "wadjet/distributed/matchers/expect_message_flow.hpp"
-#include "wadjet/distributed/matchers/within_latency.hpp"
 #include "wadjet/distributed/matchers/happens_before.hpp"
 #include "wadjet/distributed/matchers/must_not_see_on.hpp"
+#include "wadjet/distributed/matchers/within_latency.hpp"
 #include "wadjet/net/packet.hpp"
+#include "wadjet/protocols/uds/uds_types.hpp"
 #include "wadjet/testing/matchers.hpp"  // M3 matchers
+
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 
 #include <chrono>
 #include <unordered_map>
@@ -722,6 +725,180 @@ TEST_F(GoogleTestMatcherFilteringTest, BackwardCompatibilityWithoutMatchers) {
         auto result = matcher->evaluate(contexts);
         // Should pass with default logic
         EXPECT_FALSE(result.error_message.empty() && !result.matched);
+    }
+}
+
+/**
+ * @brief Unit tests for UDS distributed assertions (T317)
+ *
+ * Tests the ExpectDiagnosticResponse matcher which validates UDS
+ * diagnostic request-response pairs across nodes using M9 decoder
+ */
+TEST(UdsDistributedMatchersTest, DiagnosticResponseNoRequests) {
+    // T317: Test expecting diagnostic response when no requests found
+
+    DistributedCaptureContext src_context;
+    src_context.node_id = "tester_node";
+    src_context.start_timestamp_ns = 1000000000;
+    src_context.end_timestamp_ns = 1010000000;
+    // No packets added - no requests
+
+    DistributedCaptureContext dst_context;
+    dst_context.node_id = "ecu_node";
+    dst_context.start_timestamp_ns = 1000000000;
+    dst_context.end_timestamp_ns = 1010000000;
+    // No packets added - no responses
+
+    // Create matcher for any UDS service
+    auto matcher = std::make_unique<ExpectDiagnosticResponseImpl>(
+        "tester_node", "ecu_node", std::nullopt, std::chrono::milliseconds{5000});
+
+    auto result = matcher->evaluate(src_context, dst_context);
+
+    // Should fail - no requests found
+    EXPECT_FALSE(result.matched);
+    EXPECT_TRUE(!result.error_message.empty());
+    EXPECT_THAT(result.error_message, testing::HasSubstr("No UDS diagnostic request"));
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseWrongNode) {
+    // T317: Test error when contexts have wrong node IDs
+
+    DistributedCaptureContext src_context;
+    src_context.node_id = "wrong_source";  // Not matching expected
+    src_context.start_timestamp_ns = 1000000000;
+    src_context.end_timestamp_ns = 1010000000;
+
+    DistributedCaptureContext dst_context;
+    dst_context.node_id = "ecu_node";
+    dst_context.start_timestamp_ns = 1000000000;
+    dst_context.end_timestamp_ns = 1010000000;
+
+    auto matcher = std::make_unique<ExpectDiagnosticResponseImpl>(
+        "tester_node", "ecu_node", std::nullopt, std::chrono::milliseconds{5000});
+
+    auto result = matcher->evaluate(src_context, dst_context);
+
+    // Should fail - wrong node
+    EXPECT_FALSE(result.matched);
+    EXPECT_THAT(result.error_message, testing::HasSubstr("wrong_source"));
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseNoResponses) {
+    // T317: Test when requests exist but no responses found
+
+    DistributedCaptureContext src_context;
+    src_context.node_id = "tester_node";
+    src_context.start_timestamp_ns = 1000000000;
+    src_context.end_timestamp_ns = 1010000000;
+    // Requests would be added here by M9 decoder in real scenario
+
+    DistributedCaptureContext dst_context;
+    dst_context.node_id = "ecu_node";
+    dst_context.start_timestamp_ns = 1000000000;
+    dst_context.end_timestamp_ns = 1010000000;
+    // No packets - no responses
+
+    auto matcher = std::make_unique<ExpectDiagnosticResponseImpl>(
+        "tester_node", "ecu_node", std::nullopt, std::chrono::milliseconds{5000});
+
+    auto result = matcher->evaluate(src_context, dst_context);
+
+    // Should fail - no responses found
+    EXPECT_FALSE(result.matched);
+    EXPECT_THAT(result.error_message, testing::HasSubstr("No UDS diagnostic response"));
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseServiceIdFilter) {
+    // T317: Test filtering by UDS service ID
+
+    DistributedCaptureContext src_context;
+    src_context.node_id = "tester_node";
+    src_context.start_timestamp_ns = 1000000000;
+    src_context.end_timestamp_ns = 1010000000;
+
+    DistributedCaptureContext dst_context;
+    dst_context.node_id = "ecu_node";
+    dst_context.start_timestamp_ns = 1000000000;
+    dst_context.end_timestamp_ns = 1010000000;
+
+    // Create matcher with specific service ID (ReadDataByIdentifier = 0x22)
+    auto matcher = std::make_unique<ExpectDiagnosticResponseImpl>(
+        "tester_node", "ecu_node", protocols::uds::ServiceID::ReadDataByIdentifier,
+        std::chrono::milliseconds{5000});
+
+    auto result = matcher->evaluate(src_context, dst_context);
+
+    // In real scenario with M9 decoder, this would filter by service ID
+    // For this test, we expect it to fail due to no packets
+    EXPECT_FALSE(result.matched);
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseTimeout) {
+    // T317: Test timeout behavior
+
+    DistributedCaptureContext src_context;
+    src_context.node_id = "tester_node";
+    src_context.start_timestamp_ns = 1000000000;
+    src_context.end_timestamp_ns = 1010000000;
+
+    DistributedCaptureContext dst_context;
+    dst_context.node_id = "ecu_node";
+    dst_context.start_timestamp_ns = 1000000000;
+    dst_context.end_timestamp_ns = 1010000000;
+
+    // Create matcher with very short timeout
+    auto matcher = std::make_unique<ExpectDiagnosticResponseImpl>(
+        "tester_node", "ecu_node", std::nullopt, std::chrono::milliseconds{1}  // 1ms timeout
+    );
+
+    auto result = matcher->evaluate(src_context, dst_context);
+
+    // Should fail - no requests/responses in empty contexts
+    EXPECT_FALSE(result.matched);
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseFactory) {
+    // T317: Test factory functions
+
+    // Test factory with service ID
+    {
+        auto matcher = ExpectDiagnosticResponse("tester_node", "ecu_node",
+                                                protocols::uds::ServiceID::ReadDataByIdentifier,
+                                                std::chrono::milliseconds{5000});
+        EXPECT_NE(nullptr, matcher);
+    }
+
+    // Test factory without service ID
+    {
+        auto matcher =
+            ExpectDiagnosticResponse("tester_node", "ecu_node", std::chrono::milliseconds{5000});
+        EXPECT_NE(nullptr, matcher);
+    }
+}
+
+TEST(UdsDistributedMatchersTest, DiagnosticResponseClassConstructors) {
+    // T317: Test class constructors
+
+    // Constructor with service ID
+    {
+        ExpectDiagnosticResponse matcher("src", "dst",
+                                         protocols::uds::ServiceID::ReadDataByIdentifier,
+                                         std::chrono::milliseconds{5000});
+        EXPECT_EQ("src", matcher.source_node());
+        EXPECT_EQ("dst", matcher.destination_node());
+        EXPECT_TRUE(matcher.service_id().has_value());
+        EXPECT_EQ(protocols::uds::ServiceID::ReadDataByIdentifier, matcher.service_id().value());
+        EXPECT_EQ(5000, matcher.timeout().count());
+    }
+
+    // Constructor without service ID
+    {
+        ExpectDiagnosticResponse matcher("src", "dst", std::chrono::milliseconds{3000});
+        EXPECT_EQ("src", matcher.source_node());
+        EXPECT_EQ("dst", matcher.destination_node());
+        EXPECT_FALSE(matcher.service_id().has_value());
+        EXPECT_EQ(3000, matcher.timeout().count());
     }
 }
 

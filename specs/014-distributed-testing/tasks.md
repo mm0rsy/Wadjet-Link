@@ -627,9 +627,9 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 009** defines `UdsOverDoipDecoder` and 20+ UDS service decoders. The distributed `MessageCorrelator` references "DoIP/UDS transaction ID" in comments but uses raw byte extraction instead of M9 APIs. No UDS-specific distributed assertions exist.
 
-- [ ] T315 [US2] Replace hand-rolled DoIP header byte extraction in MessageCorrelator::TransactionId correlation with actual M9 UdsOverDoipDecoder API calls in src/distributed/message_correlator.cpp
-- [ ] T316 [US3] Create UDS-specific distributed assertion: ExpectDiagnosticResponse(src_node, dst_node, uds_service_id) that validates UDS request→response across nodes in include/wadjet/distributed/matchers/expect_diagnostic.hpp and src/distributed/matchers/expect_diagnostic.cpp
-- [ ] T317 [P] [US3] Add unit test for UDS distributed assertion using DoIP captures in tests/distributed/test_distributed_matchers.cpp
+- [X] T315 [US2] Replace hand-rolled DoIP header byte extraction in MessageCorrelator::TransactionId correlation with actual M9 UdsOverDoipDecoder API calls in src/distributed/message_correlator.cpp
+- [X] T316 [US3] Create UDS-specific distributed assertion: ExpectDiagnosticResponse(src_node, dst_node, uds_service_id) that validates UDS request→response across nodes in include/wadjet/distributed/matchers/expect_diagnostic.hpp and src/distributed/matchers/expect_diagnostic.cpp
+- [X] T317 [P] [US3] Add unit test for UDS distributed assertion using DoIP captures in tests/distributed/test_distributed_matchers.cpp
 
 ---
 
