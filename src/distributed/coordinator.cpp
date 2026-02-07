@@ -1,12 +1,18 @@
 #include "wadjet/distributed/coordinator.hpp"
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <unordered_map>
-#include <set>
-#include <chrono>
+#include "wadjet/distributed/grpc/service.hpp"
+
+#include <grpcpp/grpcpp.h>
+#include <grpcpp/server.h>
+#include <grpcpp/server_builder.h>
+
 #include <algorithm>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <set>
+#include <thread>
+#include <unordered_map>
 
 namespace wadjet::distributed {
 
@@ -30,19 +36,61 @@ public:
         if (is_running_) {
             return Result<void>(Error::make("ALREADY_RUNNING", "Coordinator already started"));
         }
-        
-        is_running_ = true;
-        
-        // Start heartbeat monitor thread
-        heartbeat_thread_ = std::thread([this]() { monitor_heartbeats(); });
-        
-        return Result<void>();
+
+        // T227: Create and start gRPC server
+        try {
+            // Create gRPC service implementation
+            auto service = std::make_unique<DistributedTestServiceImpl>(this);
+
+            // Build gRPC server
+            grpc::ServerBuilder builder;
+
+            // Bind to the configured address and port
+            std::string server_address =
+                config_.bind_address + ":" + std::to_string(config_.grpc_port);
+            builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
+
+            // Register service
+            builder.RegisterService(service.get());
+
+            // Set up resource limits and other options
+            builder.SetMaxReceiveMessageSize(-1);  // Unlimited message size for PCAP uploads
+            builder.SetMaxSendMessageSize(-1);
+
+            // Build the server
+            grpc_server_ = builder.BuildAndStart();
+            if (!grpc_server_) {
+                return Result<void>(Error::make(
+                    "GRPC_BUILD_FAILED", "Failed to build gRPC server on " + server_address));
+            }
+
+            // Store the service implementation
+            grpc_service_ = std::move(service);
+
+            is_running_ = true;
+
+            // Start heartbeat monitor thread
+            heartbeat_thread_ = std::thread([this]() { monitor_heartbeats(); });
+
+            return Result<void>();
+        } catch (const std::exception& e) {
+            return Result<void>(Error::make(
+                "GRPC_EXCEPTION", std::string("Failed to start gRPC server: ") + e.what()));
+        }
     }
     
     auto stop() -> void override {
         {
             std::lock_guard<std::mutex> lock(mutex_);
             is_running_ = false;
+
+            // T227: Shutdown gRPC server
+            if (grpc_server_) {
+                grpc_server_->Shutdown();
+                grpc_server_.reset();
+            }
+            grpc_service_.reset();
+
             // Notify heartbeat thread to stop
             cv_.notify_all();
         }
@@ -133,7 +181,22 @@ public:
         
         return Result<NodeInfo>(it->second);
     }
-    
+
+    // T228: Update node heartbeat timestamp
+    auto update_node_heartbeat(const NodeId& node_id) -> Result<void> override {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        auto it = nodes_.find(node_id);
+        if (it == nodes_.end()) {
+            return Result<void>(Error::make("NOT_FOUND", "Node not registered"));
+        }
+
+        // Update the heartbeat timestamp for this node
+        node_last_heartbeat_[node_id] = std::chrono::system_clock::now();
+
+        return Result<void>();
+    }
+
     auto create_barrier(const std::string& barrier_id) -> Result<std::unique_ptr<SyncBarrier>> override {
         std::lock_guard<std::mutex> lock(mutex_);
         
@@ -353,7 +416,11 @@ private:
     std::string abort_reason_;                          // T033: Reason for abort
     std::vector<NodeId> aborted_nodes_;                // T033: Nodes that failed
     std::thread heartbeat_thread_;
-    
+
+    // T227: gRPC server and service
+    std::unique_ptr<grpc::Server> grpc_server_;
+    std::unique_ptr<DistributedTestServiceImpl> grpc_service_;
+
     std::unordered_map<NodeId, NodeInfo> nodes_;
     std::unordered_map<NodeId, std::chrono::system_clock::time_point> node_last_heartbeat_;
     std::set<std::string> barriers_;

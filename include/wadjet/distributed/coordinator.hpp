@@ -122,7 +122,17 @@ public:
      * @return Result containing node info or error
      */
     virtual auto get_node_info(const NodeId& node_id) const -> Result<NodeInfo> = 0;
-    
+
+    /**
+     * @brief Update node heartbeat timestamp
+     *
+     * T228: Called by gRPC Heartbeat handler to update node health
+     *
+     * @param node_id ID of the node sending heartbeat
+     * @return Result indicating success or failure
+     */
+    virtual auto update_node_heartbeat(const NodeId& node_id) -> Result<void> = 0;
+
     /**
      * @brief Create a barrier for synchronization
      * 
