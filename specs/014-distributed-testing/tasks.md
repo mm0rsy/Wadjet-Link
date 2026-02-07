@@ -282,6 +282,164 @@ TestCoordinator needs actual gRPC server startup:
 
 ---
 
+## Phase 7.5: Gap Remediation II (Formal Review Against Specs 000-013)
+
+**Purpose**: Address all gaps identified during formal review of Phases 1-7 implementations against spec.md, data-model.md, contracts/distributed_test.proto, and upstream milestones M1-M13.
+
+**⚠️ CRITICAL**: Contains build-breaking fixes, stub replacements, and data-model alignment. Must be completed before Phase 8.
+
+### Category A: Build-Breaking Issues 🔴
+
+These issues prevent compilation and must be fixed first.
+
+- [ ] T230 [P] Add scenario.cpp and result_aggregation.cpp to src/distributed/CMakeLists.txt add_library() sources
+- [ ] T231 Implement TestCoordinatorImpl::load_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [ ] T232 Implement TestCoordinatorImpl::run_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [ ] T233 Implement TestCoordinatorImpl::collect_results() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [ ] T234 Implement TestCoordinatorImpl::export_junit() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [ ] T235 Implement TestCoordinatorImpl::get_aggregated_result() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [ ] T236 [P] Fix orphan #endif in include/wadjet/distributed/distributed.hpp (uses #pragma once but has unmatched #endif at line 116)
+- [ ] T237 [P] Fix duplicate update_node_heartbeat() in src/distributed/coordinator.cpp (virtual override at ~line 194 and non-virtual at ~line 263)
+
+### Category B: Stub/Placeholder Replacements 🟠
+
+These have placeholder code that must be replaced with real implementations.
+
+#### B1: gRPC Service Stubs
+
+- [ ] T238 Replace EvaluateMatcher helper stub in src/distributed/grpc/service.cpp (line ~188 returns hardcoded JSON `{"matched": true}`)
+- [ ] T239 Complete ControlChannel RPC handler in src/distributed/grpc/service.cpp (capture_started, capture_stopped, matcher_result, error, log events are all no-ops with comments "In a full implementation, would...")
+- [ ] T240 Complete ReportResult RPC handler in src/distributed/grpc/service.cpp (lines 247-262: entire body is a stub with comment "In a real implementation, we would:")
+- [ ] T241 Implement ControlChannel command queue for pending StartCapture/EvaluateMatcher commands in src/distributed/grpc/service.cpp (currently just ACKs)
+
+#### B2: Node Implementation Stubs
+
+- [ ] T242 Replace evaluate_matcher() placeholder in src/distributed/node.cpp (line ~286 returns hardcoded JSON instead of calling actual DistributedMatcher)
+- [ ] T243 Implement execute_command() in src/distributed/node.cpp (line ~311 has TODO, returns "command_output_placeholder")
+
+#### B3: Scenario Parsing Stubs
+
+- [ ] T244 Implement actual YAML parsing using yaml-cpp in src/distributed/scenario.cpp (parse_yaml_string() at line ~80 returns hardcoded sample scenario)
+- [ ] T245 Implement actual JSON parsing using nlohmann_json in src/distributed/scenario.cpp (parse_json_string() at line ~120 returns hardcoded sample scenario)
+
+#### B4: Matcher GoogleTest Integration Stubs
+
+- [ ] T246 Complete ExpectMessageFlow GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter (currently ignores it per M3 matcher integration spec)
+- [ ] T247 Complete HappensBefore GoogleTest Matcher<PacketView&> variant to use event_a_matcher and event_b_matcher parameters (currently ignores them)
+- [ ] T248 Complete MustNotSeeOn GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter (currently ignores it)
+
+#### B5: MessageCorrelator Placeholder Methods
+
+- [ ] T249 Implement MessageCorrelator SequenceNumber correlation with actual protocol header parsing in src/distributed/message_correlator.cpp (currently "seq_" + address)
+- [ ] T250 Implement MessageCorrelator TransactionId correlation with DoIP/UDS transaction ID extraction in src/distributed/message_correlator.cpp (currently "txn_" + address)
+- [ ] T251 Implement MessageCorrelator Timestamp correlation with proximity logic in src/distributed/message_correlator.cpp (currently assigns "ts_" with no logic)
+
+#### B6: SyncBarrier Placeholder
+
+- [ ] T252 Fix SyncBarrier::arrive_and_wait() to use actual node ID parameter instead of hardcoded "local_node" in src/distributed/sync_barrier.cpp
+
+### Category C: Data-Model Alignment 🟡
+
+Fields, types, and methods specified in data-model.md but missing from implementations.
+
+#### C1: Missing Enums (data-model.md Enumerations section)
+
+- [ ] T253 [P] Create NodeHealthStatus enum class (Unknown, Healthy, Degraded, Unhealthy, Disconnected) in include/wadjet/distributed/types.hpp per data-model.md
+- [ ] T254 [P] Create CaptureState enum class (Idle, Starting, Running, Stopping, Stopped, Error) in include/wadjet/distributed/types.hpp per data-model.md
+- [ ] T255 [P] Create BarrierState enum class (Waiting, AllArrived, Timeout, Cancelled) in include/wadjet/distributed/types.hpp per data-model.md
+- [ ] T256 [P] Create ResultStatus enum class (Passed, Failed, Error, Skipped, Timeout) in include/wadjet/distributed/result_aggregation.hpp per data-model.md
+
+#### C2: Missing TLS Configuration (FR-042, data-model.md)
+
+- [ ] T257 Add tls_cert_path, tls_key_path, tls_ca_path fields to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
+- [ ] T258 Add tls_cert_path, tls_key_path, tls_ca_path fields to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md
+- [ ] T259 Add config_path field to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
+- [ ] T260 Add failure_capture_dir field to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md (default: "/tmp/wadjet_failures")
+- [ ] T261 Wire TLS credentials into gRPC server/client channel creation in src/distributed/coordinator.cpp and src/distributed/node.cpp
+
+#### C3: Missing Scenario Structs (data-model.md DistributedScenario section)
+
+- [ ] T262 [P] Create WaitStepConfig struct (duration field) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [ ] T263 [P] Create LogStepConfig struct (message, level fields) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [ ] T264 [P] Create NodeDefinition struct (id, address, interfaces) in include/wadjet/distributed/scenario.hpp per data-model.md
+- [ ] T265 Add tags field (std::vector<std::string>) to DistributedScenario in include/wadjet/distributed/scenario.hpp per data-model.md
+- [ ] T266 Refactor DistributedStep config to use std::variant<BarrierStepConfig, CaptureStepConfig, ExpectStepConfig, WaitStepConfig, LogStepConfig> per data-model.md
+
+#### C4: Missing AggregatedResult Fields (data-model.md AggregatedResult section)
+
+- [ ] T267 Add status field (ResultStatus) to AggregatedResult per data-model.md
+- [ ] T268 Add total_duration field (std::chrono::milliseconds) to AggregatedResult per data-model.md
+- [ ] T269 Add distributed_assertions field (std::vector<AssertionResult>) to AggregatedResult per data-model.md
+- [ ] T270 Add pcap_files field (std::vector<std::filesystem::path>) to AggregatedResult per data-model.md
+- [ ] T271 Add total_assertions, passed_assertions, failed_assertions int fields to AggregatedResult per data-model.md
+- [ ] T272 Implement AggregatedResult::merge() static method per data-model.md for combining multi-scenario results
+
+#### C5: Missing Node Methods (data-model.md TestNode section)
+
+- [ ] T273 Add TestNode::report_clock_status() -> ClockSyncStatus method per data-model.md
+- [ ] T274 Add TestNode::report_health() -> NodeHealthStatus method per data-model.md
+
+#### C6: AssertionResult Schema Alignment (data-model.md vs implementation)
+
+- [ ] T275 Add src_node, dst_node fields to AssertionResult per data-model.md (spec: multi-node context)
+- [ ] T276 Add src_timestamp_ns, dst_timestamp_ns, latency_ns fields to AssertionResult per data-model.md
+- [ ] T277 Add expected, actual string fields to AssertionResult per data-model.md (for detailed assertion comparison)
+
+### Category D: Missing Test Files 🟣
+
+- [ ] T278 Create tests/integration/test_distributed_scenario.cpp integration test (was referenced but file does not exist)
+- [ ] T279 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_service.cpp with real tests using mock gRPC server
+- [ ] T280 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_client.cpp with real tests using mock gRPC client
+
+### Category E: Upstream Milestone Integration Gaps 🔵
+
+Cross-cutting issues from review against M1-M13 features.
+
+#### E1: M3 Matcher Integration (spec.md FR-020 to FR-023)
+
+- [ ] T281 Verify DistributedMatcher factory functions accept M3 GoogleTest Matcher<PacketView&> (verify include paths and linking against M3 matcher headers)
+- [ ] T282 Add distributed matcher composition tests using AllOf/AnyOf/Not from M3 in tests/distributed/test_distributed_matchers.cpp
+
+#### E2: M4 Scenario Engine Alignment (spec.md FR-027 to FR-034)
+
+- [ ] T283 Verify DistributedScenario YAML format aligns with M4 Scenario YAML structure (same yaml-cpp patterns, compatible tags/metadata fields)
+- [ ] T284 Ensure distributed JUnit XML output is compatible with M4 ReportGenerator format (same XML schema, additive fields for node info)
+
+#### E3: M8 gPTP Integration Completeness (spec.md FR-015)
+
+- [ ] T285 Verify TimestampNormalizer::verify_gptp_health() actually decodes gPTP Announce/Sync messages using M8 decoder headers (not just checking clock status)
+
+#### E4: M1 PCAP I/O Integration (spec.md FR-017, FR-038)
+
+- [ ] T286 Verify PcapMerger correctly uses M1 PcapReader/PcapWriter APIs (include paths, linking, timestamp format compatibility)
+- [ ] T287 Add test verifying merged PCAP is openable by Wireshark (write temp file, validate PCAP magic number and header)
+
+#### E5: M5/M7 FFI Pattern Compliance (Constitution Principle V)
+
+- [ ] T288 [P] Document distributed FFI type mapping table: C++ types → C ABI handles → Python types → Rust types (pre-work for Phase 8)
+
+#### E6: Performance Metrics (FR-037)
+
+- [ ] T289 Add latency_stats (min, max, mean, p95, p99) to NodeResult per FR-037 and M12 LatencyStats pattern
+- [ ] T290 Add throughput_packets_per_sec field to NodeResult per FR-037
+- [ ] T291 Add packet_loss_count field to NodeResult per FR-037
+
+### Category F: Spec Requirement Coverage Gaps 🟤
+
+FR requirements with no implementing code (only task references but empty implementations).
+
+- [ ] T292 [FR-002] Implement static node configuration file parser (YAML/JSON) in coordinator for node discovery (currently no config file parsing)
+- [ ] T293 [FR-010] Implement node-side partial result + PCAP save on coordinator failure in src/distributed/node.cpp (detect_coordinator_failure saves nothing)
+- [ ] T294 [FR-014] Add explicit test initialization failure when neither gPTP nor NTP sync detected (TimestampNormalizer detects but doesn't block test start)
+- [ ] T295 [FR-044] Add coordination overhead measurement and validation (<1% of test traffic) in test suite
+- [ ] T296 [FR-058] Implement PCAP naming convention: {test_name}_{node_id}_{timestamp}.pcap in src/distributed/node.cpp
+- [ ] T297 [FR-059] Add barrier synchronization event logging with timestamps in src/distributed/coordinator.cpp
+- [ ] T298 [FR-060] Ensure all distributed assertion failures include: node ID, timestamp, expected vs actual, packet context in error reports
+
+**Checkpoint**: All Phase 1-7 gaps remediated, builds cleanly, all stubs replaced, data-model fully aligned
+
+---
+
 ## Phase 8: FFI Bindings (Constitution Principle V)
 
 **Purpose**: C ABI, Python bindings, Rust bindings for distributed testing primitives
