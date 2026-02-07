@@ -387,9 +387,9 @@ Fields, types, and methods specified in data-model.md but missing from implement
 
 ### Category D: Missing Test Files 🟣
 
-- [ ] T278 Create tests/integration/test_distributed_scenario.cpp integration test (was referenced but file does not exist)
-- [ ] T279 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_service.cpp with real tests using mock gRPC server
-- [ ] T280 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_client.cpp with real tests using mock gRPC client
+- [x] T278 Create tests/integration/test_distributed_scenario.cpp integration test (was referenced but file does not exist)
+- [x] T279 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_service.cpp with real tests using mock gRPC server
+- [x] T280 Replace GTEST_SKIP() stubs in tests/distributed/test_grpc_client.cpp with real tests using mock gRPC client
 
 ### Category E: Upstream Milestone Integration Gaps 🔵
 
