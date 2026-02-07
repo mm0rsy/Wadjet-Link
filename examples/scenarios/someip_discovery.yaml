@@ -1,0 +1,217 @@
+# T130: Example Test Scenario for 3-Node SOME/IP Service Discovery
+#
+# This scenario demonstrates multi-node distributed testing with:
+# - Synchronized capture across 3 network segments
+# - Barrier synchronization for coordinated test steps
+# - Distributed assertions for message flow validation
+# - Clock synchronization verification (gPTP)
+
+scenario_id: someip_discovery_test
+name: "SOME/IP Service Discovery - 3 Node Test"
+description: |
+  Validates SOME/IP Service Discovery (SD) message flow across
+  distributed nodes with synchronized capture and timestamp alignment.
+  
+  Test validates:
+  - Service advertisement reaches all nodes
+  - Consumer discovery succeeds within latency bounds
+  - Timestamp correlation across network segments
+  - Clock synchronization health (gPTP/NTP)
+
+version: "1.0"
+tags:
+  - someip
+  - service-discovery
+  - distributed
+  - sd
+  - protocol-validation
+
+# Node definitions for the test
+nodes:
+  - node_id: provider
+    description: "SOME/IP Service Provider (eth0)"
+    address: "provider.example.com"
+    port: 50051
+    interfaces:
+      - name: eth0
+        role: "service_advertiser"
+
+  - node_id: consumer
+    description: "SOME/IP Service Consumer (eth1)"
+    address: "consumer.example.com"
+    port: 50052
+    interfaces:
+      - name: eth1
+        role: "service_discoverer"
+
+  - node_id: monitor
+    description: "Network Monitor (dual interface)"
+    address: "monitor.example.com"
+    port: 50053
+    interfaces:
+      - name: eth0
+        role: "observer"
+      - name: eth1
+        role: "observer"
+
+# Test execution steps
+steps:
+  # Step 1: Initial synchronization
+  - step_id: 1
+    name: "Initialize and Synchronize"
+    type: barrier
+    description: "Wait for all nodes to be ready"
+    nodes:
+      - provider
+      - consumer
+      - monitor
+    config:
+      timeout_ms: 5000
+      expected_participants: 3
+
+  # Step 2: Verify clock synchronization
+  - step_id: 2
+    name: "Verify Clock Synchronization"
+    type: command
+    description: "Check gPTP/NTP health on all nodes"
+    nodes:
+      - provider
+      - consumer
+      - monitor
+    config:
+      command: "check_clock"
+      timeout_ms: 3000
+      failure_mode: "warn"  # Don't fail test, just warn
+
+  # Step 3: Start synchronized packet capture
+  - step_id: 3
+    name: "Start Synchronized Capture"
+    type: capture
+    description: |
+      Start packet capture on all nodes simultaneously
+      Expected jitter: <10ms
+    nodes:
+      - provider
+      - consumer
+      - monitor
+    config:
+      duration_ms: 10000
+      filter: "udp port 30490"  # Standard SOME/IP SD port
+      snaplen: 65535
+      synchronization:
+        type: barrier
+        barrier_id: "capture_start"
+        timeout_ms: 5000
+        max_jitter_ms: 10
+
+  # Step 4: Wait while service is advertised
+  - step_id: 4
+    name: "Service Advertisement Phase"
+    type: wait
+    description: |
+      Let the provider advertise service and consumer discover it
+      During this time, packets are being captured
+    config:
+      duration_ms: 8000
+
+  # Step 5: Validate message flow
+  - step_id: 5
+    name: "Validate Message Flow"
+    type: expect
+    description: |
+      Verify SOME/IP SD message flow:
+      1. Service advertisement from provider
+      2. Message visible on monitor
+      3. Find service request from consumer
+    nodes:
+      - provider
+      - monitor
+      - consumer
+    config:
+      matchers:
+        - type: "ExpectMessageFlow"
+          description: "Service advertisement reaches consumer"
+          nodes:
+            - from: provider
+              to: consumer
+              via: monitor
+            # Typical flow: Provider sends SD on eth0 → Monitor sees on eth0 
+            #              Message might reach consumer on eth1
+          timeout_ms: 5000
+
+        - type: "WithinLatency"
+          description: "Discovery response within 100ms"
+          latency_ms: 100
+          nodes:
+            - request_node: consumer
+              response_node: provider
+
+        - type: "HappensBefore"
+          description: "Advertisement before discovery request"
+          event_a: "service_advertise"
+          event_b: "find_service_request"
+
+        - type: "MustNotSeeOn"
+          description: "No unexpected protocol on observer"
+          node: monitor
+          packets: "tcp"  # SD uses UDP
+
+  # Step 6: Stop capture
+  - step_id: 6
+    name: "Stop Synchronized Capture"
+    type: barrier
+    description: "Coordinate capture stop across all nodes"
+    nodes:
+      - provider
+      - consumer
+      - monitor
+    config:
+      barrier_id: "capture_stop"
+      timeout_ms: 5000
+
+  # Step 7: Log test completion
+  - step_id: 7
+    name: "Test Complete"
+    type: log
+    description: "Mark end of test for reporting"
+    config:
+      level: "info"
+      message: "SOME/IP SD distributed test completed"
+
+# Result aggregation settings
+results:
+  junit_report: "someip_discovery_results.xml"
+  html_report: "someip_discovery_report.html"
+  json_output: "someip_discovery_results.json"
+  
+  # Merge PCAPs from all nodes with timestamp alignment
+  pcap_merge:
+    enabled: true
+    output_file: "merged_capture.pcap"
+    algorithm: "timestamp"  # Sort by timestamp
+    correlation_method: "gptp"  # Use gPTP timestamps
+
+  # Store failure captures for debugging
+  failure_captures:
+    enabled: true
+    directory: "./failure_captures"
+    compress: true
+
+# Test constraints and performance targets
+constraints:
+  capture_jitter_max_ms: 10
+  coordination_overhead_percent: 1
+  timestamp_alignment_max_us: 1000  # 1 microsecond with gPTP
+  
+# CI/CD integration settings
+ci:
+  # Mark test failed if any node becomes unhealthy
+  node_health_threshold: "healthy"
+  
+  # Timeout for entire scenario
+  scenario_timeout_ms: 30000
+  
+  # Send notifications on failure
+  notifications:
+    enabled: false
+    slack_webhook: "${SLACK_WEBHOOK_URL}"

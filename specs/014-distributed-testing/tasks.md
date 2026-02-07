@@ -498,12 +498,12 @@ FR requirements with no implementing code (only task references but empty implem
 
 **Purpose**: Example scenarios and documentation updates
 
-- [ ] T129 [P] Create 3-node SOME/IP discovery example in examples/distributed_someip_discovery.cpp
-- [ ] T130 [P] Create example scenario YAML in examples/scenarios/someip_discovery.yaml
-- [ ] T131 [P] Create example nodes configuration in examples/scenarios/nodes.yaml
-- [ ] T132 [P] Update docs/quickstart.md with distributed testing section
-- [ ] T133 [P] Create docs/distributed_testing.md architecture guide
-- [ ] T134 Update README.md with distributed testing feature overview
+- [x] T129 [P] Create 3-node SOME/IP discovery example in examples/distributed_someip_discovery.cpp
+- [x] T130 [P] Create example scenario YAML in examples/scenarios/someip_discovery.yaml
+- [x] T131 [P] Create example nodes configuration in examples/scenarios/nodes.yaml
+- [x] T132 [P] Update docs/quickstart.md with distributed testing section
+- [x] T133 [P] Create docs/distributed_testing.md architecture guide
+- [x] T134 Update README.md with distributed testing feature overview
 
 ---
 

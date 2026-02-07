@@ -1,0 +1,244 @@
+# T131: Example Node Configuration for Distributed Testing
+#
+# This file demonstrates how to configure nodes for the SOME/IP discovery test.
+# Use with: wadjet-coordinator --config nodes.yaml --scenario someip_discovery.yaml
+
+# Global coordinator settings
+coordinator:
+  bind_address: "0.0.0.0"
+  grpc_port: 50051
+  heartbeat_timeout_ms: 5000
+  heartbeat_interval_ms: 1000
+  barrier_timeout_ms: 10000
+  enable_partial_results: true
+  
+  # TLS configuration (optional)
+  tls_enabled: false
+  # tls_cert_path: "/path/to/cert.pem"
+  # tls_key_path: "/path/to/key.pem"
+  # tls_ca_path: "/path/to/ca.pem"
+
+# Logging configuration
+logging:
+  level: "info"
+  format: "json"  # or "text"
+  output: "stdout"  # or file path
+
+# Node configurations
+nodes:
+  # Provider Node: Advertises SOME/IP service
+  - node_id: provider
+    hostname: "provider.example.com"
+    description: "SOME/IP Service Provider"
+    coordinator_address: "localhost"
+    coordinator_port: 50051
+    
+    # Network interfaces for capture
+    interfaces:
+      - name: eth0
+        speed: "1000Mb"
+        mtu: 1500
+        ip_address: "192.168.1.10/24"
+        role: "primary"
+    
+    # Capture settings
+    capture:
+      enabled: true
+      filter: "udp port 30490"  # SOME/IP SD port
+      snaplen: 65535
+      mode: "af_packet"  # Linux AF_PACKET for high performance
+      
+      # Optional: Hardware timestamping
+      # hardware_timestamp: true
+      # timestamp_clock: "phc0"
+    
+    # Clock synchronization
+    clock:
+      sync_method: "gptp"  # gPTP (IEEE 802.1AS)
+      domain: 0
+      priority: 128
+      timeout_ms: 2000
+    
+    # Heartbeat settings
+    heartbeat:
+      interval_ms: 1000
+      timeout_ms: 5000
+    
+    # Failure recovery
+    failure_recovery:
+      enabled: true
+      partial_capture_dir: "/tmp/wadjet_failures/provider"
+      save_on_coordinator_failure: true
+    
+    # TLS (optional)
+    tls:
+      enabled: false
+      # cert_path: "/etc/wadjet/provider/cert.pem"
+      # key_path: "/etc/wadjet/provider/key.pem"
+      # ca_path: "/etc/wadjet/ca.pem"
+
+  # Consumer Node: Discovers SOME/IP service
+  - node_id: consumer
+    hostname: "consumer.example.com"
+    description: "SOME/IP Service Consumer"
+    coordinator_address: "localhost"
+    coordinator_port: 50051
+    
+    interfaces:
+      - name: eth1
+        speed: "1000Mb"
+        mtu: 1500
+        ip_address: "192.168.2.20/24"
+        role: "primary"
+    
+    capture:
+      enabled: true
+      filter: "udp port 30490"
+      snaplen: 65535
+      mode: "af_packet"
+    
+    clock:
+      sync_method: "gptp"
+      domain: 0
+      priority: 129  # Slightly lower priority than provider
+      timeout_ms: 2000
+    
+    heartbeat:
+      interval_ms: 1000
+      timeout_ms: 5000
+    
+    failure_recovery:
+      enabled: true
+      partial_capture_dir: "/tmp/wadjet_failures/consumer"
+      save_on_coordinator_failure: true
+
+  # Monitor Node: Observes traffic on both segments
+  - node_id: monitor
+    hostname: "monitor.example.com"
+    description: "Network Monitor (observes both segments)"
+    coordinator_address: "localhost"
+    coordinator_port: 50051
+    
+    # Multi-interface capture
+    interfaces:
+      - name: eth0
+        speed: "1000Mb"
+        mtu: 1500
+        ip_address: "192.168.1.30/24"
+        role: "monitor"
+      
+      - name: eth1
+        speed: "1000Mb"
+        mtu: 1500
+        ip_address: "192.168.2.30/24"
+        role: "monitor"
+    
+    capture:
+      enabled: true
+      # Capture all traffic (no filter needed for monitor)
+      filter: ""
+      snaplen: 65535
+      mode: "af_packet"
+    
+    clock:
+      sync_method: "gptp"
+      domain: 0
+      priority: 200  # Not a sync master
+      timeout_ms: 2000
+    
+    heartbeat:
+      interval_ms: 1000
+      timeout_ms: 5000
+    
+    failure_recovery:
+      enabled: true
+      partial_capture_dir: "/tmp/wadjet_failures/monitor"
+      save_on_coordinator_failure: true
+
+# Output settings
+output:
+  directory: "./wadjet_output"
+  
+  # PCAP handling
+  pcap:
+    merge: true
+    merge_algorithm: "timestamp"  # Sort by timestamp
+    correlation_method: "gptp"
+    output_file: "merged_capture.pcap"
+  
+  # Report generation
+  reports:
+    junit_enabled: true
+    junit_file: "test_results.xml"
+    html_enabled: true
+    html_file: "test_report.html"
+    json_enabled: true
+    json_file: "test_results.json"
+  
+  # Logs
+  logs:
+    enabled: true
+    directory: "./wadjet_output/logs"
+    compress_old_logs: true
+    
+    # Per-node logs
+    per_node: true
+
+# Advanced settings
+advanced:
+  # Maximum concurrent nodes
+  max_nodes: 100
+  
+  # Network settings
+  network:
+    grpc_max_message_size: 104857600  # 100MB
+    grpc_max_concurrent_streams: 1000
+    keepalive_interval_ms: 30000
+    keepalive_timeout_ms: 10000
+  
+  # Synchronization settings
+  synchronization:
+    # Use gPTP for precise clock alignment
+    preferred_sync_method: "gptp"
+    # Fallback to NTP if gPTP unavailable
+    fallback_sync_method: "ntp"
+    # Verify sync before running tests
+    verify_before_start: true
+    # Warn if max clock offset exceeds threshold
+    max_clock_offset_us: 1000
+  
+  # Performance tuning
+  performance:
+    capture_ring_buffer_size: 2048
+    packet_batch_size: 64
+    worker_threads: 4
+  
+  # Debugging
+  debug:
+    verbose_logging: false
+    trace_grpc_calls: false
+    dump_scenario_plan: false
+
+# Integration with CI/CD pipelines
+ci_cd:
+  enabled: false
+  
+  # Jenkins integration
+  # jenkins_url: "https://jenkins.example.com"
+  # job_name: "distributed-tests"
+  # build_number: "${BUILD_NUMBER}"
+  
+  # GitLab CI
+  # gitlab_project_id: "12345"
+  # gitlab_pipeline_id: "${CI_PIPELINE_ID}"
+  
+  # GitHub Actions
+  # github_run_id: "${GITHUB_RUN_ID}"
+
+# Feature flags (for gradual rollout)
+features:
+  distributed_testing_enabled: true
+  partial_results_on_failure: true
+  gptp_sync_required: false  # Log warning instead of error
+  automated_node_discovery: false
+  scenario_reload_on_change: false

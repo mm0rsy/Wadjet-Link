@@ -8,6 +8,7 @@ Welcome to Wadjet-Link! This guide will help you get started with automotive Eth
 - [Your First Capture](#your-first-capture)
 - [Decoding Protocols](#decoding-protocols)
 - [Writing Tests with GoogleTest](#writing-tests-with-googletest)
+- [Distributed Testing](#distributed-testing)
 - [Using PCAP Files](#using-pcap-files)
 - [Next Steps](#next-steps)
 
@@ -317,6 +318,169 @@ TEST_F(LoopbackTest, SendAndReceiveUDP) {
     EXPECT_THAT(*packet, wadjet::testing::PayloadContains({0x01, 0x02}));
 }
 ```
+
+---
+
+## Distributed Testing
+
+T132: Wadjet-Link supports multi-node distributed testing for validating protocols across multiple network segments with synchronized capture and timestamp alignment.
+
+### Key Concepts
+
+**Distributed Test Architecture:**
+- **Coordinator**: Central test orchestrator managing multiple nodes
+- **Nodes**: Individual test participants capturing and validating packets
+- **Barriers**: Synchronization points for coordinating test steps
+- **Clock Sync**: gPTP or NTP for timestamp alignment
+- **Results Aggregation**: Merged PCAPs and aggregated assertions
+
+### Quick Start: 3-Node Test
+
+**1. Prepare Configuration Files**
+
+Create `nodes.yaml` for your nodes:
+```yaml
+coordinator:
+  bind_address: "0.0.0.0"
+  grpc_port: 50051
+
+nodes:
+  - node_id: node1
+    interfaces:
+      - name: eth0
+    capture:
+      enabled: true
+      filter: "udp port 30490"
+    clock:
+      sync_method: "gptp"
+  
+  - node_id: node2
+    interfaces:
+      - name: eth1
+    capture:
+      enabled: true
+      filter: "udp port 30490"
+    clock:
+      sync_method: "gptp"
+```
+
+**2. Create Test Scenario**
+
+Create `scenario.yaml` defining test steps:
+```yaml
+scenario_id: example_test
+name: "Multi-Node Protocol Test"
+nodes:
+  - node_id: node1
+  - node_id: node2
+
+steps:
+  - step_id: 1
+    type: barrier
+    description: "Synchronize nodes"
+    config:
+      expected_participants: 2
+      timeout_ms: 5000
+
+  - step_id: 2
+    type: capture
+    description: "Capture for 5 seconds"
+    config:
+      duration_ms: 5000
+
+  - step_id: 3
+    type: expect
+    description: "Validate message flow"
+    config:
+      matchers:
+        - type: "ExpectMessageFlow"
+          description: "Message reaches both nodes"
+```
+
+**3. Start the Coordinator**
+
+```bash
+# Terminal 1: Start coordinator with scenario
+wadjet-coordinator \
+  --config nodes.yaml \
+  --scenario scenario.yaml \
+  --output-dir ./results \
+  --junit-report results.xml
+```
+
+**4. Start Test Nodes**
+
+```bash
+# Terminal 2: Start node 1
+wadjet-node --node-id node1 --check-clock
+
+# Terminal 3: Start node 2
+wadjet-node --node-id node2 --check-clock
+```
+
+**5. Review Results**
+
+```bash
+# Check results when done
+cat ./results/results.xml          # JUnit format
+open ./results/report.html         # Human-readable report
+file ./results/merged_*.pcap       # Aligned PCAP
+```
+
+### Advanced Features
+
+**Clock Synchronization Verification:**
+```bash
+# Node validates gPTP/NTP before starting tests
+wadjet-node --node-id node1 --check-clock
+```
+
+**Per-Node Capture Control:**
+```cpp
+// C++ API for custom scenarios
+auto config = CaptureConfig{
+    .duration = std::chrono::seconds(10),
+    .filter = "udp port 30490",
+    .synchronization_barrier_id = "capture_start"
+};
+node->start_capture(config);
+```
+
+**Distributed Assertions:**
+```cpp
+// Validate message flow across nodes
+EXPECT_THAT(packets,
+    ExpectMessageFlow()
+        .From(node1).To(node2)
+        .WithinLatency(std::chrono::milliseconds(100))
+        .HappensBefore(event_a, event_b));
+```
+
+### Common Workflows
+
+**SOME/IP Service Discovery Test:**
+- See `examples/distributed_someip_discovery.cpp`
+- Configuration: `examples/scenarios/someip_discovery.yaml`
+- Nodes: `examples/scenarios/nodes.yaml`
+
+**Custom Protocol Validation:**
+1. Define nodes in `nodes.yaml`
+2. Create scenario in `scenario.yaml`
+3. Run coordinator with `wadjet-coordinator`
+4. Start nodes with `wadjet-node`
+5. Review merged PCAP and reports
+
+### Troubleshooting Distributed Tests
+
+| Issue | Solution |
+| --- | --- |
+| Nodes fail to connect | Check coordinator address, firewall, gRPC port |
+| High capture jitter | Ensure gPTP is synchronized, reduce system load |
+| Timestamp misalignment | Verify NTP/gPTP on all nodes, check `--check-clock` |
+| Coordinator timeout | Increase `heartbeat_timeout_ms` in nodes.yaml |
+| PCAP merge issues | Verify all nodes captured on same interfaces |
+
+For detailed information, see [Distributed Testing Guide](distributed_testing.md).
 
 ---
 
