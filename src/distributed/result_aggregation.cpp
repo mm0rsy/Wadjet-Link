@@ -60,7 +60,21 @@ auto NodeResult::to_json() const -> json {
         {"error_message", error_message.value_or("")},
         {"start_time_ns", start_time_ns},
         {"end_time_ns", end_time_ns},
-        {"metadata", metadata}
+        {"metadata", metadata},
+        {"latency_stats", json{
+            {"min_ns", latency_stats.min_ns},
+            {"max_ns", latency_stats.max_ns},
+            {"mean_ns", latency_stats.mean_ns},
+            {"p95_ns", latency_stats.p95_ns},
+            {"p99_ns", latency_stats.p99_ns},
+            {"count", latency_stats.count}
+        }},
+        {"throughput_packets_per_sec", throughput_packets_per_sec},
+        {"total_bytes_captured", total_bytes_captured},
+        {"throughput_mbps", throughput_mbps},
+        {"packet_loss_count", packet_loss_count},
+        {"packet_loss_percent", packet_loss_percent},
+        {"expected_packet_count", expected_packet_count}
     };
 }
 
@@ -85,6 +99,41 @@ auto NodeResult::from_json(const json& j) -> Result<NodeResult> {
         result.start_time_ns = j.at("start_time_ns").get<int64_t>();
         result.end_time_ns = j.at("end_time_ns").get<int64_t>();
         result.metadata = j.at("metadata").get<std::map<std::string, std::string>>();
+        
+        // Parse performance metrics (T289-T291)
+        if (j.contains("latency_stats")) {
+            const auto& lat = j.at("latency_stats");
+            result.latency_stats.min_ns = lat.at("min_ns").get<int64_t>();
+            result.latency_stats.max_ns = lat.at("max_ns").get<int64_t>();
+            result.latency_stats.mean_ns = lat.at("mean_ns").get<double>();
+            result.latency_stats.p95_ns = lat.at("p95_ns").get<int64_t>();
+            result.latency_stats.p99_ns = lat.at("p99_ns").get<int64_t>();
+            result.latency_stats.count = lat.at("count").get<int64_t>();
+        }
+        
+        if (j.contains("throughput_packets_per_sec")) {
+            result.throughput_packets_per_sec = j.at("throughput_packets_per_sec").get<double>();
+        }
+        
+        if (j.contains("total_bytes_captured")) {
+            result.total_bytes_captured = j.at("total_bytes_captured").get<int64_t>();
+        }
+        
+        if (j.contains("throughput_mbps")) {
+            result.throughput_mbps = j.at("throughput_mbps").get<double>();
+        }
+        
+        if (j.contains("packet_loss_count")) {
+            result.packet_loss_count = j.at("packet_loss_count").get<int64_t>();
+        }
+        
+        if (j.contains("packet_loss_percent")) {
+            result.packet_loss_percent = j.at("packet_loss_percent").get<double>();
+        }
+        
+        if (j.contains("expected_packet_count")) {
+            result.expected_packet_count = j.at("expected_packet_count").get<int64_t>();
+        }
         
         // Parse assertions
         for (const auto& assertion_json : j.at("assertions")) {
@@ -328,6 +377,89 @@ auto AggregatedResult::failed_nodes() const -> std::vector<NodeId> {
         }
     }
     return failed;
+}
+
+// T289-T291: Calculate performance metrics from packet captures
+auto NodeResult::calculate_metrics(const std::vector<Packet>& packets, int64_t expected_count) -> void {
+    if (packets.empty()) {
+        return;
+    }
+    
+    // Calculate total bytes and throughput
+    total_bytes_captured = 0;
+    std::vector<int64_t> inter_packet_delays;
+    
+    int64_t prev_timestamp = 0;
+    for (size_t i = 0; i < packets.size(); ++i) {
+        const auto& packet = packets[i];
+        
+        // T290: Accumulate byte count
+        total_bytes_captured += static_cast<int64_t>(packet.data().size());
+        
+        // T289: Calculate inter-packet delays for latency stats
+        int64_t current_timestamp = packet.timestamp().total_nanoseconds();
+        if (i > 0 && current_timestamp > prev_timestamp) {
+            int64_t delay = current_timestamp - prev_timestamp;
+            inter_packet_delays.push_back(delay);
+        }
+        prev_timestamp = current_timestamp;
+    }
+    
+    // T289: Calculate latency statistics (treating inter-packet delays as "latency")
+    if (!inter_packet_delays.empty()) {
+        latency_stats.count = static_cast<int64_t>(inter_packet_delays.size());
+        latency_stats.min_ns = *std::min_element(inter_packet_delays.begin(), inter_packet_delays.end());
+        latency_stats.max_ns = *std::max_element(inter_packet_delays.begin(), inter_packet_delays.end());
+        
+        // Calculate mean
+        int64_t sum = 0;
+        for (int64_t delay : inter_packet_delays) {
+            sum += delay;
+        }
+        latency_stats.mean_ns = static_cast<double>(sum) / inter_packet_delays.size();
+        
+        // Calculate percentiles (sorted)
+        std::vector<int64_t> sorted_delays = inter_packet_delays;
+        std::sort(sorted_delays.begin(), sorted_delays.end());
+        
+        // 95th percentile
+        size_t p95_idx = (sorted_delays.size() * 95) / 100;
+        if (p95_idx < sorted_delays.size()) {
+            latency_stats.p95_ns = sorted_delays[p95_idx];
+        }
+        
+        // 99th percentile
+        size_t p99_idx = (sorted_delays.size() * 99) / 100;
+        if (p99_idx < sorted_delays.size()) {
+            latency_stats.p99_ns = sorted_delays[p99_idx];
+        }
+    }
+    
+    // T290: Calculate throughput metrics
+    if (total_duration.count() > 0) {
+        // Packets per second
+        double duration_seconds = static_cast<double>(total_duration.count()) / 1e9;
+        throughput_packets_per_sec = packets.size() / duration_seconds;
+        
+        // Megabits per second
+        int64_t total_bits = total_bytes_captured * 8;
+        throughput_mbps = (static_cast<double>(total_bits) / 1e6) / duration_seconds;
+    }
+    
+    // T291: Calculate packet loss metrics
+    if (expected_count > 0) {
+        expected_packet_count = expected_count;
+        int64_t actual_count = static_cast<int64_t>(packets.size());
+        packet_loss_count = expected_count - actual_count;
+        
+        if (packet_loss_count < 0) {
+            packet_loss_count = 0;  // Can't have negative loss
+        }
+        
+        packet_loss_percent = (packet_loss_count > 0) 
+            ? (static_cast<double>(packet_loss_count) / expected_count) * 100.0 
+            : 0.0;
+    }
 }
 
 }  // namespace wadjet::distributed

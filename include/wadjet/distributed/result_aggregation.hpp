@@ -7,6 +7,7 @@
 #include <optional>
 #include <filesystem>
 #include <span>
+#include <climits>
 #include <nlohmann/json.hpp>
 
 #include "types.hpp"
@@ -66,9 +67,24 @@ struct AssertionResult {
 };
 
 /**
+ * @brief Performance metrics for latency calculations
+ * 
+ * T289: Latency statistics (min, max, mean, p95, p99) per FR-037 and M12 LatencyStats pattern
+ */
+struct LatencyStats {
+    int64_t min_ns = INT64_MAX;         ///< Minimum latency in nanoseconds
+    int64_t max_ns = INT64_MIN;         ///< Maximum latency in nanoseconds
+    double mean_ns = 0.0;               ///< Mean latency in nanoseconds
+    int64_t p95_ns = 0;                 ///< 95th percentile latency
+    int64_t p99_ns = 0;                 ///< 99th percentile latency
+    int64_t count = 0;                  ///< Number of samples
+};
+
+/**
  * @brief Test results from a single node
  * 
  * T087: Aggregates all assertions, capture info, and execution metadata from one node
+ * T289-T291: Extended with performance metrics (latency, throughput, packet loss)
  */
 struct NodeResult {
     NodeId node_id;                                    ///< Which node this result is from
@@ -86,6 +102,19 @@ struct NodeResult {
     int64_t end_time_ns = 0;                           ///< UTC nanosecond when tests ended
     std::map<std::string, std::string> metadata;       ///< Custom metadata (version, config, etc.)
     
+    // T289: Latency statistics per FR-037 and M12 LatencyStats pattern
+    LatencyStats latency_stats;                        ///< Latency min/max/mean/p95/p99
+    
+    // T290: Throughput metrics per FR-037
+    double throughput_packets_per_sec = 0.0;           ///< Packets per second
+    int64_t total_bytes_captured = 0;                  ///< Total bytes in all packets
+    double throughput_mbps = 0.0;                      ///< Throughput in megabits per second
+    
+    // T291: Packet loss tracking per FR-037
+    int64_t packet_loss_count = 0;                     ///< Number of packets lost
+    double packet_loss_percent = 0.0;                  ///< Percentage of packets lost
+    int64_t expected_packet_count = 0;                 ///< Expected packets for loss calculation
+    
     /// Convert to JSON for serialization
     auto to_json() const -> json;
     
@@ -101,6 +130,15 @@ struct NodeResult {
     auto all_passed() const -> bool {
         return failed_count == 0;
     }
+    
+    /// Calculate performance metrics from capture data
+    /// 
+    /// T289-T291: Compute latency stats, throughput, and packet loss
+    /// from packets captured during test
+    /// 
+    /// @param packets Vector of packets to analyze
+    /// @param expected_count Expected packet count for loss calculation
+    auto calculate_metrics(const std::vector<Packet>& packets, int64_t expected_count = 0) -> void;
 };
 
 /**
