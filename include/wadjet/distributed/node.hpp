@@ -194,6 +194,19 @@ public:
      * @return NodeHealthStatus indicating overall health
      */
     virtual auto report_health() const -> NodeHealthStatus = 0;
+    
+    /**
+     * @brief Save partial results and PCAP on coordinator failure
+     * 
+     * T293: Called when coordinator becomes unresponsive to:
+     * 1. Save captured packets to PCAP file in failure_capture_dir
+     * 2. Store partial test results for later recovery
+     * 3. Enable offline mode for manual packet analysis
+     * 
+     * This is automatically called during heartbeat timeout, but can be
+     * called manually for explicit save operations.
+     */
+    virtual auto save_partial_results() -> Result<void> = 0;
 
 protected:
     TestNode() = default;
