@@ -5,6 +5,8 @@
 #include <map>
 #include <chrono>
 #include <optional>
+#include <filesystem>
+#include <span>
 #include <nlohmann/json.hpp>
 
 #include "types.hpp"
@@ -15,9 +17,23 @@ namespace wadjet::distributed {
 using json = nlohmann::json;
 
 /**
+ * @brief Test result status enumeration
+ * 
+ * T256: Enumeration of result status values per data-model.md
+ */
+enum class ResultStatus {
+    Passed,         ///< Test passed
+    Failed,         ///< Test failed
+    Error,          ///< Test error
+    Skipped,        ///< Test skipped
+    Timeout         ///< Test timed out
+};
+
+/**
  * @brief Single assertion result from a node
  * 
  * T086: Represents one test assertion result with context
+ * T275-T277: Extended with distributed context fields per data-model.md
  */
 struct AssertionResult {
     std::string assertion_id;           ///< Unique identifier for assertion
@@ -28,6 +44,19 @@ struct AssertionResult {
     int64_t timestamp_ns;               ///< UTC nanosecond timestamp when assertion ran
     std::chrono::milliseconds duration; ///< How long assertion evaluation took
     std::vector<std::string> context;   ///< Additional context (stack trace, etc.)
+    
+    // T275: Source and destination node context per data-model.md
+    std::string src_node;               ///< Source node ID for distributed assertion
+    std::string dst_node;               ///< Destination node ID for distributed assertion
+    
+    // T276: Distributed timing information per data-model.md
+    int64_t src_timestamp_ns = 0;       ///< Timestamp on source node
+    int64_t dst_timestamp_ns = 0;       ///< Timestamp on destination node
+    int64_t latency_ns = 0;             ///< Latency between nodes
+    
+    // T277: Expected vs actual for detailed comparison per data-model.md
+    std::string expected;               ///< Expected value
+    std::string actual;                 ///< Actual value
     
     /// Convert to JSON for serialization
     auto to_json() const -> json;
@@ -79,6 +108,7 @@ struct NodeResult {
  * 
  * T088: Top-level result container with results from all nodes,
  * providing export to JUnit XML, JSON, and HTML formats
+ * T267-T272: Extended with status, duration, assertions, and merge method per data-model.md
  */
 struct AggregatedResult {
     std::string test_name;                           ///< Name of the distributed test
@@ -88,6 +118,23 @@ struct AggregatedResult {
     std::string failure_captures_dir;                ///< Root directory for failure captures (T094)
     bool has_failure_captures = false;               ///< Whether any failure PCAPs were saved
     std::map<std::string, std::string> global_metadata; ///< Global test metadata
+    
+    // T267: Overall test status per data-model.md
+    ResultStatus status = ResultStatus::Passed;      ///< Overall pass/fail/error status
+    
+    // T268: Total duration calculation per data-model.md
+    std::chrono::milliseconds total_duration{0};     ///< Total test duration
+    
+    // T269: Aggregated distributed assertions per data-model.md
+    std::vector<AssertionResult> distributed_assertions; ///< All distributed assertions
+    
+    // T270: PCAP file tracking per data-model.md
+    std::vector<std::filesystem::path> pcap_files;   ///< Paths to all PCAP files
+    
+    // T271: Assertion statistics per data-model.md
+    int total_assertions = 0;                        ///< Total assertion count
+    int passed_assertions = 0;                       ///< Passed assertion count
+    int failed_assertion_count = 0;                  ///< Failed assertion count
     
     /// Convert to JSON representation
     /// 
@@ -117,6 +164,13 @@ struct AggregatedResult {
     /// @param css_path Optional path to custom CSS file
     /// @return HTML document string
     auto to_html_report(const std::string& css_path = "") const -> std::string;
+    
+    // T272: Merge static method for combining multi-scenario results per data-model.md
+    /// Merge results from multiple scenarios into a single aggregated result
+    /// 
+    /// @param results Vector of results to merge
+    /// @return Merged aggregated result
+    static auto merge(std::span<const AggregatedResult> results) -> AggregatedResult;
     
     /// Get overall test status
     auto all_passed() const -> bool;

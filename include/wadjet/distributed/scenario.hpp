@@ -5,6 +5,7 @@
 #include <memory>
 #include <chrono>
 #include <unordered_map>
+#include <variant>
 
 #include "wadjet/distributed/types.hpp"
 #include "wadjet/distributed/result.hpp"
@@ -66,19 +67,43 @@ struct ExpectStepConfig {
 };
 
 /**
+ * @brief Configuration for wait/delay step
+ * 
+ * T262: Specifies parameters for wait steps per data-model.md
+ */
+struct WaitStepConfig {
+    std::chrono::milliseconds duration;              ///< Duration to wait
+};
+
+/**
+ * @brief Configuration for log event step
+ * 
+ * T263: Specifies parameters for log steps per data-model.md
+ */
+struct LogStepConfig {
+    std::string message;                             ///< Log message text
+    std::string level = "INFO";                      ///< Log level (INFO, DEBUG, WARN, ERROR)
+};
+
+/**
  * @brief Single step in a distributed test scenario
  * 
  * T072: Represents one operation in a multi-node test
+ * T266: Uses std::variant for type-safe step configuration
  */
 struct DistributedStep {
     std::string step_id;                              ///< Unique step identifier
     std::string step_name;                            ///< Human-readable name
     StepType type{StepType::UNKNOWN};                 ///< Type of step
     
-    // Step-specific configurations (one will be populated)
-    BarrierStepConfig barrier_config;
-    CaptureStepConfig capture_config;
-    ExpectStepConfig expect_config;
+    // T266: Type-safe variant-based configuration per data-model.md
+    std::variant<
+        BarrierStepConfig,
+        CaptureStepConfig,
+        ExpectStepConfig,
+        WaitStepConfig,
+        LogStepConfig
+    > config;
     
     std::chrono::milliseconds delay_before_ms{0};     ///< Delay before step execution
     std::chrono::milliseconds timeout_ms{5000};       ///< Overall timeout for this step
@@ -86,6 +111,17 @@ struct DistributedStep {
     std::vector<std::string> target_nodes;            ///< Nodes this step applies to
     bool parallel{false};                             ///< Run in parallel with next step
     std::string depends_on;                           ///< Step ID this depends on
+};
+
+/**
+ * @brief Node definition for scenario
+ * 
+ * T264: Specifies node information in scenario per data-model.md
+ */
+struct NodeDefinition {
+    std::string id;                                  ///< Node identifier
+    std::string address;                             ///< Node address (hostname:port)
+    std::vector<std::string> interfaces;             ///< Network interfaces available on node
 };
 
 /**
@@ -161,6 +197,24 @@ public:
      * @return Scenario name
      */
     virtual auto name() const -> const std::string& = 0;
+    
+    /**
+     * @brief Get scenario tags
+     * 
+     * T265: Get list of tags per data-model.md for categorization
+     * 
+     * @return Vector of tag strings
+     */
+    virtual auto tags() const -> const std::vector<std::string>& = 0;
+    
+    /**
+     * @brief Get all node definitions
+     * 
+     * T264: Get node layout for scenario per data-model.md
+     * 
+     * @return Vector of node definitions
+     */
+    virtual auto nodes() const -> const std::vector<NodeDefinition>& = 0;
     
     /**
      * @brief Get all node assignments

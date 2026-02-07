@@ -4,10 +4,12 @@
 #include <memory>
 #include <chrono>
 #include <functional>
+#include <filesystem>
 
 #include "types.hpp"
 #include "result.hpp"
 #include "sync_barrier.hpp"
+#include "timestamp_normalizer.hpp"
 
 namespace wadjet::distributed {
 
@@ -28,6 +30,14 @@ struct NodeConfig {
     std::string version = "1.0.0";              ///< Protocol version
     std::chrono::milliseconds heartbeat_interval{1000}; ///< Heartbeat send interval
     std::chrono::milliseconds coordinator_timeout{5000}; ///< Timeout waiting for coordinator
+    
+    // T258: TLS configuration fields per data-model.md
+    std::filesystem::path tls_cert_path;        ///< Path to node TLS certificate
+    std::filesystem::path tls_key_path;         ///< Path to node TLS private key
+    std::filesystem::path tls_ca_path;          ///< Path to CA certificate for verification
+    
+    // T260: Failure capture directory per data-model.md
+    std::filesystem::path failure_capture_dir = "/tmp/wadjet_failures"; ///< Directory to save failure PCAPs
 };
 
 /**
@@ -164,6 +174,26 @@ public:
      * @param callback Function called on coordinator failure
      */
     virtual auto on_coordinator_failure(std::function<void()> callback) -> void = 0;
+    
+    /**
+     * @brief Report clock synchronization status
+     * 
+     * T273: Return clock sync status per data-model.md
+     * Used to verify clock synchronization health for timestamp alignment
+     * 
+     * @return ClockSyncStatus indicating sync method and quality
+     */
+    virtual auto report_clock_status() const -> ClockSyncStatus = 0;
+    
+    /**
+     * @brief Report node health status
+     * 
+     * T274: Return node health status per data-model.md
+     * Used to detect node degradation (clock drift, high latency, etc.)
+     * 
+     * @return NodeHealthStatus indicating overall health
+     */
+    virtual auto report_health() const -> NodeHealthStatus = 0;
 
 protected:
     TestNode() = default;

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <functional>
 #include <optional>
+#include <filesystem>
 
 #include "types.hpp"
 #include "result.hpp"
@@ -28,6 +29,14 @@ struct CoordinatorConfig {
     std::chrono::milliseconds node_register_timeout{5000}; ///< Timeout for node registration
     int max_nodes = 100;                            ///< Maximum nodes allowed
     bool enable_partial_results = true;             ///< Allow tests to continue with failed nodes
+    
+    // T257: TLS configuration fields per data-model.md
+    std::filesystem::path tls_cert_path;            ///< Path to TLS certificate file
+    std::filesystem::path tls_key_path;             ///< Path to TLS private key file
+    std::filesystem::path tls_ca_path;              ///< Path to CA certificate file
+    
+    // T259: Configuration file path per data-model.md
+    std::filesystem::path config_path;              ///< Path to YAML/JSON node configuration file
 };
 
 /**

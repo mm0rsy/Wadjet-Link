@@ -8,6 +8,45 @@
 namespace wadjet::distributed {
 
 /**
+ * @brief Node health status enumeration
+ * 
+ * T253: Enumeration of node health states per data-model.md
+ */
+enum class NodeHealthStatus {
+    Unknown,        ///< Health status unknown
+    Healthy,        ///< Node is healthy and responsive
+    Degraded,       ///< Node has degraded health (clock drift, high latency)
+    Unhealthy,      ///< Node is unhealthy (heartbeat timeout)
+    Disconnected    ///< Node is disconnected
+};
+
+/**
+ * @brief Capture state enumeration
+ * 
+ * T254: Enumeration of capture states per data-model.md
+ */
+enum class CaptureState {
+    Idle,           ///< No capture in progress
+    Starting,       ///< Capture is starting
+    Running,        ///< Capture is actively running
+    Stopping,       ///< Capture is stopping
+    Stopped,        ///< Capture has stopped
+    Error           ///< Capture error occurred
+};
+
+/**
+ * @brief Barrier state enumeration
+ * 
+ * T255: Enumeration of barrier states per data-model.md
+ */
+enum class BarrierState {
+    Waiting,        ///< Waiting for nodes to arrive
+    AllArrived,     ///< All nodes have arrived
+    Timeout,        ///< Barrier timeout occurred
+    Cancelled       ///< Barrier was cancelled
+};
+
+/**
  * @brief Node identifier type
  */
 using NodeId = std::string;
