@@ -446,34 +446,34 @@ FR requirements with no implementing code (only task references but empty implem
 
 ### C ABI Layer
 
-- [ ] T099 [P] Create C99 ABI header with opaque handles in bindings/c/wadjet_distributed.h
-- [ ] T100 [P] Implement wadjet_coordinator_create/destroy C functions in bindings/c/wadjet_distributed.c
-- [ ] T101 [P] Implement wadjet_node_create/destroy C functions in bindings/c/wadjet_distributed.c
-- [ ] T102 [P] Implement wadjet_sync_barrier C functions in bindings/c/wadjet_distributed.c
-- [ ] T103 [P] Implement thread-local error storage for C ABI in bindings/c/wadjet_distributed.c
+- [x] T099 [P] Create C99 ABI header with opaque handles in bindings/c/wadjet_distributed.h
+- [x] T100 [P] Implement wadjet_coordinator_create/destroy C functions in bindings/c/wadjet_distributed.c
+- [x] T101 [P] Implement wadjet_node_create/destroy C functions in bindings/c/wadjet_distributed.c
+- [x] T102 [P] Implement wadjet_sync_barrier C functions in bindings/c/wadjet_distributed.c
+- [x] T103 [P] Implement thread-local error storage for C ABI in bindings/c/wadjet_distributed.c
 
 ### Python Bindings
 
-- [ ] T104 [P] Create Python bindings directory structure in bindings/python/wadjet/distributed/
-- [ ] T105 Create pybind11 module for distributed primitives in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T106 Bind SyncBarrier class to Python in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T107 Bind TimestampNormalizer class to Python in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T108 Bind DistributedMatcher classes to Python in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T109 Bind TestCoordinator class to Python in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T110 Bind TestNode class to Python in bindings/python/wadjet/distributed/bindings.cpp
-- [ ] T111 [P] Create Python type stubs in bindings/python/wadjet/distributed/_distributed.pyi
-- [ ] T112 [P] Create Python __init__.py with exports in bindings/python/wadjet/distributed/__init__.py
-- [ ] T113 Create pytest fixtures for distributed testing in bindings/python/tests/test_distributed.py
+- [x] T104 [P] Create Python bindings directory structure in bindings/python/wadjet/distributed/
+- [x] T105 Create pybind11 module for distributed primitives in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T106 Bind SyncBarrier class to Python in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T107 Bind TimestampNormalizer class to Python in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T108 Bind DistributedMatcher classes to Python in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T109 Bind TestCoordinator class to Python in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T110 Bind TestNode class to Python in bindings/python/wadjet/distributed/bindings.cpp
+- [x] T111 [P] Create Python type stubs in bindings/python/wadjet/distributed/_distributed.pyi
+- [x] T112 [P] Create Python __init__.py with exports in bindings/python/wadjet/distributed/__init__.py
+- [x] T113 Create pytest fixtures for distributed testing in bindings/python/tests/test_distributed.py
 
 ### Rust Bindings
 
-- [ ] T114 [P] Create Rust crate structure in bindings/rust/wadjet-distributed/
-- [ ] T115 [P] Create Cargo.toml for wadjet-distributed crate in bindings/rust/wadjet-distributed/Cargo.toml
-- [ ] T116 Implement unsafe FFI bindings in bindings/rust/wadjet-distributed/src/ffi.rs
-- [ ] T117 Implement safe SyncBarrier wrapper in bindings/rust/wadjet-distributed/src/sync_barrier.rs
-- [ ] T118 Implement safe TimestampNormalizer wrapper in bindings/rust/wadjet-distributed/src/timestamp.rs
-- [ ] T119 Implement safe DistributedMatcher wrappers in bindings/rust/wadjet-distributed/src/matchers.rs
-- [ ] T120 [P] Create Rust integration tests in bindings/rust/wadjet-distributed/tests/integration.rs
+- [x] T114 [P] Create Rust crate structure in bindings/rust/wadjet-distributed/
+- [x] T115 [P] Create Cargo.toml for wadjet-distributed crate in bindings/rust/wadjet-distributed/Cargo.toml
+- [x] T116 Implement unsafe FFI bindings in bindings/rust/wadjet-distributed/src/ffi.rs
+- [x] T117 Implement safe SyncBarrier wrapper in bindings/rust/wadjet-distributed/src/sync_barrier.rs
+- [x] T118 Implement safe TimestampNormalizer wrapper in bindings/rust/wadjet-distributed/src/timestamp.rs
+- [x] T119 Implement safe DistributedMatcher wrappers in bindings/rust/wadjet-distributed/src/matchers.rs
+- [x] T120 [P] Create Rust integration tests in bindings/rust/wadjet-distributed/tests/integration.rs
 
 **Checkpoint**: FFI bindings complete - C ABI, Python with pytest, Rust with cargo test
 
