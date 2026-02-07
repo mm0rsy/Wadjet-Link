@@ -98,6 +98,18 @@ public:
                                    std::chrono::nanoseconds max_drift) const -> bool;
 
     /**
+     * @brief Normalize packet timestamp to UTC nanoseconds
+     *
+     * T215: Converts packet timestamp to UTC nanoseconds since Unix epoch.
+     * Uses packet's native timestamp and applies clock synchronization offset
+     * if the system is synchronized via NTP or gPTP.
+     *
+     * @param packet Packet whose timestamp should be normalized
+     * @return Normalized timestamp in nanoseconds since Unix epoch
+     */
+    [[nodiscard]] auto normalize(const Packet& packet) const -> int64_t;
+
+    /**
      * @brief Verify clock sync health by decoding gPTP messages
      *
      * T051: Passive monitoring - analyzes captured Ethernet frames to extract gPTP

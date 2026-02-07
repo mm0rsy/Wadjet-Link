@@ -84,6 +84,22 @@ auto TimestampNormalizer::within_drift(int64_t ts1, int64_t ts2,
     return delta <= max_drift.count();
 }
 
+// T215: Normalize packet timestamp to UTC nanoseconds
+auto TimestampNormalizer::normalize(const Packet& packet) const -> int64_t {
+    // Get the packet's raw timestamp (typically from packet capture metadata)
+    // Packet timestamps are usually CLOCK_REALTIME already, but may have clock skew
+    int64_t packet_ts_ns = packet.timestamp().total_nanoseconds();
+
+    // Apply clock sync offset if synchronized
+    if (status_.is_synchronized) {
+        // Adjust by the estimated offset from NTP/gPTP
+        // positive offset means our clock is ahead, so subtract it
+        packet_ts_ns -= status_.estimated_offset_ns;
+    }
+
+    return packet_ts_ns;
+}
+
 // T051: Verify gPTP clock sync health via passive message decoding
 auto TimestampNormalizer::verify_gptp_health(const Packet& packet)
     -> std::optional<ClockSyncStatus> {
