@@ -179,6 +179,15 @@ auto MessageCorrelator::find_correlation(const PacketView& source_packet,
     return std::nullopt;
 }
 
+// T216: Find specific correlation - Packet overload
+auto MessageCorrelator::find_correlation(const Packet& source_packet,
+                                         const std::string& target_node) -> std::optional<Packet> {
+    // Create a PacketView from the Packet and delegate to PacketView overload
+    // This avoids code duplication
+    PacketView view(source_packet);
+    return find_correlation(view, target_node);
+}
+
 // Get method
 auto MessageCorrelator::get_method() const -> CorrelationMethod {
     return impl_->method;

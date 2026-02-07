@@ -105,7 +105,20 @@ public:
     auto find_correlation(const PacketView& source_packet,
                          const std::string& target_node)
         -> std::optional<Packet>;
-    
+
+    /**
+     * @brief Find specific packet correlation (Packet overload)
+     *
+     * T216: Overload for find_correlation that takes a Packet directly.
+     * Finds a correlated packet in the target node that matches the source packet.
+     *
+     * @param source_packet Packet to find correlation for
+     * @param target_node Node ID to search in
+     * @return Correlated packet if found, nullopt otherwise
+     */
+    auto find_correlation(const Packet& source_packet,
+                          const std::string& target_node) -> std::optional<Packet>;
+
     /**
      * @brief Get the correlation method in use
      * 
