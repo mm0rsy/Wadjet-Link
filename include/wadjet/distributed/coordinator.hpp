@@ -225,6 +225,32 @@ public:
         std::chrono::milliseconds timeout = std::chrono::milliseconds{
             10000}) -> Result<BarrierResult> = 0;
 
+    /**
+     * @brief Load a test scenario from file
+     *
+     * T082: Load scenario for declarative test execution
+     *
+     * @param scenario_file Path to scenario file (YAML or JSON)
+     * @return Result indicating success or failure
+     */
+    virtual auto load_scenario(const std::string& scenario_file) -> Result<void> = 0;
+
+    /**
+     * @brief Execute a loaded test scenario
+     *
+     * T083: Run the scenario with automatic orchestration
+     * - Decompose steps to nodes (T077)
+     * - Execute sequential steps with barriers (T078)
+     * - Handle parallel execution (T079)
+     * - Enforce timing constraints (T080)
+     * - Distribute via ControlChannel (T081)
+     *
+     * @param timeout Maximum time for scenario execution
+     * @return Result with scenario completion status
+     */
+    virtual auto run_scenario(std::chrono::milliseconds timeout = std::chrono::milliseconds{
+                                  60000}) -> Result<void> = 0;
+
 protected:
     TestCoordinator() = default;
 };

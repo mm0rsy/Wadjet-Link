@@ -237,20 +237,20 @@ TestCoordinator needs actual gRPC server startup:
 
 ### Implementation for User Story 4
 
-- [ ] T072 [P] [US4] Create DistributedStep and StepType enum in include/wadjet/distributed/scenario.hpp
-- [ ] T073 [P] [US4] Create BarrierStepConfig, CaptureStepConfig, ExpectStepConfig structs in include/wadjet/distributed/scenario.hpp
-- [ ] T074 [US4] Create DistributedScenario class interface in include/wadjet/distributed/scenario.hpp
-- [ ] T075 [US4] Implement DistributedScenario::parse_yaml() using yaml-cpp in src/distributed/scenario.cpp
-- [ ] T076 [US4] Implement DistributedScenario::parse_json() using nlohmann_json in src/distributed/scenario.cpp
-- [ ] T077 [US4] Implement scenario decomposition (distribute steps to nodes) in src/distributed/coordinator.cpp
-- [ ] T078 [US4] Implement sequential step execution with barrier synchronization in src/distributed/coordinator.cpp
-- [ ] T079 [US4] Implement parallel step execution for concurrent node operations in src/distributed/coordinator.cpp
-- [ ] T080 [US4] Implement timing constraint enforcement (delays, timeouts) in src/distributed/coordinator.cpp
-- [ ] T081 [US4] Implement ScenarioConfig message distribution via gRPC ControlChannel in src/distributed/grpc/service.cpp
-- [ ] T082 [US4] Implement TestCoordinator::load_scenario() in src/distributed/coordinator.cpp
-- [ ] T083 [US4] Implement TestCoordinator::run_scenario() executing parsed scenario in src/distributed/coordinator.cpp
-- [ ] T084 [P] [US4] Create unit tests for YAML scenario parsing in tests/distributed/test_scenario_parser.cpp
-- [ ] T085 [US4] Create integration test for full scenario execution in tests/integration/test_distributed_scenario.cpp
+- [x] T072 [P] [US4] Create DistributedStep and StepType enum in include/wadjet/distributed/scenario.hpp
+- [x] T073 [P] [US4] Create BarrierStepConfig, CaptureStepConfig, ExpectStepConfig structs in include/wadjet/distributed/scenario.hpp
+- [x] T074 [US4] Create DistributedScenario class interface in include/wadjet/distributed/scenario.hpp
+- [x] T075 [US4] Implement DistributedScenario::parse_yaml() using yaml-cpp in src/distributed/scenario.cpp
+- [x] T076 [US4] Implement DistributedScenario::parse_json() using nlohmann_json in src/distributed/scenario.cpp
+- [x] T077 [US4] Implement scenario decomposition (distribute steps to nodes) in src/distributed/coordinator.cpp
+- [x] T078 [US4] Implement sequential step execution with barrier synchronization in src/distributed/coordinator.cpp
+- [x] T079 [US4] Implement parallel step execution for concurrent node operations in src/distributed/coordinator.cpp
+- [x] T080 [US4] Implement timing constraint enforcement (delays, timeouts) in src/distributed/coordinator.cpp
+- [x] T081 [US4] Implement ScenarioConfig message distribution via gRPC ControlChannel in src/distributed/grpc/service.cpp
+- [x] T082 [US4] Implement TestCoordinator::load_scenario() in src/distributed/coordinator.cpp
+- [x] T083 [US4] Implement TestCoordinator::run_scenario() executing parsed scenario in src/distributed/coordinator.cpp
+- [x] T084 [P] [US4] Create unit tests for YAML scenario parsing in tests/distributed/test_scenario_parser.cpp
+- [x] T085 [US4] Create integration test for full scenario execution in tests/integration/test_distributed_scenario.cpp
 
 **Checkpoint**: Declarative scenarios work - YAML defines multi-node tests with automatic orchestration
 
