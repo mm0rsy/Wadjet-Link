@@ -81,6 +81,17 @@ Like the ancient Egyptian "All-Seeing Eye," Wadjet-Link observes and reconstruct
 - **Tag-Based Filtering** — Run subsets of tests (smoke, regression, etc.)
 - **CI/CD Ready** — Jenkins, GitLab CI, GitHub Actions integration
 
+### � Distributed Testing (NEW!)
+Wadjet-Link now supports **multi-node distributed testing** for validating protocols across multiple network segments:
+- **Synchronized Capture** — All nodes capture simultaneously with <10ms jitter
+- **Timestamp Alignment** — gPTP-synchronized timestamps (±1µs precision)
+- **Distributed Assertions** — Validate message flow and latency across nodes
+- **Automatic Coordination** — gRPC-based node orchestration
+- **Result Aggregation** — Single JUnit XML from multi-node tests
+- **Declarative Scenarios** — YAML-based test definitions
+- **Failure Recovery** — Partial results on node disconnection
+See [Distributed Testing Guide](docs/distributed_testing.md) and [Quick Start](docs/quickstart.md#distributed-testing) for details.
+
 ### 🛡️ Safety & Compliance
 - **Passive Monitoring** — Read-only mode, no impact on functional safety (ASIL)
 - **Deterministic Replay** — Reproduce issues from saved captures
@@ -186,6 +197,23 @@ wadjet-run --dry-run --dir scenarios/
 
 # List available scenarios
 wadjet-run --list --dir scenarios/
+```
+
+### Distributed Testing (Multi-Node Coordination)
+
+```bash
+# Start coordinator with scenario
+wadjet-coordinator --config nodes.yaml --scenario someip_discovery.yaml
+
+# Start nodes in separate terminals
+wadjet-node --node-id provider --check-clock
+wadjet-node --node-id consumer --check-clock
+wadjet-node --node-id monitor --check-clock
+
+# Review aggregated results
+# - Merged PCAP with synchronized timestamps
+# - JUnit XML with distributed assertions
+# - HTML report with message flow diagrams
 ```
 
 ---
