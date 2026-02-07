@@ -428,13 +428,13 @@ Cross-cutting issues from review against M1-M13 features.
 
 FR requirements with no implementing code (only task references but empty implementations).
 
-- [ ] T292 [FR-002] Implement static node configuration file parser (YAML/JSON) in coordinator for node discovery (currently no config file parsing)
-- [ ] T293 [FR-010] Implement node-side partial result + PCAP save on coordinator failure in src/distributed/node.cpp (detect_coordinator_failure saves nothing)
-- [ ] T294 [FR-014] Add explicit test initialization failure when neither gPTP nor NTP sync detected (TimestampNormalizer detects but doesn't block test start)
-- [ ] T295 [FR-044] Add coordination overhead measurement and validation (<1% of test traffic) in test suite
-- [ ] T296 [FR-058] Implement PCAP naming convention: {test_name}_{node_id}_{timestamp}.pcap in src/distributed/node.cpp
-- [ ] T297 [FR-059] Add barrier synchronization event logging with timestamps in src/distributed/coordinator.cpp
-- [ ] T298 [FR-060] Ensure all distributed assertion failures include: node ID, timestamp, expected vs actual, packet context in error reports
+- [x] T292 [FR-002] Implement static node configuration file parser (YAML/JSON) in coordinator for node discovery (currently no config file parsing)
+- [x] T293 [FR-010] Implement node-side partial result + PCAP save on coordinator failure in src/distributed/node.cpp (detect_coordinator_failure saves nothing)
+- [x] T294 [FR-014] Add explicit test initialization failure when neither gPTP nor NTP sync detected (TimestampNormalizer detects but doesn't block test start)
+- [x] T295 [FR-044] Add coordination overhead measurement and validation (<1% of test traffic) in test suite
+- [x] T296 [FR-058] Implement PCAP naming convention: {test_name}_{node_id}_{timestamp}.pcap in src/distributed/node.cpp
+- [x] T297 [FR-059] Add barrier synchronization event logging with timestamps in src/distributed/coordinator.cpp
+- [x] T298 [FR-060] Ensure all distributed assertion failures include: node ID, timestamp, expected vs actual, packet context in error reports
 
 **Checkpoint**: All Phase 1-7 gaps remediated, builds cleanly, all stubs replaced, data-model fully aligned
 
