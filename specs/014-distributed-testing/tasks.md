@@ -292,14 +292,14 @@ TestCoordinator needs actual gRPC server startup:
 
 These issues prevent compilation and must be fixed first.
 
-- [ ] T230 [P] Add scenario.cpp and result_aggregation.cpp to src/distributed/CMakeLists.txt add_library() sources
-- [ ] T231 Implement TestCoordinatorImpl::load_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
-- [ ] T232 Implement TestCoordinatorImpl::run_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
-- [ ] T233 Implement TestCoordinatorImpl::collect_results() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
-- [ ] T234 Implement TestCoordinatorImpl::export_junit() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
-- [ ] T235 Implement TestCoordinatorImpl::get_aggregated_result() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
-- [ ] T236 [P] Fix orphan #endif in include/wadjet/distributed/distributed.hpp (uses #pragma once but has unmatched #endif at line 116)
-- [ ] T237 [P] Fix duplicate update_node_heartbeat() in src/distributed/coordinator.cpp (virtual override at ~line 194 and non-virtual at ~line 263)
+- [x] T230 [P] Add scenario.cpp and result_aggregation.cpp to src/distributed/CMakeLists.txt add_library() sources
+- [x] T231 Implement TestCoordinatorImpl::load_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [x] T232 Implement TestCoordinatorImpl::run_scenario() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [x] T233 Implement TestCoordinatorImpl::collect_results() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [x] T234 Implement TestCoordinatorImpl::export_junit() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [x] T235 Implement TestCoordinatorImpl::get_aggregated_result() override in src/distributed/coordinator.cpp (pure virtual — class is abstract without it)
+- [x] T236 [P] Fix orphan #endif in include/wadjet/distributed/distributed.hpp (uses #pragma once but has unmatched #endif at line 116)
+- [x] T237 [P] Fix duplicate update_node_heartbeat() in src/distributed/coordinator.cpp (virtual override at ~line 194 and non-virtual at ~line 263)
 
 ### Category B: Stub/Placeholder Replacements 🟠
 
