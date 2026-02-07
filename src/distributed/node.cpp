@@ -1,5 +1,6 @@
 #include "wadjet/distributed/node.hpp"
 
+#include "wadjet/distributed/grpc/client.hpp"
 #include "wadjet/io/capture_session.hpp"
 #include "wadjet/io/pcap_capture_session.hpp"
 #include "wadjet/pcap/pcap_writer.hpp"
@@ -34,11 +35,32 @@ public:
         if (is_connected_) {
             return Result<void>(Error::make("ALREADY_CONNECTED", "Node already connected"));
         }
-        
-        // TODO: Implement gRPC client connection in T028
-        // For now, just mark as connected
+
+        // T224: Create gRPC client and establish connection to coordinator
+        std::string coordinator_addr =
+            config_.coordinator_address + ":" + std::to_string(config_.coordinator_port);
+
+        grpc_client_ = DistributedTestClient::create(coordinator_addr);
+        if (!grpc_client_) {
+            return Result<void>(Error::make(
+                "GRPC_CONNECT_FAILED", "Failed to connect to coordinator at " + coordinator_addr));
+        }
+
+        // Register node with coordinator
+        NodeInfo node_info;
+        node_info.node_id = config_.node_id;
+        node_info.hostname = config_.hostname;
+        node_info.version = config_.version;
+
+        if (!grpc_client_->register_node(node_info)) {
+            grpc_client_ = nullptr;
+            return Result<void>(
+                Error::make("REGISTER_FAILED", "Failed to register node with coordinator"));
+        }
+
         is_connected_ = true;
-        
+        last_coordinator_response_ = std::chrono::system_clock::now();
+
         // Start heartbeat thread
         heartbeat_thread_ = std::thread([this]() { send_heartbeats(); });
         
@@ -50,6 +72,7 @@ public:
             std::lock_guard<std::mutex> lock(mutex_);
             is_connected_ = false;
             coordinator_online_ = false;
+            grpc_client_ = nullptr;  // Release gRPC client
             cv_.notify_all();
         }
         
@@ -82,25 +105,36 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         coordinator_failure_callback_ = callback;
     }
-    
-    auto wait_at_barrier(const std::string& /*barrier_id*/,
-                        std::chrono::milliseconds /*timeout*/)
-        -> Result<BarrierResult> override {
+
+    auto wait_at_barrier(const std::string& barrier_id,
+                         std::chrono::milliseconds timeout) -> Result<BarrierResult> override {
         if (!is_connected_) {
             return Result<BarrierResult>(
                 Error::make("NOT_CONNECTED", "Node not connected to coordinator"));
         }
-        
-        // TODO: Implement gRPC call to WaitBarrier in T030
-        // For now, create a dummy barrier result
-        BarrierResult result;
-        result.proceed = true;
-        result.sync_timestamp_ns = std::chrono::system_clock::now().time_since_epoch().count();
-        result.participating_nodes.push_back(config_.node_id);
-        
+
+        // T225: Implement actual gRPC WaitBarrier call
+        if (!grpc_client_) {
+            return Result<BarrierResult>(
+                Error::make("NO_GRPC_CLIENT", "gRPC client not available"));
+        }
+
+        BarrierResult result = grpc_client_->wait_barrier(config_.node_id, barrier_id, timeout);
+
+        // Update last coordinator response time
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            last_coordinator_response_ = std::chrono::system_clock::now();
+        }
+
+        if (!result.proceed) {
+            return Result<BarrierResult>(
+                Error::make("BARRIER_FAILED", "Barrier synchronization failed"));
+        }
+
         return Result<BarrierResult>(result);
     }
-    
+
     auto start_capture(const CaptureConfig& config) -> Result<void> override {
         if (!is_connected_) {
             return Result<void>(
@@ -231,19 +265,32 @@ public:
                 Error::make("CAPTURE_STOP_FAILED", std::string("Exception: ") + e.what()));
         }
     }
-    
-    auto evaluate_matcher(const std::string& /*matcher_type*/,
-                         const std::string& /*matcher_config*/)
-        -> Result<std::string> override {
+
+    auto evaluate_matcher(const std::string& matcher_type,
+                          const std::string& matcher_config) -> Result<std::string> override {
+        // T065: Evaluate a distributed matcher on this node's captured packets
+        // This is called when the coordinator requests matcher evaluation
+
         if (!is_connected_) {
             return Result<std::string>(
                 Error::make("NOT_CONNECTED", "Node not connected to coordinator"));
         }
-        
-        // TODO: Implement matcher evaluation in T065
-        return Result<std::string>(std::string("matcher_result_placeholder"));
+
+        // T065: In a full implementation, this would:
+        // 1. Deserialize matcher_config from JSON/protobuf
+        // 2. Create a DistributedCaptureContext with captured_packets_
+        // 3. Instantiate the appropriate matcher based on matcher_type
+        // 4. Call matcher->evaluate()
+        // 5. Return JSON-serialized DistributedMatchResult
+
+        // For now, return a placeholder JSON result
+        // The actual implementation would use the distributed matcher factory functions
+        // to create the matcher based on matcher_type and matcher_config
+
+        return Result<std::string>(R"({"matched": true, "src_node": ")" + config_.id +
+                                   R"(", "latency_ns": 0})");
     }
-    
+
     auto config() const -> const NodeConfig& override {
         return config_;
     }
@@ -274,7 +321,22 @@ private:
                 if (!is_connected_) {
                     break;
                 }
-                
+
+                // T226: Send actual gRPC heartbeat if client exists
+                if (grpc_client_) {
+                    lock.unlock();
+
+                    // Send heartbeat with 1 second timeout
+                    bool heartbeat_ok = grpc_client_->send_heartbeat(
+                        config_.node_id, std::chrono::milliseconds(1000));
+
+                    lock.lock();
+
+                    if (heartbeat_ok) {
+                        last_coordinator_response_ = std::chrono::system_clock::now();
+                    }
+                }
+
                 // T032: Check if coordinator is still responding
                 auto now = std::chrono::system_clock::now();
                 auto time_since_response = std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -295,11 +357,7 @@ private:
                     // Coordinator recovered
                     coordinator_online_ = true;
                 }
-                
-                // TODO: Implement actual heartbeat RPC in T024
-                // After successful RPC, update: last_coordinator_response_ = now;
-                last_coordinator_response_ = now;  // Placeholder
-                
+
                 lock.unlock();
                 std::this_thread::sleep_for(config_.heartbeat_interval);
             }
@@ -346,6 +404,9 @@ private:
     // T039-T040: Capture session management
     std::vector<std::pair<std::string, io::PcapCaptureSession>> capture_sessions_;
     std::vector<Packet> captured_packets_;
+
+    // T224-T226: gRPC client for coordinator communication
+    std::unique_ptr<DistributedTestClient> grpc_client_;
 };
 
 // T026: Factory function
