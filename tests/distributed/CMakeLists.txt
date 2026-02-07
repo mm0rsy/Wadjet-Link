@@ -9,6 +9,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             test_timestamp_normalizer.cpp
             test_sync_barrier.cpp
             test_coordinator.cpp
+            test_coordinator_clock_sync.cpp
             test_node.cpp
             test_pcap_merger.cpp
             test_message_correlator.cpp

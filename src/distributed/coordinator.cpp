@@ -4,6 +4,7 @@
 #include "wadjet/distributed/result_aggregation.hpp"
 #include "wadjet/distributed/scenario.hpp"
 #include "wadjet/distributed/config_loader.hpp"
+#include "wadjet/distributed/timestamp_normalizer.hpp"
 
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/server.h>
@@ -494,6 +495,18 @@ public:
         -> Result<BarrierResult> override {
         if (nodes.empty()) {
             return Result<BarrierResult>(Error::make("INVALID_NODES", "Node list cannot be empty"));
+        }
+
+        // T294: Check if clock synchronization is available
+        // Fail test initialization explicitly if neither gPTP nor NTP is detected
+        auto sync_status = TimestampNormalizer::detect_sync_status();
+        if (!sync_status.is_synchronized && 
+            sync_status.method == ClockSyncMethod::None) {
+            return Result<BarrierResult>(
+                Error::make("NO_CLOCK_SYNC", 
+                           "Test initialization failed: no clock synchronization detected. "
+                           "Please configure NTP or IEEE 802.1AS (gPTP) on all nodes.")
+            );
         }
 
         // Verify all nodes are registered
