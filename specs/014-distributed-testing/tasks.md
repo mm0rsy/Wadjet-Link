@@ -397,32 +397,32 @@ Cross-cutting issues from review against M1-M13 features.
 
 #### E1: M3 Matcher Integration (spec.md FR-020 to FR-023)
 
-- [ ] T281 Verify DistributedMatcher factory functions accept M3 GoogleTest Matcher<PacketView&> (verify include paths and linking against M3 matcher headers)
-- [ ] T282 Add distributed matcher composition tests using AllOf/AnyOf/Not from M3 in tests/distributed/test_distributed_matchers.cpp
+- [x] T281 Verify DistributedMatcher factory functions accept M3 GoogleTest Matcher<PacketView&> (verify include paths and linking against M3 matcher headers)
+- [x] T282 Add distributed matcher composition tests using AllOf/AnyOf/Not from M3 in tests/distributed/test_distributed_matchers.cpp
 
 #### E2: M4 Scenario Engine Alignment (spec.md FR-027 to FR-034)
 
-- [ ] T283 Verify DistributedScenario YAML format aligns with M4 Scenario YAML structure (same yaml-cpp patterns, compatible tags/metadata fields)
-- [ ] T284 Ensure distributed JUnit XML output is compatible with M4 ReportGenerator format (same XML schema, additive fields for node info)
+- [x] T283 Verify DistributedScenario YAML format aligns with M4 Scenario YAML structure (same yaml-cpp patterns, compatible tags/metadata fields)
+- [x] T284 Ensure distributed JUnit XML output is compatible with M4 ReportGenerator format (same XML schema, additive fields for node info)
 
 #### E3: M8 gPTP Integration Completeness (spec.md FR-015)
 
-- [ ] T285 Verify TimestampNormalizer::verify_gptp_health() actually decodes gPTP Announce/Sync messages using M8 decoder headers (not just checking clock status)
+- [x] T285 Verify TimestampNormalizer::verify_gptp_health() actually decodes gPTP Announce/Sync messages using M8 decoder headers (not just checking clock status)
 
 #### E4: M1 PCAP I/O Integration (spec.md FR-017, FR-038)
 
-- [ ] T286 Verify PcapMerger correctly uses M1 PcapReader/PcapWriter APIs (include paths, linking, timestamp format compatibility)
-- [ ] T287 Add test verifying merged PCAP is openable by Wireshark (write temp file, validate PCAP magic number and header)
+- [x] T286 Verify PcapMerger correctly uses M1 PcapReader/PcapWriter APIs (include paths, linking, timestamp format compatibility)
+- [x] T287 Add test verifying merged PCAP is openable by Wireshark (write temp file, validate PCAP magic number and header)
 
 #### E5: M5/M7 FFI Pattern Compliance (Constitution Principle V)
 
-- [ ] T288 [P] Document distributed FFI type mapping table: C++ types → C ABI handles → Python types → Rust types (pre-work for Phase 8)
+- [x] T288 [P] Document distributed FFI type mapping table: C++ types → C ABI handles → Python types → Rust types (pre-work for Phase 8)
 
 #### E6: Performance Metrics (FR-037)
 
-- [ ] T289 Add latency_stats (min, max, mean, p95, p99) to NodeResult per FR-037 and M12 LatencyStats pattern
-- [ ] T290 Add throughput_packets_per_sec field to NodeResult per FR-037
-- [ ] T291 Add packet_loss_count field to NodeResult per FR-037
+- [x] T289 Add latency_stats (min, max, mean, p95, p99) to NodeResult per FR-037 and M12 LatencyStats pattern
+- [x] T290 Add throughput_packets_per_sec field to NodeResult per FR-037
+- [x] T291 Add packet_loss_count field to NodeResult per FR-037
 
 ### Category F: Spec Requirement Coverage Gaps 🟤
 
