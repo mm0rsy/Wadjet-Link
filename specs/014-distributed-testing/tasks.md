@@ -2,7 +2,8 @@
 
 **Input**: Design documents from `/specs/014-distributed-testing/`  
 **Prerequisites**: plan.md ✅, spec.md ✅, research.md ✅, data-model.md ✅, contracts/ ✅  
-**Total Tasks**: 164 | **Phases**: 12 | **Coverage**: 100% (59/59 MUST FRs + 1 MAY + 1 DEFERRED)
+**Total Tasks**: 205 | **Phases**: 13 | **Coverage**: 100% (59/59 MUST FRs + 1 MAY + 1 DEFERRED)
+**Phase 13 Review Tasks**: 41 | Cross-spec integration gaps identified by formal review against specs 000–013
 
 ## Format: `[ID] [P?] [Story?] Description`
 
@@ -570,6 +571,166 @@ FR requirements with no implementing code (only task references but empty implem
 - [x] T162 Performance validation: <10ms capture jitter, <1% coordination overhead
 - [x] T163 Code review and cleanup
 - [x] T164 Update CHANGELOG.md with M14 distributed testing entry
+
+---
+
+## Phase 13: Cross-Spec Integration & Correctness (Formal Review Against Specs 000–013)
+
+**Purpose**: Address all gaps identified during formal cross-reference review of Phases 1–12 implementation against specifications 000-bootstrapping through 013-protocol-completeness. This phase ensures the distributed testing framework correctly integrates with ALL upstream milestones.
+
+**Review Methodology**: Each file in `include/wadjet/distributed/`, `src/distributed/`, and `tests/distributed/` was audited against the APIs, types, and integration contracts specified in specs 000–013. Gaps are categorized by severity.
+
+---
+
+### Category A: Correctness Defects 🔴 (Code claims completion but implementation is wrong/missing)
+
+**A1: YAML Scenario Parser is Stubbed (T075/T244 — claimed ✅ but implementation is placeholder)**
+
+The `from_yaml_string()` in `src/distributed/scenario.cpp` uses naive `std::string::find()` instead of yaml-cpp. Node assignments and steps are hardcoded sample data (always returns 3 fixed nodes + 3 fixed steps regardless of input). This violates **FR-027** ("System MUST parse YAML/JSON distributed test scenarios") and **FR-028** ("Scenarios MUST define node assignments").
+
+- [X] T300 [US4] Replace from_yaml_string() stub with actual yaml-cpp parsing: extract scenario_id, scenario_name, description, tags from YAML metadata section in src/distributed/scenario.cpp
+- [X] T301 [US4] Implement YAML node_assignments array parsing: extract node_id, role, interfaces per node using yaml-cpp in src/distributed/scenario.cpp
+- [X] T302 [US4] Implement YAML steps array parsing: parse step_id, step_name, type, target_nodes, depends_on, timeout_ms and type-specific configs (barrier, capture, expect, wait, log) using yaml-cpp in src/distributed/scenario.cpp
+- [X] T303 [P] [US4] Add unit tests for YAML parsing with real multi-node scenario files (barrier+capture+expect+wait+log steps) in tests/distributed/test_scenario_parser.cpp — replace existing hardcoded tests
+
+**A2: JSON Step Parsing is Stubbed (T076/T245 — claimed ✅ but steps fall back to defaults)**
+
+The `from_json_string()` correctly parses metadata and node_assignments with nlohmann::json but steps parsing has `// For now, create sample steps` and falls back to a single hardcoded barrier step. Dead code exists at lines 296–312 (unreachable after try/catch return).
+
+- [X] T304 [US4] Implement JSON steps array parsing in from_json_string(): parse each step type (barrier, capture, expect, wait, log) with full config extraction using nlohmann::json in src/distributed/scenario.cpp
+- [X] T305 [P] Remove dead code at lines 296–312 in from_json_string() (unreachable after try/catch block) in src/distributed/scenario.cpp
+- [X] T306 [P] [US4] Add unit tests for JSON parsing with real multi-step scenarios in tests/distributed/test_scenario_parser.cpp
+
+**A3: Replay Mode Not Implemented (FR-061 — T151/T152 claimed ✅ but no implementation exists)**
+
+`run_replay()` is declared as a pure virtual method in `coordinator.hpp` but `coordinator.cpp` (TestCoordinatorImpl) does **not** override it. Calling `run_replay()` would either fail to compile (if abstract) or crash.
+
+- [X] T307 [US5] Implement TestCoordinatorImpl::run_replay() override: load PCAP files from pcap_files map, create DistributedCaptureContext per node from PcapReader, execute scenario matchers against loaded captures in src/distributed/coordinator.cpp
+- [X] T308 [US5] Implement PcapMerger-based replay timeline reconstruction: merge provided PCAPs into unified timeline for cross-node assertion evaluation in src/distributed/coordinator.cpp
+- [X] T309 [P] [US5] Create unit test for run_replay() with saved PCAP fixture files in tests/distributed/test_coordinator.cpp
+- [X] T310 [P] [US5] Create integration test for full replay workflow: run scenario → save PCAPs → replay → verify same assertions pass in tests/integration/test_replay_mode.cpp
+
+**A4: GoogleTest Matcher Inner Filtering Not Applied (T246–T248 — claimed ✅ but inner_matcher_ is stored and never called)**
+
+The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` stores the `inner_matcher_` but has only a comment "This demonstrates integration with M3 GoogleTest matchers" — the matcher is never actually applied to filter packets. Same pattern in `HappensBefore` and `MustNotSeeOn` GoogleTest-aware variants.
+
+- [X] T311 [US3] Fix ExpectMessageFlow GoogleTest variant: apply inner_matcher_ to each PacketView in source/dest capture contexts to filter candidate packets before correlation in src/distributed/matchers/expect_message_flow.cpp
+- [X] T312 [US3] Fix HappensBefore GoogleTest variant: apply event_a_matcher_ and event_b_matcher_ to PacketView to identify event packets before timestamp comparison in src/distributed/matchers/happens_before.cpp
+- [X] T313 [US3] Fix MustNotSeeOn GoogleTest variant: apply filter_matcher_ to PacketView on target node to detect forbidden packets in src/distributed/matchers/must_not_see_on.cpp
+- [X] T314 [P] [US3] Add unit tests verifying GoogleTest inner matchers actually filter packets (e.g., test that ExpectMessageFlow with HasSOMEIPServiceId only matches SOME/IP packets) in tests/distributed/test_distributed_matchers.cpp
+
+**Checkpoint A**: All correctness defects fixed — YAML/JSON parsing real, replay works, matcher filtering functional
+
+---
+
+### Category B: Missing M9 UDS Decoder Integration 🟠
+
+**Spec 009** defines `UdsOverDoipDecoder` and 20+ UDS service decoders. The distributed `MessageCorrelator` references "DoIP/UDS transaction ID" in comments but uses raw byte extraction instead of M9 APIs. No UDS-specific distributed assertions exist.
+
+- [ ] T315 [US2] Replace hand-rolled DoIP header byte extraction in MessageCorrelator::TransactionId correlation with actual M9 UdsOverDoipDecoder API calls in src/distributed/message_correlator.cpp
+- [ ] T316 [US3] Create UDS-specific distributed assertion: ExpectDiagnosticResponse(src_node, dst_node, uds_service_id) that validates UDS request→response across nodes in include/wadjet/distributed/matchers/expect_diagnostic.hpp and src/distributed/matchers/expect_diagnostic.cpp
+- [ ] T317 [P] [US3] Add unit test for UDS distributed assertion using DoIP captures in tests/distributed/test_distributed_matchers.cpp
+
+---
+
+### Category C: Missing M11 Diagnostic Session Manager Integration 🟠
+
+**Spec 011** defines `DiagnosticSessionManager` for stateful multi-ECU diagnostic tracking. Distributed testing of diagnostic sessions (flash programming across ECUs, security access sequences, DTC clearing) is a primary automotive use case but has zero integration.
+
+- [ ] T318 [US4] Create DIAGNOSTIC step type in DistributedStep enum and DiagnosticStepConfig struct (session_type, ecu_address, expected_service, expected_nrc) in include/wadjet/distributed/scenario.hpp
+- [ ] T319 [US3] Create ExpectDiagnosticSession distributed matcher: validates multi-ECU diagnostic sequences (e.g., SecurityAccess on node-a → FlashDownload on node-b) in include/wadjet/distributed/matchers/expect_diagnostic.hpp
+- [ ] T320 [US1] Add DiagnosticSessionManager integration to TestNode: track per-ECU session state across distributed captures using M11 API in src/distributed/node.cpp
+- [ ] T321 [P] Add unit tests for distributed diagnostic session tracking in tests/distributed/test_diagnostic_distributed.cpp
+
+---
+
+### Category D: Missing M12 TSN Awareness Integration 🟠
+
+**Spec 012** defines `TsnAnalyzer`, `StreamTracker`, `LatencyTracker` for TSN traffic analysis. Multi-point TSN stream latency measurement across switches is a primary distributed testing use case but has zero integration.
+
+- [ ] T322 [US2] Integrate M12 StreamTracker with distributed capture: track TSN stream IDs across nodes for multi-hop stream analysis in src/distributed/node.cpp
+- [ ] T323 [US3] Create TSN-specific distributed assertion: ExpectStreamLatency(src_node, dst_node, stream_id, max_latency) that validates TSN end-to-end latency across network segments in include/wadjet/distributed/matchers/expect_stream_latency.hpp and src/distributed/matchers/expect_stream_latency.cpp
+- [ ] T324 [US2] Integrate M12 LatencyTracker with distributed result aggregation: include per-priority latency stats from all nodes in AggregatedResult in src/distributed/result_aggregation.cpp
+- [ ] T325 [P] Add unit tests for TSN distributed stream tracking and latency assertions in tests/distributed/test_tsn_distributed.cpp
+
+---
+
+### Category E: Missing M4 Scenario Format Compatibility 🟡
+
+**Spec 004** defines `Scenario`/`Step` types in `wadjet::scenario` namespace with `CaptureStep`, `SendStep`, `WaitStep`, `ExpectStep`, `LogStep` variants. M14's `DistributedScenario`/`DistributedStep` uses a completely different namespace (`wadjet::distributed`) with incompatible variant types. Single-node scenarios cannot be extended to distributed without rewriting.
+
+- [ ] T326 [US4] Create ScenarioAdapter class that converts M4 wadjet::scenario::Scenario to wadjet::distributed::DistributedScenario for single-node-to-distributed upgrade path in include/wadjet/distributed/scenario_adapter.hpp and src/distributed/scenario_adapter.cpp
+- [ ] T327 [US4] Add SendStep (traffic injection) support to DistributedStep enum and SendStepConfig struct in include/wadjet/distributed/scenario.hpp — mirrors M4's SendStep capability
+- [ ] T328 [P] [US4] Add unit tests for ScenarioAdapter conversion (M4→M14) in tests/distributed/test_scenario_adapter.cpp
+
+---
+
+### Category F: Missing M4 wadjet-run CLI Integration 🟡
+
+**Spec 004** defines `wadjet-run` as the primary test execution CLI. The distributed coordinator is a completely separate binary with no cross-invocation. Users must manually switch between `wadjet-run` for single-node and `wadjet-coordinator` for distributed tests.
+
+- [ ] T329 [US4] Add `wadjet-run distributed` subcommand that delegates to wadjet-coordinator logic: accepts --nodes and --scenario flags, imports distributed coordinator library in tools/wadjet-run.cpp
+- [ ] T330 [P] Add integration test for wadjet-run distributed subcommand execution in tests/integration/test_wadjet_run_distributed.cpp
+
+---
+
+### Category G: Missing M3 LiveCaptureTestFixture Composition 🟡
+
+**Spec 003** defines `LiveCaptureTestFixture` as the standard GTest base class with auto-capture setup/teardown, send_udp(), connect_tcp(), wait_for_packet(), etc. The `DistributedTestFixture` inherits from `::testing::Test` directly, losing all M3 convenience methods.
+
+- [ ] T331 [US1] Refactor DistributedTestFixture to optionally compose with M3 LiveCaptureTestFixture: add local capture capability alongside distributed coordination in include/wadjet/testing/distributed_fixture.hpp
+- [ ] T332 [US1] Add convenience methods to DistributedTestFixture mirroring M3 API: wait_for_distributed_packet(node_id, predicate, timeout), send_on_node(node_id, interface, data) in include/wadjet/testing/distributed_fixture.hpp
+- [ ] T333 [P] Add unit tests for DistributedTestFixture M3 integration methods in tests/testing/test_distributed_fixture.cpp
+
+---
+
+### Category H: Missing M10 DDS/RTPS Considerations 🟡
+
+**Spec 010** (planned) defines DDS-RTPS protocol decoder. DDS is inherently distributed (pub/sub middleware for ADAS/ROS2). While M10 is not yet implemented, distributed testing should be designed to accommodate DDS discovery and topic-based distributed assertions.
+
+- [ ] T334 [US3] Design placeholder DDS distributed matcher interface: ExpectDdsTopicFlow(publisher_node, subscriber_node, topic_name) in include/wadjet/distributed/matchers/expect_dds_topic.hpp — compilable but returns "M10 DDS decoder not yet available" until M10 is implemented
+- [ ] T335 [P] Document DDS distributed testing integration plan in specs/014-distributed-testing/dds_integration_plan.md — map DDS discovery (SPDP/SEDP) to distributed assertions
+
+---
+
+### Category I: M2 Protocol-Aware Distributed Scenario Expectations 🟡
+
+**Spec 002** defines rich protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP). The distributed scenario `ExpectStepConfig` uses generic `assertion_type` string + `assertion_params` JSON instead of typed protocol expectations. This means distributed scenarios cannot express "expect SOME/IP ServiceId=0x1234 flows from node-a to node-b" in a structured way.
+
+- [ ] T336 [US4] Extend ExpectStepConfig to support typed protocol expectations: add protocol field (ethernet/ipv4/udp/tcp/someip/doip) and structured match_fields map instead of generic assertion_params JSON in include/wadjet/distributed/scenario.hpp
+- [ ] T337 [US4] Implement protocol-aware expect step execution: instantiate M2 decoders + M3 matchers from ExpectStepConfig protocol/fields in src/distributed/coordinator.cpp
+- [ ] T338 [P] [US4] Add unit tests for protocol-aware distributed scenarios (SOME/IP, DoIP expect steps) in tests/distributed/test_scenario_parser.cpp
+
+---
+
+### Category J: NetworkTopology from_captures() Missing 🟢
+
+**Data-model.md** specifies `NetworkTopology::from_captures()` factory for building topology from observed packet flow. Only `from_scenario()` was implemented.
+
+- [ ] T339 [US2] Implement NetworkTopology::from_captures() static factory: build topology graph from actual DistributedCaptureContext data by analyzing source/destination addresses across node captures in src/distributed/topology.cpp
+- [ ] T340 [P] [US2] Add unit test for from_captures() topology inference in tests/distributed/test_topology.cpp
+
+---
+
+**Checkpoint Phase 13**: All cross-spec integration gaps addressed, upstream milestone APIs properly integrated
+
+---
+
+## Phase 13 Summary
+
+| Category | Severity | Tasks | Description |
+|----------|----------|-------|-------------|
+| A: Correctness | 🔴 CRITICAL | T300–T314 (15) | YAML/JSON parsing stubs, replay not implemented, matcher filtering broken |
+| B: M9 UDS | 🟠 MAJOR | T315–T317 (3) | UDS decoder integration for distributed diagnostic testing |
+| C: M11 Diagnostic | 🟠 MAJOR | T318–T321 (4) | Distributed diagnostic session management |
+| D: M12 TSN | 🟠 MAJOR | T322–T325 (4) | TSN stream tracking and latency across nodes |
+| E: M4 Scenarios | 🟡 MODERATE | T326–T328 (3) | M4→M14 scenario adapter, SendStep support |
+| F: M4 CLI | 🟡 MODERATE | T329–T330 (2) | wadjet-run distributed subcommand |
+| G: M3 Fixture | 🟡 MODERATE | T331–T333 (3) | DistributedTestFixture composing with M3 |
+| H: M10 DDS | 🟡 MODERATE | T334–T335 (2) | DDS distributed matcher placeholder |
+| I: M2 Scenarios | 🟡 MODERATE | T336–T338 (3) | Protocol-aware distributed scenarios |
+| J: Topology | 🟢 MINOR | T339–T340 (2) | from_captures() factory |
+| **TOTAL** | | **41 tasks** | |
 
 ---
 
