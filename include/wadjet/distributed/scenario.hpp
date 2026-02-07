@@ -1,29 +1,32 @@
 #pragma once
 
-#include <string>
-#include <vector>
-#include <memory>
+#include "wadjet/distributed/result.hpp"
+#include "wadjet/distributed/types.hpp"
+
 #include <chrono>
+#include <memory>
+#include <optional>
+#include <string>
 #include <unordered_map>
 #include <variant>
-
-#include "wadjet/distributed/types.hpp"
-#include "wadjet/distributed/result.hpp"
+#include <vector>
 
 namespace wadjet::distributed {
 
 /**
  * @brief Types of test steps in distributed scenario
- * 
+ *
  * T072: Defines the different types of operations that can occur in a test scenario
+ * T318: Added DIAGNOSTIC step type for multi-ECU diagnostic session sequences
  */
 enum class StepType {
     UNKNOWN = 0,
-    BARRIER = 1,      ///< Synchronization barrier
-    CAPTURE = 2,      ///< Packet capture operation
-    EXPECT = 3,       ///< Assertion/expectation
-    WAIT = 4,         ///< Time delay
-    LOG = 5,          ///< Log event
+    BARRIER = 1,     ///< Synchronization barrier
+    CAPTURE = 2,     ///< Packet capture operation
+    EXPECT = 3,      ///< Assertion/expectation
+    WAIT = 4,        ///< Time delay
+    LOG = 5,         ///< Log event
+    DIAGNOSTIC = 6,  ///< Diagnostic session operation (T318)
 };
 
 /**
@@ -86,25 +89,46 @@ struct LogStepConfig {
 };
 
 /**
+ * @brief Configuration for diagnostic session step
+ *
+ * T318: Specifies parameters for diagnostic session operations across ECUs
+ *
+ * Supports multi-ECU diagnostic sequences such as:
+ * - Security access unlock on one ECU
+ * - Flash download on multiple ECUs
+ * - DTC reading/clearing across network
+ */
+struct DiagnosticStepConfig {
+    std::string diagnostic_id;  ///< Unique diagnostic operation identifier
+    std::string ecu_address;    ///< Target ECU logical address
+    std::string
+        session_type;  ///< Session type (DefaultSession, ProgrammingSession, ExtendedSession)
+    std::string
+        expected_service;  ///< Expected UDS service (ReadDataByIdentifier, RequestDownload, etc.)
+    std::optional<std::string>
+        expected_nrc;  ///< Expected negative response code (if failure expected), empty for success
+    std::chrono::milliseconds timeout_ms{5000};  ///< Timeout for the diagnostic operation
+    std::vector<std::string> target_nodes;       ///< Nodes involved in this diagnostic operation
+};
+
+/**
  * @brief Single step in a distributed test scenario
- * 
+ *
  * T072: Represents one operation in a multi-node test
  * T266: Uses std::variant for type-safe step configuration
+ * T318: Added DIAGNOSTIC variant option
  */
 struct DistributedStep {
     std::string step_id;                              ///< Unique step identifier
     std::string step_name;                            ///< Human-readable name
     StepType type{StepType::UNKNOWN};                 ///< Type of step
-    
+
     // T266: Type-safe variant-based configuration per data-model.md
-    std::variant<
-        BarrierStepConfig,
-        CaptureStepConfig,
-        ExpectStepConfig,
-        WaitStepConfig,
-        LogStepConfig
-    > config;
-    
+    // T318: Added DiagnosticStepConfig to variant
+    std::variant<BarrierStepConfig, CaptureStepConfig, ExpectStepConfig, WaitStepConfig,
+                 LogStepConfig, DiagnosticStepConfig>
+        config;
+
     std::chrono::milliseconds delay_before_ms{0};     ///< Delay before step execution
     std::chrono::milliseconds timeout_ms{5000};       ///< Overall timeout for this step
     
