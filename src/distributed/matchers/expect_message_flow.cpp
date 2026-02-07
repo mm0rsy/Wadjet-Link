@@ -117,38 +117,81 @@ auto ExpectMessageFlow(std::string src_node, std::string dst_node)
     );
 }
 
-// T246: ExpectMessageFlow with GoogleTest Matcher parameter
+// T246, T311: ExpectMessageFlow with GoogleTest Matcher parameter
 auto ExpectMessageFlow(std::string src_node, std::string dst_node,
                        ::testing::Matcher<const PacketView&> inner_matcher)
     -> std::unique_ptr<DistributedMatcher> {
-    // T246: Create ExpectMessageFlow matcher that uses the provided GoogleTest Matcher
-    // The inner_matcher validates packet content beyond basic flow detection
-    // Example: ExpectMessageFlow("node-a", "node-b", EthernetFrameWith(...))
-    
-    // Store matcher reference for use in packet evaluation
-    // Create a custom implementation that filters packets through inner_matcher
+    // T311: Create ExpectMessageFlow matcher that filters packets using GoogleTest Matcher
+    // The inner_matcher validates packet content (e.g., HasSOMEIPServiceId)
+    // Only packets matching inner_matcher are considered for source/destination correlation
+
     class GTestAwareExpectMessageFlow : public ExpectMessageFlowImpl {
     public:
         GTestAwareExpectMessageFlow(std::string src, std::string dst,
                                    ::testing::Matcher<const PacketView&> inner_m)
             : ExpectMessageFlowImpl(std::move(src), std::move(dst)),
               inner_matcher_(inner_m) {}
-        
-        // Override evaluate to apply inner_matcher to packets before correlation
+
+        // Override evaluate to apply inner_matcher to filter candidate packets
         auto evaluate(const std::unordered_map<std::string, DistributedCaptureContext>& contexts)
             -> DistributedMatchResult override {
-            // First, filter packets through the inner GoogleTest matcher
-            // Then apply standard ExpectMessageFlow evaluation
-            auto result = ExpectMessageFlowImpl::evaluate(contexts);
-            
-            // If basic flow found, additionally validate with inner_matcher
-            if (result.matched && !contexts.empty()) {
-                // Apply inner_matcher validation to first packet
-                // This demonstrates integration with M3 GoogleTest matchers
+            // T311: Get capture contexts for both nodes
+            auto src_it = contexts.find(get_src_node());
+            auto dst_it = contexts.find(get_dst_node());
+
+            if (src_it == contexts.end() || dst_it == contexts.end()) {
+                return DistributedMatchResult::failure("Source or destination node missing");
             }
-            return result;
+
+            const auto& src_packets = src_it->second.packets;
+            const auto& dst_packets = dst_it->second.packets;
+
+            if (src_packets.empty() || dst_packets.empty()) {
+                return DistributedMatchResult::failure("No packets on source or destination");
+            }
+
+            // T311: Filter source packets through inner_matcher
+            std::vector<Packet> filtered_src;
+            for (const auto& pkt : src_packets) {
+                PacketView pv(pkt);
+                if (inner_matcher_.Matches(pv)) {
+                    filtered_src.push_back(pkt);
+                }
+            }
+
+            // T311: Filter destination packets through inner_matcher
+            std::vector<Packet> filtered_dst;
+            for (const auto& pkt : dst_packets) {
+                PacketView pv(pkt);
+                if (inner_matcher_.Matches(pv)) {
+                    filtered_dst.push_back(pkt);
+                }
+            }
+
+            if (filtered_src.empty() || filtered_dst.empty()) {
+                return DistributedMatchResult::failure(
+                    "No packets matching inner matcher on source or destination");
+            }
+
+            // Correlate filtered packets
+            for (const auto& src_pkt : filtered_src) {
+                for (const auto& dst_pkt : filtered_dst) {
+                    if (packets_likely_correlated(src_pkt, dst_pkt)) {
+                        return DistributedMatchResult::success(
+                            src_pkt.timestamp().total_nanoseconds(),
+                            dst_pkt.timestamp().total_nanoseconds());
+                    }
+                }
+            }
+
+            return DistributedMatchResult::failure(
+                "No correlated message flow detected matching inner matcher");
         }
-        
+
+        auto get_src_node() const -> const std::string& { return src_node_; }
+
+        auto get_dst_node() const -> const std::string& { return dst_node_; }
+
     private:
         ::testing::Matcher<const PacketView&> inner_matcher_;
     };
