@@ -637,10 +637,10 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 011** defines `DiagnosticSessionManager` for stateful multi-ECU diagnostic tracking. Distributed testing of diagnostic sessions (flash programming across ECUs, security access sequences, DTC clearing) is a primary automotive use case but has zero integration.
 
-- [ ] T318 [US4] Create DIAGNOSTIC step type in DistributedStep enum and DiagnosticStepConfig struct (session_type, ecu_address, expected_service, expected_nrc) in include/wadjet/distributed/scenario.hpp
-- [ ] T319 [US3] Create ExpectDiagnosticSession distributed matcher: validates multi-ECU diagnostic sequences (e.g., SecurityAccess on node-a → FlashDownload on node-b) in include/wadjet/distributed/matchers/expect_diagnostic.hpp
-- [ ] T320 [US1] Add DiagnosticSessionManager integration to TestNode: track per-ECU session state across distributed captures using M11 API in src/distributed/node.cpp
-- [ ] T321 [P] Add unit tests for distributed diagnostic session tracking in tests/distributed/test_diagnostic_distributed.cpp
+- [X] T318 [US4] Create DIAGNOSTIC step type in DistributedStep enum and DiagnosticStepConfig struct (session_type, ecu_address, expected_service, expected_nrc) in include/wadjet/distributed/scenario.hpp
+- [X] T319 [US3] Create ExpectDiagnosticSession distributed matcher: validates multi-ECU diagnostic sequences (e.g., SecurityAccess on node-a → FlashDownload on node-b) in include/wadjet/distributed/matchers/expect_diagnostic.hpp
+- [X] T320 [US1] Add DiagnosticSessionManager integration to TestNode: track per-ECU session state across distributed captures using M11 API in src/distributed/node.cpp
+- [X] T321 [P] Add unit tests for distributed diagnostic session tracking in tests/distributed/test_diagnostic_distributed.cpp
 
 ---
 
