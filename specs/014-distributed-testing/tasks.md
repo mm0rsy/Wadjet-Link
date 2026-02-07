@@ -355,7 +355,7 @@ Fields, types, and methods specified in data-model.md but missing from implement
 - [x] T258 Add tls_cert_path, tls_key_path, tls_ca_path fields to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md
 - [x] T259 Add config_path field to CoordinatorConfig in include/wadjet/distributed/coordinator.hpp per data-model.md
 - [x] T260 Add failure_capture_dir field to NodeConfig in include/wadjet/distributed/node.hpp per data-model.md (default: "/tmp/wadjet_failures")
-- [ ] T261 Wire TLS credentials into gRPC server/client channel creation in src/distributed/coordinator.cpp and src/distributed/node.cpp
+- [x] T261 Wire TLS credentials into gRPC server/client channel creation in src/distributed/coordinator.cpp and src/distributed/node.cpp
 
 #### C3: Missing Scenario Structs (data-model.md DistributedScenario section)
 
