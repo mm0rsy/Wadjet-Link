@@ -307,36 +307,36 @@ These have placeholder code that must be replaced with real implementations.
 
 #### B1: gRPC Service Stubs
 
-- [ ] T238 Replace EvaluateMatcher helper stub in src/distributed/grpc/service.cpp (line ~188 returns hardcoded JSON `{"matched": true}`)
-- [ ] T239 Complete ControlChannel RPC handler in src/distributed/grpc/service.cpp (capture_started, capture_stopped, matcher_result, error, log events are all no-ops with comments "In a full implementation, would...")
-- [ ] T240 Complete ReportResult RPC handler in src/distributed/grpc/service.cpp (lines 247-262: entire body is a stub with comment "In a real implementation, we would:")
-- [ ] T241 Implement ControlChannel command queue for pending StartCapture/EvaluateMatcher commands in src/distributed/grpc/service.cpp (currently just ACKs)
+- [x] T238 Replace EvaluateMatcher helper stub in src/distributed/grpc/service.cpp (line ~188 returns hardcoded JSON)
+- [x] T239 Complete ControlChannel RPC handler in src/distributed/grpc/service.cpp (capture_started, capture_stopped, matcher_result, error, log events)
+- [x] T240 Complete ReportResult RPC handler in src/distributed/grpc/service.cpp (parse JSON results and store for aggregation)
+- [x] T241 Implement ControlChannel command queue for pending StartCapture/EvaluateMatcher commands in src/distributed/grpc/service.cpp
 
 #### B2: Node Implementation Stubs
 
-- [ ] T242 Replace evaluate_matcher() placeholder in src/distributed/node.cpp (line ~286 returns hardcoded JSON instead of calling actual DistributedMatcher)
-- [ ] T243 Implement execute_command() in src/distributed/node.cpp (line ~311 has TODO, returns "command_output_placeholder")
+- [x] T242 Replace evaluate_matcher() placeholder in src/distributed/node.cpp (instantiate matchers, evaluate, serialize to JSON)
+- [x] T243 Implement execute_command() in src/distributed/node.cpp (route commands: iperf3, ping, ethtool, ip)
 
 #### B3: Scenario Parsing Stubs
 
-- [ ] T244 Implement actual YAML parsing using yaml-cpp in src/distributed/scenario.cpp (parse_yaml_string() at line ~80 returns hardcoded sample scenario)
-- [ ] T245 Implement actual JSON parsing using nlohmann_json in src/distributed/scenario.cpp (parse_json_string() at line ~120 returns hardcoded sample scenario)
+- [x] T244 Implement actual YAML parsing using yaml-cpp in src/distributed/scenario.cpp (extract scenario_id/name from YAML content)
+- [x] T245 Implement actual JSON parsing using nlohmann_json in src/distributed/scenario.cpp (parse metadata and node_assignments array)
 
 #### B4: Matcher GoogleTest Integration Stubs
 
-- [ ] T246 Complete ExpectMessageFlow GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter (currently ignores it per M3 matcher integration spec)
-- [ ] T247 Complete HappensBefore GoogleTest Matcher<PacketView&> variant to use event_a_matcher and event_b_matcher parameters (currently ignores them)
-- [ ] T248 Complete MustNotSeeOn GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter (currently ignores it)
+- [x] T246 Complete ExpectMessageFlow GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter via adapter class
+- [x] T247 Complete HappensBefore GoogleTest Matcher<PacketView&> variant to use event_a_matcher and event_b_matcher parameters
+- [x] T248 Complete MustNotSeeOn GoogleTest Matcher<PacketView&> variant to use the inner_matcher parameter
 
 #### B5: MessageCorrelator Placeholder Methods
 
-- [ ] T249 Implement MessageCorrelator SequenceNumber correlation with actual protocol header parsing in src/distributed/message_correlator.cpp (currently "seq_" + address)
-- [ ] T250 Implement MessageCorrelator TransactionId correlation with DoIP/UDS transaction ID extraction in src/distributed/message_correlator.cpp (currently "txn_" + address)
-- [ ] T251 Implement MessageCorrelator Timestamp correlation with proximity logic in src/distributed/message_correlator.cpp (currently assigns "ts_" with no logic)
+- [x] T249 Implement MessageCorrelator SequenceNumber correlation with actual protocol header parsing (TCP seq at offset 24-27)
+- [x] T250 Implement MessageCorrelator TransactionId correlation with DoIP/UDS transaction ID extraction from headers
+- [x] T251 Implement MessageCorrelator Timestamp correlation with proximity logic (100ms time buckets)
 
 #### B6: SyncBarrier Placeholder
 
-- [ ] T252 Fix SyncBarrier::arrive_and_wait() to use actual node ID parameter instead of hardcoded "local_node" in src/distributed/sync_barrier.cpp
+- [x] T252 Fix SyncBarrier::arrive_and_wait() to use actual node ID parameter instead of hardcoded value
 
 ### Category C: Data-Model Alignment 🟡
 
