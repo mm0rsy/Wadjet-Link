@@ -1,12 +1,14 @@
 #include "wadjet/distributed/node.hpp"
 
-#include "wadjet/distributed/grpc/client.hpp"
 #include "wadjet/distributed/distributed_matcher.hpp"
+#include "wadjet/distributed/grpc/client.hpp"
 #include "wadjet/io/capture_session.hpp"
 #include "wadjet/io/pcap_capture_session.hpp"
 #include "wadjet/pcap/pcap_writer.hpp"
+#include "wadjet/protocols/diagnostic/diagnostic_session.hpp"
 
 #include <nlohmann/json.hpp>
+
 #include <chrono>
 #include <condition_variable>
 #include <filesystem>
@@ -23,8 +25,12 @@ namespace wadjet::distributed {
 class TestNodeImpl : public TestNode {
 public:
     explicit TestNodeImpl(const NodeConfig& config)
-        : config_(config), last_coordinator_response_(std::chrono::system_clock::now()) {}
-    
+        : config_(config), last_coordinator_response_(std::chrono::system_clock::now()) {
+        // T320: Initialize DiagnosticSessionManager for per-ECU session tracking
+        diagnostic_manager_ = std::make_unique<protocols::diagnostic::DiagnosticSessionManager>(
+            protocols::diagnostic::DiagnosticSessionManager::Options::defaults());
+    }
+
     ~TestNodeImpl() override {
         if (is_connected()) {
             disconnect();
@@ -375,7 +381,12 @@ public:
         std::lock_guard<std::mutex> lock(mutex_);
         return is_connected_;
     }
-    
+
+    auto get_diagnostic_manager() -> protocols::diagnostic::DiagnosticSessionManager* override {
+        // T320: Provide access to DiagnosticSessionManager for per-ECU session state tracking
+        return diagnostic_manager_.get();
+    }
+
     auto execute_command(const std::string& command,
                         const std::vector<std::string>& args)
         -> Result<std::string> override {
@@ -544,7 +555,22 @@ private:
 
                     while (auto packet = session.next_packet(timeout)) {
                         std::lock_guard<std::mutex> lock(mutex_);
-                        captured_packets_.push_back(packet.value());
+                        const auto& captured_packet = packet.value();
+                        captured_packets_.push_back(captured_packet);
+
+                        // T320: Process packet through DiagnosticSessionManager
+                        // to track per-ECU diagnostic session state
+                        if (diagnostic_manager_) {
+                            try {
+                                // Process the packet data to extract diagnostic sessions
+                                diagnostic_manager_->process_doip_raw(
+                                    captured_packet.view().as_bytes(),
+                                    std::chrono::steady_clock::now());
+                            } catch (const std::exception&) {
+                                // Silently ignore diagnostic processing errors
+                                // The packet is still captured even if not diagnostically relevant
+                            }
+                        }
                     }
                 }
 
@@ -567,6 +593,9 @@ private:
     CaptureConfig capture_config_;
     std::chrono::system_clock::time_point capture_start_time_;
     std::chrono::system_clock::time_point last_coordinator_response_;
+
+    // T320: M11 DiagnosticSessionManager for per-ECU session state tracking
+    std::unique_ptr<protocols::diagnostic::DiagnosticSessionManager> diagnostic_manager_;
     std::thread heartbeat_thread_;
     std::thread capture_thread_;                          // T039: Capture packet collection thread
     std::function<void()> coordinator_failure_callback_;  // T032: Failure callback

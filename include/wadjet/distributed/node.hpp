@@ -11,6 +11,10 @@
 #include "sync_barrier.hpp"
 #include "timestamp_normalizer.hpp"
 
+namespace wadjet::protocols::diagnostic {
+class DiagnosticSessionManager;
+}
+
 namespace wadjet::distributed {
 
 // Forward declaration
@@ -194,7 +198,17 @@ public:
      * @return NodeHealthStatus indicating overall health
      */
     virtual auto report_health() const -> NodeHealthStatus = 0;
-    
+
+    /**
+     * @brief Get the diagnostic session manager
+     *
+     * T320: Provides access to M11 DiagnosticSessionManager for tracking
+     * per-ECU diagnostic session state across distributed captures
+     *
+     * @return Pointer to DiagnosticSessionManager (may be null if not initialized)
+     */
+    virtual auto get_diagnostic_manager() -> protocols::diagnostic::DiagnosticSessionManager* = 0;
+
     /**
      * @brief Save partial results and PCAP on coordinator failure
      * 
