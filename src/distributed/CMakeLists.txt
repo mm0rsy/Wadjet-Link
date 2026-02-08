@@ -28,6 +28,7 @@ add_library(wadjet_distributed
     matchers/within_latency.cpp
     matchers/happens_before.cpp
     matchers/must_not_see_on.cpp
+    matchers/expect_stream_latency.cpp  # T323: TSN stream latency matcher
     
     # Scenario management
     scenario.cpp

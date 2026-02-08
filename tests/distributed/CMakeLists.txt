@@ -28,6 +28,10 @@ if(WADJET_ENABLE_DISTRIBUTED)
             # Distributed matchers (simplified, fully implemented)
             test_distributed_matchers.cpp
             
+            # TSN (Time-Sensitive Networking) distributed integration
+            # T325: TSN stream tracking and latency assertions (fully implemented)
+            test_tsn_distributed.cpp
+            
             # TODO: Uncomment when coordinator.cpp is completed
             # test_coordinator.cpp
             # test_coordinator_clock_sync.cpp

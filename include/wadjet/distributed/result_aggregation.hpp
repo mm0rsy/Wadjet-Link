@@ -1,6 +1,7 @@
 #pragma once
 
 #include "wadjet/net/packet.hpp"
+#include "wadjet/protocols/tsn/types.hpp"
 
 #include "result.hpp"
 #include "types.hpp"
@@ -83,6 +84,14 @@ struct LatencyStats {
 };
 
 /**
+ * @brief TSN stream latency tracking
+ *
+ * T322: TSN stream-specific latency metrics tracked across nodes
+ * Maps stream ID (MAC:VLAN) to per-priority latency statistics
+ */
+using TsnStreamLatencyMap = std::map<std::string, std::map<uint8_t, LatencyStats>>;
+
+/**
  * @brief Test results from a single node
  *
  * T087: Aggregates all assertions, capture info, and execution metadata from one node
@@ -116,6 +125,10 @@ struct NodeResult {
     int64_t packet_loss_count = 0;      ///< Number of packets lost
     double packet_loss_percent = 0.0;   ///< Percentage of packets lost
     int64_t expected_packet_count = 0;  ///< Expected packets for loss calculation
+
+    // T322: M12 TSN stream tracking per distributed testing integration
+    TsnStreamLatencyMap tsn_stream_latency;  ///< TSN stream ID -> priority -> latency stats
+    std::map<uint8_t, LatencyStats> per_priority_latency;  ///< PCP -> aggregated latency stats
 
     /// Convert to JSON for serialization
     auto to_json() const -> json;
@@ -171,6 +184,10 @@ struct AggregatedResult {
     int total_assertions = 0;        ///< Total assertion count
     int passed_assertions = 0;       ///< Passed assertion count
     int failed_assertion_count = 0;  ///< Failed assertion count
+
+    // T323-T324: TSN distributed latency tracking per Phase 13 Category D
+    TsnStreamLatencyMap aggregated_stream_latency;  ///< Aggregated TSN stream latency across all nodes
+    std::map<uint8_t, LatencyStats> aggregated_priority_latency;  ///< Aggregated per-priority latency
 
     /// Convert to JSON representation
     ///

@@ -73,6 +73,11 @@ add_library(wadjet
     protocols/diagnostic/flash_sequence.cpp
     protocols/diagnostic/request_correlator.cpp
     protocols/diagnostic/uds_doip_decoder.cpp
+    
+    # TSN (Time-Sensitive Networking) - M12 integration
+    # T322: TSN stream tracking for distributed testing
+    protocols/tsn/stream_tracker.cpp
+    protocols/tsn/latency_tracker.cpp
 )
 
 # Add scenario module sources if dependencies are available
