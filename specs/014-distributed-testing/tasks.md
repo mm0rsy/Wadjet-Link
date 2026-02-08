@@ -648,10 +648,10 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 012** defines `TsnAnalyzer`, `StreamTracker`, `LatencyTracker` for TSN traffic analysis. Multi-point TSN stream latency measurement across switches is a primary distributed testing use case but has zero integration.
 
-- [ ] T322 [US2] Integrate M12 StreamTracker with distributed capture: track TSN stream IDs across nodes for multi-hop stream analysis in src/distributed/node.cpp
-- [ ] T323 [US3] Create TSN-specific distributed assertion: ExpectStreamLatency(src_node, dst_node, stream_id, max_latency) that validates TSN end-to-end latency across network segments in include/wadjet/distributed/matchers/expect_stream_latency.hpp and src/distributed/matchers/expect_stream_latency.cpp
-- [ ] T324 [US2] Integrate M12 LatencyTracker with distributed result aggregation: include per-priority latency stats from all nodes in AggregatedResult in src/distributed/result_aggregation.cpp
-- [ ] T325 [P] Add unit tests for TSN distributed stream tracking and latency assertions in tests/distributed/test_tsn_distributed.cpp
+- [x] T322 [US2] Integrate M12 StreamTracker with distributed capture: track TSN stream IDs across nodes for multi-hop stream analysis in src/distributed/node.cpp
+- [x] T323 [US3] Create TSN-specific distributed assertion: ExpectStreamLatency(src_node, dst_node, stream_id, max_latency) that validates TSN end-to-end latency across network segments in include/wadjet/distributed/matchers/expect_stream_latency.hpp and src/distributed/matchers/expect_stream_latency.cpp
+- [x] T324 [US2] Integrate M12 LatencyTracker with distributed result aggregation: include per-priority latency stats from all nodes in AggregatedResult in src/distributed/result_aggregation.cpp
+- [x] T325 [P] Add unit tests for TSN distributed stream tracking and latency assertions in tests/distributed/test_tsn_distributed.cpp
 
 ---
 
