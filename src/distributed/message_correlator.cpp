@@ -92,8 +92,7 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
                         if (packet.view().size() >= 28) {
                             // Read 4 bytes at offset 24
                             auto raw_data = packet.view().data();
-                            if (raw_data &&
-                                raw_data + 28 <= packet.view().data() + packet.view().size()) {
+                            if (raw_data) {
                                 seq_num = (static_cast<uint32_t>(raw_data[24]) << 24) |
                                           (static_cast<uint32_t>(raw_data[25]) << 16) |
                                           (static_cast<uint32_t>(raw_data[26]) << 8) |
@@ -122,7 +121,7 @@ auto MessageCorrelator::add_packets(const std::string& node_id,
                 try {
                     // Try to decode as UDS over DoIP using M9 decoder
                     protocols::diagnostic::UdsOverDoipDecoder doip_decoder;
-                    auto doip_result = doip_decoder.decode(packet.view().as_bytes());
+                    auto doip_result = doip_decoder.decode(packet.view());
 
                     if (doip_result) {
                         // Successfully decoded UDS over DoIP

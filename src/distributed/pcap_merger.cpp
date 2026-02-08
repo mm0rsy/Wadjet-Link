@@ -50,13 +50,13 @@ auto PcapMerger::add_capture(const std::string& node_id,
 
     // T222: Read PCAP file using PcapReader
     try {
-        auto reader_result = pcap::PcapReader::create(pcap_path);
+        auto reader_result = pcap::PcapReader::open(pcap_path);
         if (!reader_result) {
             return wadjet::Result<void>::err(
                 wadjet::Error(-1, "Failed to open PCAP file: " + pcap_path.string()));
         }
 
-        auto& reader = reader_result.value();
+        auto reader = std::move(reader_result.value());
 
         // Read all packets from the PCAP file
         std::vector<Packet> packets;
