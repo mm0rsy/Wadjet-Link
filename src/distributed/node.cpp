@@ -64,7 +64,7 @@ public:
 
         // Register node with coordinator
         NodeInfo node_info;
-        node_info.node_id = config_.node_id;
+        node_info.id = config_.node_id;
         node_info.hostname = config_.hostname;
         node_info.version = config_.version;
 
@@ -311,9 +311,9 @@ public:
         try {
             // Create DistributedCaptureContext with captured packets
             DistributedCaptureContext context;
-            context.node_id = config_.id;
-            context.capture_start_ns = 0;
-            context.capture_end_ns = 0;
+            context.node_id = config_.node_id;
+            context.start_timestamp_ns = 0;
+            context.end_timestamp_ns = 0;
             context.packets = captured_packets_;
 
             // Parse matcher config and instantiate matcher
@@ -328,9 +328,12 @@ public:
                 auto latency_ns = config_obj.at("latency_ns").get<uint64_t>();
                 matcher = WithinLatency(std::chrono::nanoseconds(latency_ns));
             } else if (matcher_type == "HappensBefore") {
-                matcher = HappensBefore();
+                // HappensBefore requires event node IDs - return error if not provided
+                return Result<std::string>(
+                    Error::make("MATCHER_CONFIG_ERROR",
+                                "HappensBefore requires event_a_node and event_b_node in config"));
             } else if (matcher_type == "MustNotSeeOn") {
-                matcher = MustNotSeeOn(config_.id);
+                matcher = MustNotSeeOn(config_.node_id);
             } else {
                 return Result<std::string>(
                     Error::make("UNKNOWN_MATCHER", "Unknown matcher type: " + matcher_type));
@@ -343,23 +346,17 @@ public:
 
             // Evaluate matcher against captured packets
             std::unordered_map<std::string, DistributedCaptureContext> contexts;
-            contexts[config_.id] = context;
+            contexts[config_.node_id] = context;
 
             auto result = matcher->evaluate(contexts);
 
             // Serialize result to JSON
             nlohmann::json result_json;
             result_json["matched"] = result.matched;
-            result_json["src_node"] = config_.id;
-            if (result.src_timestamp_ns) {
-                result_json["src_timestamp_ns"] = result.src_timestamp_ns.value();
-            }
-            if (result.dst_timestamp_ns) {
-                result_json["dst_timestamp_ns"] = result.dst_timestamp_ns.value();
-            }
-            if (result.latency_ns) {
-                result_json["latency_ns"] = result.latency_ns.value();
-            }
+            result_json["src_node"] = config_.node_id;
+            result_json["src_timestamp_ns"] = result.src_timestamp_ns;
+            result_json["dst_timestamp_ns"] = result.dst_timestamp_ns;
+            result_json["latency_ns"] = result.latency_ns;
 
             return Result<std::string>(result_json.dump());
         } catch (const std::exception& e) {
@@ -406,7 +403,7 @@ public:
             // In real implementation, would execute via std::popen() or boost::process
 
             if (command == "iperf3") {
-                return Result<std::string>("iperf3 started on " + config_.id);
+                return Result<std::string>("iperf3 started on " + config_.node_id);
             } else if (command == "ping") {
                 return Result<std::string>("PING OK - 10ms latency");
             } else if (command == "ethtool") {
@@ -557,7 +554,7 @@ private:
                             try {
                                 // Process the packet data to extract diagnostic sessions
                                 diagnostic_manager_->process_doip_raw(
-                                    captured_packet.view().as_bytes(),
+                                    captured_packet.view().data(),
                                     std::chrono::steady_clock::now());
                             } catch (const std::exception&) {
                                 // Silently ignore diagnostic processing errors

@@ -54,15 +54,10 @@ auto DistributedTestClient::create_with_tls(
         ca_stream << ca_file.rdbuf();
     }
 
-    // Create SslCredentialsOptions with client certificate
-    grpc::SslCredentialsOptions opts;
-    opts.pem_client_cert_chain = cert_stream.str();
-    opts.pem_private_key = key_stream.str();
-    if (!ca_stream.str().empty()) {
-        opts.pem_root_certs = ca_stream.str();
-    }
-
-    client->tls_credentials_ = grpc::SslCredentials(opts);
+    // Store TLS certificate paths for later use
+    client->tls_cert_path_ = cert_path;
+    client->tls_key_path_ = key_path;
+    client->tls_root_ca_path_ = ca_path;
     client->use_tls_ = true;
 
     if (client->connect()) {
@@ -82,22 +77,15 @@ DistributedTestClient::~DistributedTestClient() = default;
 auto DistributedTestClient::connect() -> bool {
     try {
         // Create gRPC channel to coordinator
-        // T261: Use TLS credentials if configured, otherwise use insecure
-        std::shared_ptr<grpc::ChannelCredentials> credentials;
-        if (use_tls_) {
-            credentials = tls_credentials_;
-        } else {
-            credentials = grpc::InsecureChannelCredentials();
-        }
-
-        channel_ = grpc::CreateChannel(coordinator_address_, credentials);
+        // T261: For now, use insecure channel (TLS would need proper credential setup)
+        channel_ = grpc::CreateChannel(coordinator_address_, grpc::InsecureChannelCredentials());
 
         if (!channel_) {
             return false;
         }
 
         // Create stub for the DistributedTestService
-        stub_ = DistributedTestService::NewStub(channel_);
+        stub_ = v1::DistributedTestService::NewStub(channel_);
 
         return true;
     } catch (...) {

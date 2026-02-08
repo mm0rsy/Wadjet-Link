@@ -120,8 +120,8 @@ struct NodeCaptureResult {
             return 0.0;
         }
         int64_t duration_ns = end_time_ns - start_time_ns;
-        double duration_sec = duration_ns / 1e9;
-        return duration_sec > 0 ? packet_count / duration_sec : 0.0;
+        double duration_sec = static_cast<double>(duration_ns) / 1e9;
+        return duration_sec > 0 ? static_cast<double>(packet_count) / duration_sec : 0.0;
     }
 
     /**
@@ -135,7 +135,8 @@ struct NodeCaptureResult {
         if (packet_count + packet_loss_count == 0) {
             return 0.0;
         }
-        return (100.0 * packet_loss_count) / (packet_count + packet_loss_count);
+        return (100.0 * static_cast<double>(packet_loss_count)) /
+               static_cast<double>(packet_count + packet_loss_count);
     }
 };
 

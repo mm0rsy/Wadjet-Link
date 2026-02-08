@@ -109,7 +109,9 @@ private:
 
     // T261: TLS credentials support
     bool use_tls_ = false;
-    std::shared_ptr<grpc::ChannelCredentials> tls_credentials_;
+    std::string tls_cert_path_;
+    std::string tls_key_path_;
+    std::string tls_root_ca_path_;
 
     auto connect() -> bool;
 };

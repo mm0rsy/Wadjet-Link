@@ -201,8 +201,8 @@ auto AggregatedResult::to_junit_xml() const -> std::string {
     }
 
     xml << "<testsuite name=\"" << test_name << "\" tests=\"" << total_tests << "\" failures=\""
-        << total_failures << "\" time=\"" << (test_end_time_ns - test_start_time_ns) / 1.0e9
-        << "\">\n";
+        << total_failures << "\" time=\""
+        << static_cast<double>(test_end_time_ns - test_start_time_ns) / 1.0e9 << "\">\n";
 
     // Properties
     xml << "  <properties>\n";
@@ -216,7 +216,7 @@ auto AggregatedResult::to_junit_xml() const -> std::string {
         for (const auto& assertion : node_result.assertions) {
             xml << "  <testcase name=\"" << assertion.assertion_id << "\" " << "classname=\""
                 << node_result.node_name << "\" " << "time=\""
-                << assertion.duration.count() / 1000.0 << "\"";
+                << static_cast<double>(assertion.duration.count()) / 1000.0 << "\"";
 
             if (assertion.passed) {
                 xml << "/>\n";
@@ -278,11 +278,15 @@ auto AggregatedResult::to_html_report(const std::string& css_path) const -> std:
     html << "<div class=\"summary\">\n";
     html << "  <p><strong>Test Start:</strong> " << ns_to_time_str(test_start_time_ns) << "</p>\n";
     html << "  <p><strong>Test End:</strong> " << ns_to_time_str(test_end_time_ns) << "</p>\n";
-    html << "  <p><strong>Duration:</strong> " << (test_end_time_ns - test_start_time_ns) / 1.0e6
-         << " ms</p>\n";
+    html << "  <p><strong>Duration:</strong> "
+         << static_cast<double>(test_end_time_ns - test_start_time_ns) / 1.0e6 << " ms</p>\n";
 
-    int total_passed = total_passed();
-    int total_failed = total_failed();
+    int total_passed = 0;
+    int total_failed = 0;
+    for (const auto& node_result : node_results) {
+        total_passed += node_result.passed_count;
+        total_failed += node_result.failed_count;
+    }
     html << "  <p><strong>Total Assertions:</strong> <span class=\"passed\">" << total_passed
          << " passed</span>, <span class=\"failed\">" << total_failed << " failed</span></p>\n";
     html << "</div>\n";
@@ -416,7 +420,8 @@ auto NodeResult::calculate_metrics(const std::vector<Packet>& packets,
         for (int64_t delay : inter_packet_delays) {
             sum += delay;
         }
-        latency_stats.mean_ns = static_cast<double>(sum) / inter_packet_delays.size();
+        latency_stats.mean_ns =
+            static_cast<double>(sum) / static_cast<double>(inter_packet_delays.size());
 
         // Calculate percentiles (sorted)
         std::vector<int64_t> sorted_delays = inter_packet_delays;
@@ -439,7 +444,7 @@ auto NodeResult::calculate_metrics(const std::vector<Packet>& packets,
     if (total_duration.count() > 0) {
         // Packets per second
         double duration_seconds = static_cast<double>(total_duration.count()) / 1e9;
-        throughput_packets_per_sec = packets.size() / duration_seconds;
+        throughput_packets_per_sec = static_cast<double>(packets.size()) / duration_seconds;
 
         // Megabits per second
         int64_t total_bits = total_bytes_captured * 8;
@@ -458,7 +463,8 @@ auto NodeResult::calculate_metrics(const std::vector<Packet>& packets,
 
         packet_loss_percent =
             (packet_loss_count > 0)
-                ? (static_cast<double>(packet_loss_count) / expected_count) * 100.0
+                ? (static_cast<double>(packet_loss_count) / static_cast<double>(expected_count)) *
+                      100.0
                 : 0.0;
     }
 }

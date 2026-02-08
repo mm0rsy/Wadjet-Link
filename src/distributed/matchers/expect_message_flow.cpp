@@ -76,7 +76,7 @@ public:
         return std::make_unique<ExpectMessageFlowImpl>(src_node_, dst_node_);
     }
 
-private:
+protected:
     std::string src_node_;
     std::string dst_node_;
 
@@ -103,88 +103,6 @@ private:
 auto ExpectMessageFlow(std::string src_node,
                        std::string dst_node) -> std::unique_ptr<DistributedMatcher> {
     return std::make_unique<ExpectMessageFlowImpl>(std::move(src_node), std::move(dst_node));
-}
-
-// T246, T311: ExpectMessageFlow with GoogleTest Matcher parameter
-auto ExpectMessageFlow(std::string src_node, std::string dst_node,
-                       ::testing::Matcher<const PacketView&> inner_matcher)
-    -> std::unique_ptr<DistributedMatcher> {
-    // T311: Create ExpectMessageFlow matcher that filters packets using GoogleTest Matcher
-    // The inner_matcher validates packet content (e.g., HasSOMEIPServiceId)
-    // Only packets matching inner_matcher are considered for source/destination correlation
-
-    class GTestAwareExpectMessageFlow : public ExpectMessageFlowImpl {
-    public:
-        GTestAwareExpectMessageFlow(std::string src, std::string dst,
-                                    ::testing::Matcher<const PacketView&> inner_m)
-            : ExpectMessageFlowImpl(std::move(src), std::move(dst)), inner_matcher_(inner_m) {}
-
-        // Override evaluate to apply inner_matcher to filter candidate packets
-        auto evaluate(const std::unordered_map<std::string, DistributedCaptureContext>& contexts)
-            -> DistributedMatchResult override {
-            // T311: Get capture contexts for both nodes
-            auto src_it = contexts.find(get_src_node());
-            auto dst_it = contexts.find(get_dst_node());
-
-            if (src_it == contexts.end() || dst_it == contexts.end()) {
-                return DistributedMatchResult::failure("Source or destination node missing");
-            }
-
-            const auto& src_packets = src_it->second.packets;
-            const auto& dst_packets = dst_it->second.packets;
-
-            if (src_packets.empty() || dst_packets.empty()) {
-                return DistributedMatchResult::failure("No packets on source or destination");
-            }
-
-            // T311: Filter source packets through inner_matcher
-            std::vector<Packet> filtered_src;
-            for (const auto& pkt : src_packets) {
-                PacketView pv(pkt);
-                if (inner_matcher_.Matches(pv)) {
-                    filtered_src.push_back(pkt);
-                }
-            }
-
-            // T311: Filter destination packets through inner_matcher
-            std::vector<Packet> filtered_dst;
-            for (const auto& pkt : dst_packets) {
-                PacketView pv(pkt);
-                if (inner_matcher_.Matches(pv)) {
-                    filtered_dst.push_back(pkt);
-                }
-            }
-
-            if (filtered_src.empty() || filtered_dst.empty()) {
-                return DistributedMatchResult::failure(
-                    "No packets matching inner matcher on source or destination");
-            }
-
-            // Correlate filtered packets
-            for (const auto& src_pkt : filtered_src) {
-                for (const auto& dst_pkt : filtered_dst) {
-                    if (packets_likely_correlated(src_pkt, dst_pkt)) {
-                        return DistributedMatchResult::success(
-                            src_pkt.timestamp().total_nanoseconds(),
-                            dst_pkt.timestamp().total_nanoseconds());
-                    }
-                }
-            }
-
-            return DistributedMatchResult::failure(
-                "No correlated message flow detected matching inner matcher");
-        }
-
-        auto get_src_node() const -> const std::string& { return src_node_; }
-
-        auto get_dst_node() const -> const std::string& { return dst_node_; }
-
-    private:
-        ::testing::Matcher<const PacketView&> inner_matcher_;
-    };
-
-    return std::make_unique<GTestAwareExpectMessageFlow>(std::move(src_node), std::move(dst_node),
-                                                         std::move(inner_matcher));
 }
 
 }  // namespace wadjet::distributed

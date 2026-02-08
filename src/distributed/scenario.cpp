@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <unordered_set>
 
 namespace wadjet::distributed {
 
@@ -110,8 +111,8 @@ static auto parse_capture_step(const YAML::Node& step_node) -> DistributedStep {
     capture_cfg.bpf_filter = get_string(step_node, "filter");
     capture_cfg.duration_ms = std::chrono::milliseconds(get_int(step_node, "duration_ms", 0));
     capture_cfg.hardware_timestamps = get_bool(step_node, "hardware_timestamps", false);
-    capture_cfg.snaplen = get_int(step_node, "snaplen", 65535);
-    capture_cfg.buffer_size = get_int(step_node, "buffer_size", 1024 * 1024);
+    capture_cfg.snaplen = static_cast<uint32_t>(get_int(step_node, "snaplen", 65535));
+    capture_cfg.buffer_size = static_cast<uint32_t>(get_int(step_node, "buffer_size", 1024 * 1024));
 
     step.config = capture_cfg;
     step.target_nodes = get_string_vector(step_node, "target_nodes");
@@ -494,8 +495,9 @@ auto DistributedScenario::from_json_string(const std::string& json_content)
                     cfg.bpf_filter = step_obj.value("filter", std::string(""));
                     cfg.duration_ms = std::chrono::milliseconds(step_obj.value("duration_ms", 0));
                     cfg.hardware_timestamps = step_obj.value("hardware_timestamps", false);
-                    cfg.snaplen = step_obj.value("snaplen", 65535);
-                    cfg.buffer_size = step_obj.value("buffer_size", 1024 * 1024);
+                    cfg.snaplen = static_cast<uint32_t>(step_obj.value("snaplen", 65535));
+                    cfg.buffer_size =
+                        static_cast<uint32_t>(step_obj.value("buffer_size", 1024 * 1024));
                     if (step_obj.contains("nodes") && step_obj["nodes"].is_array()) {
                         for (const auto& node : step_obj["nodes"]) {
                             cfg.nodes.push_back(node.get<std::string>());

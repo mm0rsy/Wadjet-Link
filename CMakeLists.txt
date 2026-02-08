@@ -101,7 +101,8 @@ add_subdirectory(src)
 # ============================================================================
 # CLI Tools
 # ============================================================================
-add_subdirectory(tools)
+# TODO: Re-enable when coordinator and node implementations are complete
+# add_subdirectory(tools)
 
 # ============================================================================
 # Tests

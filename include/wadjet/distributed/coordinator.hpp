@@ -1,7 +1,10 @@
 #pragma once
 
+#include "wadjet/scenario/scenario_types.hpp"
+
 #include "result.hpp"
 #include "result_aggregation.hpp"
+#include "scenario.hpp"
 #include "sync_barrier.hpp"
 #include "types.hpp"
 
@@ -14,6 +17,10 @@
 #include <vector>
 
 namespace wadjet::distributed {
+
+// Type aliases for scenario execution
+using ScenarioDefinition = DistributedScenario;
+using ScenarioResult = wadjet::scenario::ScenarioResult;
 
 /**
  * @brief Coordinator configuration

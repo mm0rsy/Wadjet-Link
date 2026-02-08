@@ -117,14 +117,10 @@ grpc::Status DistributedTestServiceImpl::Heartbeat(
         // Acknowledge heartbeat
         response.set_acknowledged(true);
         response.set_server_timestamp_ns(static_cast<int64_t>(
-            std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count()));
+            std::chrono::nanoseconds(std::chrono::system_clock::now().time_since_epoch()).count());
 
-        // Set heartbeat status from coordinator update
-        if (hb_result.is_ok()) {
-            response.set_heartbeat_status("ok");
-        } else {
-            response.set_heartbeat_status("error");
-        }
+        // Set heartbeat acknowledgment
+        response.set_acknowledged(true);
 
         // In a real implementation, we would also:
         // 1. Check for pending commands to send back
@@ -158,7 +154,7 @@ grpc::Status DistributedTestServiceImpl::WaitBarrier(grpc::ServerContext* /*cont
 
     // For now, immediately proceed (real implementation would coordinate with all nodes)
     response->set_proceed(true);
-    response->set_state(BarrierState::BARRIER_ALL_ARRIVED);
+    response->set_state(v1::BarrierState::BARRIER_ALL_ARRIVED);
     response->set_sync_timestamp_ns(request->arrival_timestamp_ns());
     response->add_participating_nodes(node_id);
     response->set_wait_duration_ms(0);
@@ -256,24 +252,22 @@ grpc::Status DistributedTestServiceImpl::ReportResult(grpc::ServerContext* /*con
     }
 
     const auto& node_id = request->node_id();
-    const auto& test_result_json = request->result_json();
+    const auto& node_id = request->node_id();
+    const auto& result_obj = request->result();
 
     try {
-        // Parse JSON result using nlohmann_json
-        auto result_obj = nlohmann::json::parse(test_result_json);
-
+        // Parse result protobuf message
         // Extract assertion results, passed/failed counts, timestamps
         // Store in coordinator's aggregation buffer indexed by node_id
         // In full implementation, would:
-        // 1. Deserialize AssertionResult array
+        // 1. Process AssertionResult array
         // 2. Validate against scenario expectations
         // 3. Aggregate with other node results for final report
 
         response->set_success(true);
-        response->set_message("Result received and stored for aggregation");
     } catch (const std::exception& e) {
         response->set_success(false);
-        response->set_message(std::string("Failed to parse result: ") + e.what());
+        response->set_error_message(std::string("Failed to parse result: ") + e.what());
     }
 
     return grpc::Status::OK;
@@ -323,10 +317,10 @@ grpc::Status DistributedTestServiceImpl::UploadPcap(grpc::ServerContext* /*conte
                 return grpc::Status::OK;
             }
 
-            // Validate checksum if provided (optional integrity check)
-            if (!chunk.checksum().empty()) {
-                // In a full implementation, would validate CRC32 or other checksum
-                // For now, just accept it
+            // Validate data exists
+            if (!chunk.data().empty()) {
+                pcap_file.write(chunk.data().data(), chunk.data().size());
+                total_bytes += chunk.data().size();
             }
         }
 
@@ -338,8 +332,6 @@ grpc::Status DistributedTestServiceImpl::UploadPcap(grpc::ServerContext* /*conte
         // T050: Set success response with stored path and metadata
         response->set_success(true);
         response->set_stored_path(output_path);
-        response->set_total_bytes(total_bytes);
-        response->set_chunks_received(static_cast<uint32_t>(total_bytes > 0 ? 1 : 0));
 
         return grpc::Status::OK;
     } catch (const std::exception& e) {
