@@ -47,7 +47,8 @@ commands:
               libpcap-dev \
               pkg-config \
               libyaml-cpp-dev \
-              nlohmann-json3-dev
+              nlohmann-json3-dev \
+              protobuf-compiler
 
       - when:
           condition:
@@ -544,7 +545,9 @@ jobs:
             cmake -B build -G Ninja \
               -DCMAKE_BUILD_TYPE=Debug \
               -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-              -DWADJET_BUILD_TESTS=ON
+              -DWADJET_ENABLE_DISTRIBUTED=ON \
+              -DWADJET_BUILD_EXAMPLES=OFF \
+              -DWADJET_BUILD_TESTS=OFF
       - run:
           name: Run clang-tidy
           command: |
