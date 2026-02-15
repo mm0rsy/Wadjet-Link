@@ -54,6 +54,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
     # We need to handle the plugin path carefully since it's built during the build process
     add_custom_command(
         OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
+        COMMAND ${CMAKE_COMMAND} -E rm -f ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
         COMMAND ${CMAKE_COMMAND} -E echo "Generating protobuf and gRPC code..."
         COMMAND ${PROTOC}
             --grpc_out ${CMAKE_CURRENT_BINARY_DIR}
@@ -66,6 +67,21 @@ if(WADJET_ENABLE_DISTRIBUTED)
         COMMENT "Generating protobuf and gRPC code for distributed_test.proto"
     )
     
+    # Add a custom target to always regenerate proto files
+    add_custom_target(regenerate_proto
+        COMMAND ${CMAKE_COMMAND} -E rm -f ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
+        COMMAND ${CMAKE_COMMAND} -E echo "Regenerating protobuf and gRPC code..."
+        COMMAND ${PROTOC}
+            --grpc_out ${CMAKE_CURRENT_BINARY_DIR}
+            --plugin=protoc-gen-grpc=${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin
+            --cpp_out ${CMAKE_CURRENT_BINARY_DIR}
+            --experimental_allow_proto3_optional
+            -I ${PROTO_DIR}
+            ${PROTO_FILE}
+        DEPENDS "${PROTO_FILE}" ${_IMPLICIT_DEPS}
+        COMMENT "Force regenerating protobuf and gRPC code"
+    )
+    
     # NOW generate protobuf C++ code library with the output files
     add_library(wadjet_distributed_proto OBJECT
         ${PROTO_SRCS}
@@ -73,6 +89,9 @@ if(WADJET_ENABLE_DISTRIBUTED)
         ${GRPC_SRCS}
         ${GRPC_HDRS}
     )
+    
+    # Make sure proto is regenerated before compiling
+    add_dependencies(wadjet_distributed_proto regenerate_proto)
     
     # Link dependencies
     target_link_libraries(wadjet_distributed_proto PUBLIC
