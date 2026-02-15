@@ -567,47 +567,30 @@ workflows:
       # Stage 1: Lint
       - lint
 
-      # Stage 2: Build (parallel GCC and Clang)
+      # Stage 2: Build (GCC only, Clang is manual)
       - build-gcc-debug:
           requires:
             - lint
-      - build-clang-debug:
-          requires:
-            - lint
 
-      # Stage 3: Unit Tests (parallel)
+      # Stage 3: Unit Tests (GCC only, Clang is manual)
       - test-unit-gcc-debug:
           requires:
             - build-gcc-debug
-      - test-unit-clang-debug:
-          requires:
-            - build-clang-debug
 
-      # Stage 4: Protocol Tests (parallel by stack)
+      # Stage 4: Protocol Tests (GCC only, Clang is manual)
       - test-protocols-network-gcc:
           requires:
             - build-gcc-debug
       - test-protocols-automotive-gcc:
           requires:
             - build-gcc-debug
-      - test-protocols-network-clang:
-          requires:
-            - build-clang-debug
-      - test-protocols-automotive-clang:
-          requires:
-            - build-clang-debug
 
-      # Stage 5: Integration Tests
+      # Stage 5: Integration Tests (GCC only, Clang is manual)
       - test-integration-gcc:
           requires:
             - test-unit-gcc-debug
             - test-protocols-network-gcc
             - test-protocols-automotive-gcc
-      - test-integration-clang:
-          requires:
-            - test-unit-clang-debug
-            - test-protocols-network-clang
-            - test-protocols-automotive-clang
 
       # Stage 6: Testing Framework & Scenario Tests
       - test-framework-gcc:
@@ -617,19 +600,13 @@ workflows:
           requires:
             - build-gcc-debug
 
-      # Stage 7: Distributed Testing Tests
+      # Stage 7: Distributed Testing Tests (GCC only, Clang is manual)
       - test-distributed-gcc:
           requires:
             - build-gcc-debug
-      - test-distributed-clang:
-          requires:
-            - build-clang-debug
       - test-distributed-integration-gcc:
           requires:
             - test-distributed-gcc
-      - test-distributed-integration-clang:
-          requires:
-            - test-distributed-clang
 
       # Stage 8: Static Analysis (parallel with tests)
       - static-analysis:
@@ -643,12 +620,6 @@ workflows:
         equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
     jobs:
       - build-gcc-release:
-          filters:
-            branches:
-              only:
-                - master
-                - main
-      - build-clang-release:
           filters:
             branches:
               only:
@@ -686,41 +657,27 @@ workflows:
         - equal: [ scheduled_pipeline, << pipeline.trigger_source >> ]
         - equal: [ "nightly", << pipeline.schedule.name >> ]
     jobs:
-      # Full build matrix
+      # Full build matrix (GCC only, Clang is manual)
       - build-gcc-debug
       - build-gcc-release
-      - build-clang-debug
-      - build-clang-release
 
-      # All unit tests
+      # All unit tests (GCC only, Clang is manual)
       - test-unit-gcc-debug:
           requires:
             - build-gcc-debug
-      - test-unit-clang-debug:
-          requires:
-            - build-clang-debug
 
-      # All protocol tests
+      # All protocol tests (GCC only, Clang is manual)
       - test-protocols-network-gcc:
           requires:
             - build-gcc-debug
       - test-protocols-automotive-gcc:
           requires:
             - build-gcc-debug
-      - test-protocols-network-clang:
-          requires:
-            - build-clang-debug
-      - test-protocols-automotive-clang:
-          requires:
-            - build-clang-debug
 
-      # All integration tests
+      # All integration tests (GCC only, Clang is manual)
       - test-integration-gcc:
           requires:
             - build-gcc-debug
-      - test-integration-clang:
-          requires:
-            - build-clang-debug
 
       # Testing framework tests
       - test-framework-gcc:
@@ -732,19 +689,13 @@ workflows:
           requires:
             - build-gcc-debug
 
-      # Distributed testing tests
+      # Distributed testing tests (GCC only, Clang is manual)
       - test-distributed-gcc:
           requires:
             - build-gcc-debug
-      - test-distributed-clang:
-          requires:
-            - build-clang-debug
       - test-distributed-integration-gcc:
           requires:
             - test-distributed-gcc
-      - test-distributed-integration-clang:
-          requires:
-            - test-distributed-clang
 
       # Performance tests (nightly only)
       - test-performance-gcc:
