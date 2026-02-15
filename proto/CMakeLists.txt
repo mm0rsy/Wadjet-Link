@@ -59,6 +59,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             --grpc_out ${CMAKE_CURRENT_BINARY_DIR}
             --plugin=protoc-gen-grpc=${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin
             --cpp_out ${CMAKE_CURRENT_BINARY_DIR}
+            --experimental_allow_proto3_optional
             -I ${PROTO_DIR}
             ${PROTO_FILE}
         DEPENDS "${PROTO_FILE}" ${_IMPLICIT_DEPS}
