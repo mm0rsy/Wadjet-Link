@@ -103,6 +103,7 @@ commands:
               -DCMAKE_BUILD_TYPE=<< parameters.build_type >> \
               -DWADJET_BUILD_TESTS=ON \
               -DWADJET_BUILD_EXAMPLES=ON \
+              -DWADJET_ENABLE_DISTRIBUTED=ON \
               -DWADJET_ENABLE_SANITIZERS=<< parameters.sanitizers >> \
               -DWADJET_BUILD_C_BINDINGS=<< parameters.c_bindings >> \
               -DWADJET_BUILD_PYTHON_BINDINGS=<< parameters.python_bindings >>
