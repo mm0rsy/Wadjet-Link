@@ -60,4 +60,10 @@ docs/xml/
 .DS_Store
 Thumbs.db
 
+# Proto-generated files
+**/proto_build/*.pb.h
+**/proto_build/*.pb.cc
+**/proto_build/*.grpc.pb.h
+**/proto_build/*.grpc.pb.cc
+
 build*/
