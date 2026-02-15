@@ -93,6 +93,10 @@ commands:
         default: false
     steps:
       - run:
+          name: Clean previous build artifacts
+          command: |
+            rm -rf build
+      - run:
           name: Configure CMake
           command: |
             cmake -B build -G Ninja \
