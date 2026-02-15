@@ -91,7 +91,7 @@ TEST_F(SyncBarrierTest, ArriveAndWaitReturnValidResult) {
     std::vector<std::string> nodes = {"local_node"};
     barrier.wait_for_nodes(nodes, SyncBarrier::Config{.timeout = std::chrono::milliseconds(1000)});
 
-    auto result = barrier.arrive_and_wait(std::chrono::milliseconds(500));
+    auto result = barrier.arrive_and_wait("local_node", std::chrono::milliseconds(500));
 
     // Should succeed
     EXPECT_TRUE(result.is_ok());

@@ -659,9 +659,9 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 004** defines `Scenario`/`Step` types in `wadjet::scenario` namespace with `CaptureStep`, `SendStep`, `WaitStep`, `ExpectStep`, `LogStep` variants. M14's `DistributedScenario`/`DistributedStep` uses a completely different namespace (`wadjet::distributed`) with incompatible variant types. Single-node scenarios cannot be extended to distributed without rewriting.
 
-- [ ] T326 [US4] Create ScenarioAdapter class that converts M4 wadjet::scenario::Scenario to wadjet::distributed::DistributedScenario for single-node-to-distributed upgrade path in include/wadjet/distributed/scenario_adapter.hpp and src/distributed/scenario_adapter.cpp
-- [ ] T327 [US4] Add SendStep (traffic injection) support to DistributedStep enum and SendStepConfig struct in include/wadjet/distributed/scenario.hpp — mirrors M4's SendStep capability
-- [ ] T328 [P] [US4] Add unit tests for ScenarioAdapter conversion (M4→M14) in tests/distributed/test_scenario_adapter.cpp
+- [x] T326 [US4] Create ScenarioAdapter class that converts M4 wadjet::scenario::Scenario to wadjet::distributed::DistributedScenario for single-node-to-distributed upgrade path in include/wadjet/distributed/scenario_adapter.hpp and src/distributed/scenario_adapter.cpp
+- [x] T327 [US4] Add SendStep (traffic injection) support to DistributedStep enum and SendStepConfig struct in include/wadjet/distributed/scenario.hpp — mirrors M4's SendStep capability
+- [x] T328 [P] [US4] Add unit tests for ScenarioAdapter conversion (M4→M14) in tests/distributed/test_scenario_adapter.cpp
 
 ---
 
@@ -669,8 +669,8 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 004** defines `wadjet-run` as the primary test execution CLI. The distributed coordinator is a completely separate binary with no cross-invocation. Users must manually switch between `wadjet-run` for single-node and `wadjet-coordinator` for distributed tests.
 
-- [ ] T329 [US4] Add `wadjet-run distributed` subcommand that delegates to wadjet-coordinator logic: accepts --nodes and --scenario flags, imports distributed coordinator library in tools/wadjet-run.cpp
-- [ ] T330 [P] Add integration test for wadjet-run distributed subcommand execution in tests/integration/test_wadjet_run_distributed.cpp
+- [x] T329 [US4] Add `wadjet-run distributed` subcommand that delegates to wadjet-coordinator logic: accepts --nodes and --scenario flags, imports distributed coordinator library in tools/wadjet-run.cpp
+- [x] T330 [P] Add integration test for wadjet-run distributed subcommand execution in tests/integration/test_wadjet_run_distributed.cpp
 
 ---
 
@@ -678,9 +678,9 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 003** defines `LiveCaptureTestFixture` as the standard GTest base class with auto-capture setup/teardown, send_udp(), connect_tcp(), wait_for_packet(), etc. The `DistributedTestFixture` inherits from `::testing::Test` directly, losing all M3 convenience methods.
 
-- [ ] T331 [US1] Refactor DistributedTestFixture to optionally compose with M3 LiveCaptureTestFixture: add local capture capability alongside distributed coordination in include/wadjet/testing/distributed_fixture.hpp
-- [ ] T332 [US1] Add convenience methods to DistributedTestFixture mirroring M3 API: wait_for_distributed_packet(node_id, predicate, timeout), send_on_node(node_id, interface, data) in include/wadjet/testing/distributed_fixture.hpp
-- [ ] T333 [P] Add unit tests for DistributedTestFixture M3 integration methods in tests/testing/test_distributed_fixture.cpp
+- [x] T331 [US1] Refactor DistributedTestFixture to optionally compose with M3 LiveCaptureTestFixture: add local capture capability alongside distributed coordination in include/wadjet/testing/distributed_fixture.hpp
+- [x] T332 [US1] Add convenience methods to DistributedTestFixture mirroring M3 API: wait_for_distributed_packet(node_id, predicate, timeout), send_on_node(node_id, interface, data) in include/wadjet/testing/distributed_fixture.hpp
+- [x] T333 [P] Add unit tests for DistributedTestFixture M3 integration methods in tests/testing/test_distributed_fixture.cpp
 
 ---
 
@@ -688,8 +688,8 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 010** (planned) defines DDS-RTPS protocol decoder. DDS is inherently distributed (pub/sub middleware for ADAS/ROS2). While M10 is not yet implemented, distributed testing should be designed to accommodate DDS discovery and topic-based distributed assertions.
 
-- [ ] T334 [US3] Design placeholder DDS distributed matcher interface: ExpectDdsTopicFlow(publisher_node, subscriber_node, topic_name) in include/wadjet/distributed/matchers/expect_dds_topic.hpp — compilable but returns "M10 DDS decoder not yet available" until M10 is implemented
-- [ ] T335 [P] Document DDS distributed testing integration plan in specs/014-distributed-testing/dds_integration_plan.md — map DDS discovery (SPDP/SEDP) to distributed assertions
+- [x] T334 [US3] Design placeholder DDS distributed matcher interface: ExpectDdsTopicFlow(publisher_node, subscriber_node, topic_name) in include/wadjet/distributed/matchers/expect_dds_topic.hpp — compilable but returns "M10 DDS decoder not yet available" until M10 is implemented
+- [x] T335 [P] Document DDS distributed testing integration plan in specs/014-distributed-testing/dds_integration_plan.md — map DDS discovery (SPDP/SEDP) to distributed assertions
 
 ---
 
@@ -697,9 +697,9 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Spec 002** defines rich protocol decoders (Ethernet, IPv4, UDP, TCP, SOME/IP, DoIP). The distributed scenario `ExpectStepConfig` uses generic `assertion_type` string + `assertion_params` JSON instead of typed protocol expectations. This means distributed scenarios cannot express "expect SOME/IP ServiceId=0x1234 flows from node-a to node-b" in a structured way.
 
-- [ ] T336 [US4] Extend ExpectStepConfig to support typed protocol expectations: add protocol field (ethernet/ipv4/udp/tcp/someip/doip) and structured match_fields map instead of generic assertion_params JSON in include/wadjet/distributed/scenario.hpp
-- [ ] T337 [US4] Implement protocol-aware expect step execution: instantiate M2 decoders + M3 matchers from ExpectStepConfig protocol/fields in src/distributed/coordinator.cpp
-- [ ] T338 [P] [US4] Add unit tests for protocol-aware distributed scenarios (SOME/IP, DoIP expect steps) in tests/distributed/test_scenario_parser.cpp
+- [x] T336 [US4] Extend ExpectStepConfig to support typed protocol expectations: add protocol field (ethernet/ipv4/udp/tcp/someip/doip) and structured match_fields map instead of generic assertion_params JSON in include/wadjet/distributed/scenario.hpp
+- [x] T337 [US4] Implement protocol-aware expect step execution: instantiate M2 decoders + M3 matchers from ExpectStepConfig protocol/fields in src/distributed/coordinator.cpp
+- [x] T338 [P] [US4] Add unit tests for protocol-aware distributed scenarios (SOME/IP, DoIP expect steps) in tests/distributed/test_protocol_aware_scenarios.cpp
 
 ---
 
@@ -707,8 +707,8 @@ The `GTestAwareExpectMessageFlow::evaluate()` in `expect_message_flow.cpp` store
 
 **Data-model.md** specifies `NetworkTopology::from_captures()` factory for building topology from observed packet flow. Only `from_scenario()` was implemented.
 
-- [ ] T339 [US2] Implement NetworkTopology::from_captures() static factory: build topology graph from actual DistributedCaptureContext data by analyzing source/destination addresses across node captures in src/distributed/topology.cpp
-- [ ] T340 [P] [US2] Add unit test for from_captures() topology inference in tests/distributed/test_topology.cpp
+- [x] T339 [US2] Implement NetworkTopology::from_captures() static factory: build topology graph from actual DistributedCaptureContext data by analyzing source/destination addresses across node captures in src/distributed/topology.cpp
+- [x] T340 [P] [US2] Add unit test for from_captures() topology inference in tests/distributed/test_topology.cpp
 
 ---
 

@@ -199,5 +199,26 @@ void DistributedTestFixture::ResetTopology() {
     nodes_.clear();
 }
 
+bool DistributedTestFixture::send_on_node(const std::string& node_id, const std::string& interface,
+                                          const std::vector<uint8_t>& data) {
+    // T332: Distributed packet injection placeholder
+    //
+    // Currently only supports sending on the coordinator node (localhost) via M3 APIs.
+    // Remote ECU sends would require TestNode RPC integration (deferred post-Phase 13).
+
+    if (node_id == "coordinator" && enable_capture_) {
+        // Send on local interface using socket APIs or raw sockets
+        // For now, return false as full implementation requires network access
+        // This is a placeholder for future implementation
+
+        // Would use: socket(), sendto(), or similar to inject packet
+        // Currently deferred to post-Phase 13 work when TestNode RPC is ready
+        return false;  // Not yet implemented - requires CAP_NET_RAW or root
+    }
+
+    // Remote node sends not yet implemented (T332 deferred)
+    return false;
+}
+
 }  // namespace testing
 }  // namespace wadjet

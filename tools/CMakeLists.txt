@@ -36,7 +36,7 @@ install(TARGETS wadjet-node
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# wadjet-run: Scenario runner CLI
+# wadjet-run: Scenario runner CLI with optional distributed support
 if(WADJET_SCENARIO_ENABLED)
     add_executable(wadjet-run
         wadjet-run.cpp
@@ -48,6 +48,18 @@ if(WADJET_SCENARIO_ENABLED)
             wadjet_warnings
             wadjet_sanitizers
     )
+    
+    # T329: Link distributed coordinator when distributed testing enabled
+    if(WADJET_ENABLE_DISTRIBUTED)
+        target_link_libraries(wadjet-run
+            PRIVATE
+                wadjet_distributed
+        )
+        target_compile_definitions(wadjet-run
+            PRIVATE
+                WADJET_ENABLE_DISTRIBUTED
+        )
+    endif()
 
     install(TARGETS wadjet-run
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

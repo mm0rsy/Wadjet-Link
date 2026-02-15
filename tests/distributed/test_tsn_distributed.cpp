@@ -1,3 +1,4 @@
+#include "wadjet/distributed/distributed_matcher.hpp"
 #include "wadjet/distributed/matchers/expect_stream_latency.hpp"
 #include "wadjet/distributed/result_aggregation.hpp"
 #include "wadjet/protocols/tsn/latency_tracker.hpp"

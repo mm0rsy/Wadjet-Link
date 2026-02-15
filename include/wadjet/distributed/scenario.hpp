@@ -18,6 +18,7 @@ namespace wadjet::distributed {
  *
  * T072: Defines the different types of operations that can occur in a test scenario
  * T318: Added DIAGNOSTIC step type for multi-ECU diagnostic session sequences
+ * T327: Added SEND step type for traffic injection across nodes
  */
 enum class StepType {
     UNKNOWN = 0,
@@ -27,6 +28,25 @@ enum class StepType {
     WAIT = 4,        ///< Time delay
     LOG = 5,         ///< Log event
     DIAGNOSTIC = 6,  ///< Diagnostic session operation (T318)
+    SEND = 7,        ///< Send/traffic injection step (T327)
+};
+
+/**
+ * @brief Protocol types for protocol-aware distributed assertions
+ *
+ * T336: Defines protocol-specific expectation matching for distributed scenarios
+ * Used in ExpectStepConfig for typed protocol expectations instead of generic JSON
+ */
+enum class ProtocolType {
+    UNKNOWN = 0,
+    ETHERNET = 1,   ///< Ethernet frame matching (M2)
+    IPv4 = 2,       ///< IPv4 packet matching (M2)
+    UDP = 3,        ///< UDP datagram matching (M2)
+    TCP = 4,        ///< TCP segment matching (M2)
+    SOMEIP = 5,     ///< SOME/IP protocol matching (M2)
+    DoIP = 6,       ///< Diagnostic over IP matching (M2)
+    UDS = 7,        ///< UDS service matching (M9)
+    GENERIC = 255,  ///< Generic/untyped assertion (backward compatibility)
 };
 
 /**
@@ -60,15 +80,45 @@ struct CaptureStepConfig {
  * @brief Configuration for expectation/assertion step
  *
  * T073: Specifies parameters for assertion steps
+ * T336: Extended with protocol-aware matching for M2/M9 protocol-specific assertions
+ *
+ * Supports two modes:
+ * 1. Generic mode (backward compatible): assertion_type + assertion_params (JSON)
+ * 2. Protocol-aware mode: protocol + match_fields (typed struct)
  */
 struct ExpectStepConfig {
     std::string assertion_id;  ///< Unique assertion identifier
+
+    // Generic mode (backward compatible, T073)
     std::string
         assertion_type;  ///< Type: "message_flow", "latency", "happens_before", "must_not_see"
-    std::string assertion_params;                ///< JSON-encoded assertion parameters
+    std::string assertion_params;  ///< JSON-encoded assertion parameters (legacy)
+
+    // Protocol-aware mode (T336 - new)
+    ProtocolType protocol{ProtocolType::GENERIC};  ///< Protocol layer to match (M2: Ethernet, IPv4,
+                                                    ///< UDP, TCP, SOME/IP, DoIP; M9: UDS)
+
+    // Structured match fields per protocol (replaces generic assertion_params)
+    std::unordered_map<std::string, std::string>
+        match_fields;  ///< Protocol-specific match fields (e.g., "service_id"→"0x1234" for SOME/IP)
+
+    // Assertion context
     std::chrono::milliseconds timeout_ms{5000};  ///< Assertion timeout
     bool should_fail{false};                     ///< Expected to fail (negative test)
+
+    // Node context for distributed protocol assertions
+    std::string src_node;  ///< Source node (publisher/sender) for flows
+    std::string dst_node;  ///< Destination node (subscriber/receiver) for flows
 };
+
+/**
+ * @brief Helper to check if ExpectStepConfig uses protocol-aware mode
+ *
+ * T336: Utility to determine if config uses new protocol-aware fields vs legacy generic mode
+ */
+inline bool uses_protocol_aware_assertions(const ExpectStepConfig& cfg) {
+    return cfg.protocol != ProtocolType::GENERIC && !cfg.match_fields.empty();
+}
 
 /**
  * @brief Configuration for wait/delay step
@@ -87,6 +137,26 @@ struct WaitStepConfig {
 struct LogStepConfig {
     std::string message;         ///< Log message text
     std::string level = "INFO";  ///< Log level (INFO, DEBUG, WARN, ERROR)
+};
+
+/**
+ * @brief Configuration for send/traffic injection step
+ *
+ * T327: Specifies parameters for sending packets from nodes
+ *
+ * Supports:
+ * - Sending from PCAP file on specified nodes
+ * - Sending raw packet data on specified nodes
+ * - Delay before sending for synchronization
+ */
+struct SendStepConfig {
+    std::string send_id;                                ///< Unique send operation identifier
+    std::vector<std::string> nodes;                     ///< Nodes to send from
+    std::string interface;                              ///< Network interface to send on
+    std::optional<std::string> pcap_file;               ///< Send packets from PCAP file
+    std::optional<std::vector<std::uint8_t>> raw_data;  ///< Raw packet bytes to send
+    std::chrono::milliseconds delay_before_ms{0};       ///< Delay before sending
+    std::chrono::milliseconds timeout_ms{5000};         ///< Timeout for send operation
 };
 
 /**
@@ -118,6 +188,7 @@ struct DiagnosticStepConfig {
  * T072: Represents one operation in a multi-node test
  * T266: Uses std::variant for type-safe step configuration
  * T318: Added DIAGNOSTIC variant option
+ * T327: Added SEND variant option for traffic injection
  */
 struct DistributedStep {
     std::string step_id;               ///< Unique step identifier
@@ -126,8 +197,9 @@ struct DistributedStep {
 
     // T266: Type-safe variant-based configuration per data-model.md
     // T318: Added DiagnosticStepConfig to variant
+    // T327: Added SendStepConfig to variant for traffic injection
     std::variant<BarrierStepConfig, CaptureStepConfig, ExpectStepConfig, WaitStepConfig,
-                 LogStepConfig, DiagnosticStepConfig>
+                 LogStepConfig, DiagnosticStepConfig, SendStepConfig>
         config;
 
     std::chrono::milliseconds delay_before_ms{0};  ///< Delay before step execution

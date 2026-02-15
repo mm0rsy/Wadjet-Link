@@ -76,8 +76,8 @@ nodes:
     EXPECT_EQ(node.capture_interfaces.size(), 2);
     EXPECT_EQ(node.capture_interfaces[0], "eth0");
     EXPECT_EQ(node.capture_interfaces[1], "eth1");
-    EXPECT_EQ(node.metadata["location"], "US-WEST");
-    EXPECT_EQ(node.metadata["priority"], "HIGH");
+    EXPECT_EQ(node.metadata.at("location"), "US-WEST");
+    EXPECT_EQ(node.metadata.at("priority"), "HIGH");
 }
 
 /**
@@ -150,7 +150,7 @@ TEST_F(ConfigLoaderTest, LoadNodesJSON) {
     EXPECT_EQ(node.id, "node-1");
     EXPECT_EQ(node.hostname, "192.168.1.1");
     EXPECT_EQ(node.grpc_port, 50051);
-    EXPECT_EQ(node.metadata["location"], "US-WEST");
+    EXPECT_EQ(node.metadata.at("location"), "US-WEST");
 }
 
 /**
@@ -168,7 +168,7 @@ nodes:
     auto result = ConfigLoader::load_nodes(config_path);
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), "MISSING_FIELD");
+    EXPECT_EQ(result.error().code, "MISSING_FIELD");
 }
 
 /**
@@ -186,7 +186,7 @@ nodes:
     auto result = ConfigLoader::load_nodes(config_path);
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), "INVALID_NODE");
+    EXPECT_EQ(result.error().code, "INVALID_NODE");
 }
 
 /**
@@ -199,7 +199,7 @@ TEST_F(ConfigLoaderTest, ErrorEmptyConfiguration) {
     auto result = ConfigLoader::load_nodes(config_path);
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), "EMPTY_CONFIG");
+    EXPECT_EQ(result.error().code, "EMPTY_CONFIG");
 }
 
 /**
@@ -210,7 +210,7 @@ TEST_F(ConfigLoaderTest, ErrorFileNotFound) {
     auto result = ConfigLoader::load_nodes(non_existent);
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), "CONFIG_NOT_FOUND");
+    EXPECT_EQ(result.error().code, "CONFIG_NOT_FOUND");
 }
 
 /**
@@ -225,7 +225,7 @@ TEST_F(ConfigLoaderTest, ErrorUnsupportedFormat) {
     auto result = ConfigLoader::load_nodes(config_path);
 
     ASSERT_FALSE(result);
-    EXPECT_EQ(result.error().code(), "UNSUPPORTED_FORMAT");
+    EXPECT_EQ(result.error().code, "UNSUPPORTED_FORMAT");
 }
 
 /**

@@ -125,6 +125,8 @@ static auto parse_capture_step(const YAML::Node& step_node) -> DistributedStep {
 
 /**
  * @brief Parse expect/assertion step configuration from YAML node
+ *
+ * T336-T337: Enhanced to parse both generic and protocol-aware assertion modes
  */
 static auto parse_expect_step(const YAML::Node& step_node) -> DistributedStep {
     DistributedStep step;
@@ -137,16 +139,55 @@ static auto parse_expect_step(const YAML::Node& step_node) -> DistributedStep {
     expect_cfg.assertion_type = get_string(step_node, "assertion_type", "message_flow");
     expect_cfg.timeout_ms = std::chrono::milliseconds(get_int(step_node, "timeout_ms", 5000));
     expect_cfg.should_fail = get_bool(step_node, "should_fail", false);
+    
+    // T336: Parse node context for distributed assertions
+    expect_cfg.src_node = get_string(step_node, "src_node", "");
+    expect_cfg.dst_node = get_string(step_node, "dst_node", "");
 
-    // Encode assertion parameters as JSON string
-    if (step_node["assertion_params"]) {
+    // T336-T337: Check for protocol-aware assertion mode
+    if (step_node["protocol"]) {
+        std::string protocol_str = get_string(step_node, "protocol", "generic");
+        
+        // Parse protocol type (T336)
+        if (protocol_str == "ethernet") {
+            expect_cfg.protocol = ProtocolType::ETHERNET;
+        } else if (protocol_str == "ipv4") {
+            expect_cfg.protocol = ProtocolType::IPv4;
+        } else if (protocol_str == "udp") {
+            expect_cfg.protocol = ProtocolType::UDP;
+        } else if (protocol_str == "tcp") {
+            expect_cfg.protocol = ProtocolType::TCP;
+        } else if (protocol_str == "someip") {
+            expect_cfg.protocol = ProtocolType::SOMEIP;
+        } else if (protocol_str == "doip") {
+            expect_cfg.protocol = ProtocolType::DoIP;
+        } else if (protocol_str == "uds") {
+            expect_cfg.protocol = ProtocolType::UDS;
+        } else {
+            expect_cfg.protocol = ProtocolType::GENERIC;
+        }
+        
+        // T336: Parse match_fields from YAML (T337 will use these for matcher instantiation)
+        if (step_node["match_fields"]) {
+            const auto& fields_node = step_node["match_fields"];
+            for (const auto& kv : fields_node) {
+                if (kv.first.IsScalar() && kv.second.IsScalar()) {
+                    expect_cfg.match_fields[kv.first.as<std::string>()] = 
+                        kv.second.as<std::string>();
+                }
+            }
+        }
+    }
+
+    // Legacy mode: encode assertion parameters as JSON string if present
+    if (!uses_protocol_aware_assertions(expect_cfg) && step_node["assertion_params"]) {
         try {
             auto params_node = step_node["assertion_params"];
             expect_cfg.assertion_params = YAML::Dump(params_node);
         } catch (...) {
             expect_cfg.assertion_params = "{}";
         }
-    } else {
+    } else if (!uses_protocol_aware_assertions(expect_cfg)) {
         expect_cfg.assertion_params = "{}";
     }
 

@@ -608,3 +608,6 @@ steps:
     auto scenario = DistributedScenario::from_yaml_string(minimal_yaml);
     ASSERT_NE(nullptr, scenario);
     EXPECT_EQ("minimal-test", scenario->id());
+}
+
+}  // namespace wadjet::distributed

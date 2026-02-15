@@ -79,6 +79,38 @@ public:
     static NetworkTopology from_scenario(const ScenarioDefinition& scenario);
 
     /**
+     * @brief Build topology from captured packet data
+     *
+     * T339: Infers network topology by analyzing source/destination addresses
+     * across nodes' captured packet streams. Builds topology graph representing
+     * actual communication observed during test execution.
+     *
+     * Implementation:
+     * 1. Iterate through all captured packets from each node
+     * 2. Extract source/destination IP addresses and protocols
+     * 3. Map IP addresses to node identities (via IP→NodeId mapping)
+     * 4. Build graph of observed communication flows
+     * 5. Deduplicate bidirectional links
+     *
+     * @param captures Map of node_id to vector of captured packets (from DistributedCaptureContext)
+     * @param node_id_to_ip Optional mapping of node IDs to their IP addresses for correlation
+     * @return Topology inferred from captured flows
+     *
+     * @example
+     * @code
+     * // After test execution, use captured packets to infer topology
+     * std::map<std::string, std::vector<PacketView>> node_captures = {...};
+     * auto observed_topology = NetworkTopology::from_captures(node_captures);
+     *
+     * // Verify observed communication matches expected scenario topology
+     * EXPECT_EQ(scenario_topology.edge_count(), observed_topology.edge_count());
+     * @endcode
+     */
+    static NetworkTopology from_captures(
+        const std::map<std::string, std::vector<PacketView>>& captures,
+        const std::map<std::string, std::string>& node_id_to_ip = {});
+
+    /**
      * @brief Add a node to the topology
      *
      * @param node_id Unique node identifier

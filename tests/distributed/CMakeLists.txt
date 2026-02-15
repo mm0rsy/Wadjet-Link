@@ -21,6 +21,7 @@ if(WADJET_ENABLE_DISTRIBUTED)
             
             # Scenario management (fully implemented)
             test_scenario_parser.cpp
+            test_scenario_adapter.cpp  # T326/T327/T328: ScenarioAdapter conversion tests
             
             # Result aggregation (fully implemented)
             test_result_aggregation.cpp
@@ -31,6 +32,10 @@ if(WADJET_ENABLE_DISTRIBUTED)
             # TSN (Time-Sensitive Networking) distributed integration
             # T325: TSN stream tracking and latency assertions (fully implemented)
             test_tsn_distributed.cpp
+            
+            # Protocol-aware scenarios (SOME/IP, DoIP, etc.)
+            # T338: Protocol-aware distributed scenario testing
+            test_protocol_aware_scenarios.cpp
             
             # TODO: Uncomment when coordinator.cpp is completed
             # test_coordinator.cpp

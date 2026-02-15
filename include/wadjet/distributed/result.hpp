@@ -42,6 +42,9 @@ public:
     /// Check if the result is an error
     auto is_err() const -> bool { return error_.has_value(); }
 
+    /// Boolean conversion operator (true if successful)
+    explicit operator bool() const { return is_ok(); }
+
     /// Get the value, throwing if it's an error
     auto unwrap() -> T& {
         if (!value_.has_value()) {
@@ -84,6 +87,38 @@ public:
 
     /// Get the error if present, nullopt if successful
     auto err() const -> std::optional<Error> { return error_; }
+
+    /// Get the value (non-const reference)
+    auto value() -> T& {
+        if (!value_.has_value()) {
+            throw std::runtime_error("Called value() on failed result");
+        }
+        return *value_;
+    }
+
+    /// Get the value (const reference)
+    auto value() const -> const T& {
+        if (!value_.has_value()) {
+            throw std::runtime_error("Called value() on failed result");
+        }
+        return *value_;
+    }
+
+    /// Get the error (non-const reference)
+    auto error() -> Error& {
+        if (!error_.has_value()) {
+            throw std::runtime_error("Called error() on successful result");
+        }
+        return *error_;
+    }
+
+    /// Get the error (const reference)
+    auto error() const -> const Error& {
+        if (!error_.has_value()) {
+            throw std::runtime_error("Called error() on successful result");
+        }
+        return *error_;
+    }
 
 private:
     std::optional<T> value_;
