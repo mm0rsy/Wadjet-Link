@@ -236,9 +236,9 @@ TEST_F(ProtocolAwareScenarioTest, ParseSomeIPProtocolAwareAssertion) {
 
     // T336: Verify match_fields populated from YAML
     EXPECT_FALSE(expect_cfg.match_fields.empty());
-    EXPECT_EQ("0x1234", expect_cfg.match_fields["service_id"]);
-    EXPECT_EQ("0x4321", expect_cfg.match_fields["method_id"]);
-    EXPECT_EQ("0", expect_cfg.match_fields["message_type"]);
+    EXPECT_EQ("0x1234", expect_cfg.match_fields.at("service_id"));
+    EXPECT_EQ("0x4321", expect_cfg.match_fields.at("method_id"));
+    EXPECT_EQ("0", expect_cfg.match_fields.at("message_type"));
 
     // T336: Verify src/dst nodes captured
     EXPECT_EQ("client-node", expect_cfg.src_node);
@@ -272,9 +272,9 @@ TEST_F(ProtocolAwareScenarioTest, ParseDoIPProtocolAwareAssertion) {
     EXPECT_EQ(ProtocolType::DoIP, expect_cfg.protocol);
 
     // T336: Verify diagnostic-specific fields in match_fields
-    EXPECT_EQ("0x01", expect_cfg.match_fields["target_address"]);
-    EXPECT_EQ("0x8001", expect_cfg.match_fields["message_type"]);
-    EXPECT_EQ("0x22", expect_cfg.match_fields["uds_service"]);
+    EXPECT_EQ("0x01", expect_cfg.match_fields.at("target_address"));
+    EXPECT_EQ("0x8001", expect_cfg.match_fields.at("message_type"));
+    EXPECT_EQ("0x22", expect_cfg.match_fields.at("uds_service"));
 
     EXPECT_TRUE(uses_protocol_aware_assertions(expect_cfg));
 }
@@ -301,8 +301,8 @@ TEST_F(ProtocolAwareScenarioTest, ParseL4ProtocolAwareAssertion) {
     EXPECT_EQ(ProtocolType::UDP, expect_cfg.protocol);
 
     // T336: Verify port matching fields
-    EXPECT_EQ("30490", expect_cfg.match_fields["src_port"]);
-    EXPECT_EQ("30491", expect_cfg.match_fields["dst_port"]);
+    EXPECT_EQ("30490", expect_cfg.match_fields.at("src_port"));
+    EXPECT_EQ("30491", expect_cfg.match_fields.at("dst_port"));
 
     EXPECT_TRUE(uses_protocol_aware_assertions(expect_cfg));
 }

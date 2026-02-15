@@ -5,10 +5,9 @@
 #include "wadjet/protocols/diagnostic/uds_doip_decoder.hpp"
 #include "wadjet/protocols/uds/uds.hpp"
 
-#include <fmt/format.h>
-
 #include <algorithm>
 #include <chrono>
+#include <format>
 #include <limits>
 #include <unordered_map>
 #include <vector>
@@ -207,7 +206,7 @@ auto ExpectDiagnosticSession::evaluate(
     for (const auto& step : steps_) {
         if (contexts.find(step.node_id) == contexts.end()) {
             return DistributedMatchResult::failure(
-                fmt::format("Node '{}' not found in capture contexts", step.node_id));
+                std::format("Node '{}' not found in capture contexts", step.node_id));
         }
     }
 
@@ -262,7 +261,7 @@ auto ExpectDiagnosticSession::evaluate(
             // Check timeout for this step
             auto elapsed = std::chrono::system_clock::now() - start_time;
             if (elapsed > current_step.timeout_ms) {
-                return DistributedMatchResult::failure(fmt::format(
+                return DistributedMatchResult::failure(std::format(
                     "Step {}: {} service 0x{:02X} exceeded timeout", current_step_idx,
                     current_step.node_id, static_cast<uint8_t>(current_step.service_id)));
             }
@@ -280,7 +279,7 @@ auto ExpectDiagnosticSession::evaluate(
     if (current_step_idx < steps_.size()) {
         auto missing_step_idx = current_step_idx;
         const auto& missing_step = steps_[missing_step_idx];
-        return DistributedMatchResult::failure(fmt::format(
+        return DistributedMatchResult::failure(std::format(
             "Diagnostic session incomplete: missing step {} - {} service 0x{:02X}",
             missing_step_idx, missing_step.node_id, static_cast<uint8_t>(missing_step.service_id)));
     }
@@ -289,7 +288,7 @@ auto ExpectDiagnosticSession::evaluate(
     auto total_elapsed = std::chrono::system_clock::now() - start_time;
     if (total_elapsed > total_timeout_ms_) {
         return DistributedMatchResult::failure(
-            fmt::format("Diagnostic session exceeded total timeout: {} > {}ms",
+            std::format("Diagnostic session exceeded total timeout: {} > {}ms",
                         total_elapsed.count() / 1000000, total_timeout_ms_.count()));
     }
 

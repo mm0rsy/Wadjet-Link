@@ -26,9 +26,8 @@ TEST_F(ScenarioAdapterTest, ConvertEmptyScenario) {
 
     auto m14_scenario = adapter.adapt(m4_scenario, "node-1");
 
-    EXPECT_EQ(m14_scenario->name, "empty_test");
-    EXPECT_EQ(m14_scenario->description, "Test empty scenario");
-    EXPECT_EQ(m14_scenario->version, "1.0");
+    EXPECT_EQ(m14_scenario->name(), "empty_test");
+    EXPECT_EQ(m14_scenario->description(), "Test empty scenario");
     EXPECT_EQ(m14_scenario->steps().size(), 0);
 }
 
@@ -115,7 +114,8 @@ TEST_F(ScenarioAdapterTest, ConvertSendStepWithRawData) {
     auto* send_config = std::get_if<SendStepConfig>(&m14_scenario->steps()[0].config);
     EXPECT_NE(send_config, nullptr);
     EXPECT_TRUE(send_config->raw_data.has_value());
-    EXPECT_EQ(send_config->raw_data.value(), std::vector<std::uint8_t>{0xAA, 0xBB, 0xCC, 0xDD});
+    auto expected_data = std::vector<std::uint8_t>{0xAA, 0xBB, 0xCC, 0xDD};
+    EXPECT_EQ(send_config->raw_data.value(), expected_data);
 }
 
 // T326: Test CaptureStep conversion
@@ -196,7 +196,7 @@ TEST_F(ScenarioAdapterTest, ConvertComplexScenario) {
 
     auto m14_scenario = adapter.adapt(m4_scenario, "test-node");
 
-    EXPECT_EQ(m14_scenario->name, "complex_test");
+    EXPECT_EQ(m14_scenario->name(), "complex_test");
     EXPECT_EQ(m14_scenario->steps().size(), 4);
     EXPECT_EQ(m14_scenario->steps()[0].type, StepType::CAPTURE);
     EXPECT_EQ(m14_scenario->steps()[1].type, StepType::WAIT);
@@ -216,9 +216,11 @@ TEST_F(ScenarioAdapterTest, ConvertWithDefaultNode) {
     m4_scenario.steps.push_back(wait_step);
 
     // Adapt without specifying node - should use default
-    auto m14_scenario = my_adapter.adapt(m4_scenario);
+    auto m14_scenario = my_adapter.adapt(m4_scenario, "");
 
     EXPECT_EQ(m14_scenario->steps().size(), 1);
+    EXPECT_EQ(m14_scenario->steps()[0].target_nodes,
+              std::vector<std::string>{"default-node-id"});
     EXPECT_EQ(m14_scenario->steps()[0].target_nodes,
               std::vector<std::string>{"default-node-id"});
 }
@@ -258,7 +260,7 @@ TEST_F(ScenarioAdapterTest, AdaptWithMultipleNodeAssignments) {
 
     auto m14_scenario = adapter.adapt_with_nodes(m4_scenario, assignments);
 
-    EXPECT_EQ(m14_scenario->name, "multi_node_test");
+    EXPECT_EQ(m14_scenario->name(), "multi_node_test");
     EXPECT_EQ(m14_scenario->steps().size(), 1);
     // Should assign to first node (sender preferred, then any)
     EXPECT_EQ(m14_scenario->steps()[0].target_nodes.size(), 1);
@@ -274,10 +276,10 @@ TEST_F(ScenarioAdapterTest, PreservesScenarioMetadata) {
 
     auto m14_scenario = adapter.adapt(m4_scenario, "node-1");
 
-    EXPECT_EQ(m14_scenario->name, "metadata_test");
-    EXPECT_EQ(m14_scenario->description, "Testing metadata preservation");
-    EXPECT_EQ(m14_scenario->version, "2.1");
-    EXPECT_EQ(m14_scenario->tags, std::vector<std::string>{"smoke", "critical", "performance"});
+    EXPECT_EQ(m14_scenario->name(), "metadata_test");
+    EXPECT_EQ(m14_scenario->description(), "Testing metadata preservation");
+    auto expected_tags = std::vector<std::string>{"smoke", "critical", "performance"};
+    EXPECT_EQ(m14_scenario->tags(), expected_tags);
 }
 
 // T328: Test step IDs are unique

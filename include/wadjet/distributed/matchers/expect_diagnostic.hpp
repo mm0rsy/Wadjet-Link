@@ -3,9 +3,8 @@
 #include "wadjet/distributed/distributed_matcher.hpp"
 #include "wadjet/protocols/uds/uds_types.hpp"
 
-#include <fmt/format.h>
-
 #include <chrono>
+#include <format>
 #include <optional>
 #include <string>
 
@@ -200,7 +199,7 @@ public:
         for (size_t i = 0; i < steps_.size(); ++i) {
             if (i > 0)
                 desc += " -> ";
-            desc += fmt::format("{}:0x{:02X}", steps_[i].node_id,
+            desc += std::format("{}:0x{:02X}", steps_[i].node_id,
                                 static_cast<uint8_t>(steps_[i].service_id));
         }
         desc += ")";

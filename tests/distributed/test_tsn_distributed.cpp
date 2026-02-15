@@ -132,23 +132,23 @@ TEST_F(TsnDistributedTest, ExpectStreamLatencyMatcherCreated) {
 TEST_F(TsnDistributedTest, ExpectStreamLatencyMatcherWithEmptyContexts) {
     auto matcher = ExpectStreamLatency("node-1", "node-2", test_stream_id,
                                       std::chrono::milliseconds(5));
-    CaptureContextMap contexts;  // Empty
+    std::unordered_map<std::string, DistributedCaptureContext> contexts;  // Empty
 
-    auto result = matcher->matches(contexts);
+    auto result = matcher->evaluate(contexts);
     EXPECT_FALSE(result.matched);
-    EXPECT_FALSE(result.failure_reason.empty());
+    EXPECT_FALSE(result.error_message.empty());
 }
 
 // T323: ExpectStreamLatency matcher missing source node
 TEST_F(TsnDistributedTest, ExpectStreamLatencyMissingSourceNode) {
     auto matcher = ExpectStreamLatency("source", "dest", test_stream_id,
                                       std::chrono::milliseconds(5));
-    CaptureContextMap contexts;
+    std::unordered_map<std::string, DistributedCaptureContext> contexts;
     // contexts is empty - both nodes missing
 
-    auto result = matcher->matches(contexts);
+    auto result = matcher->evaluate(contexts);
     EXPECT_FALSE(result.matched);
-    EXPECT_FALSE(result.failure_reason.empty());
+    EXPECT_FALSE(result.error_message.empty());
 }
 
 // T324: NodeResult with TSN stream latency

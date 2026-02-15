@@ -113,6 +113,8 @@ auto ScenarioAdapter::convert_step(const wadjet::scenario::Step& m4_step,
         expect_config.assertion_id = dist_step.step_id;
         expect_config.assertion_type = "packet_match";
         expect_config.assertion_params = "{}";  // Simplified
+        expect_config.timeout_ms = expect.within;  // Use the 'within' timeout from M4
+        expect_config.should_fail = !expect.required;  // required=true → should_fail=false
         
         dist_step.type = StepType::EXPECT;
         dist_step.config = expect_config;

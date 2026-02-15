@@ -160,8 +160,9 @@ if(WADJET_SCENARIO_ENABLED)
         TEST_PREFIX "scenario."
     )
 endif()
+# ============================================================================
 # Distributed Testing Infrastructure Tests
+# ============================================================================
 if(WADJET_ENABLE_DISTRIBUTED)
-    # TODO: Fix compilation errors in distributed tests
-    # add_subdirectory(distributed)
+    add_subdirectory(distributed)
 endif()

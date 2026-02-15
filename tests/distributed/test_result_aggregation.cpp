@@ -18,7 +18,11 @@ protected:
                                .failure_message = "",
                                .timestamp_ns = 1675000000000000000LL,
                                .duration = std::chrono::milliseconds(42),
-                               .context = {}};
+                               .context = {},
+                               .src_node = "node-0",
+                               .dst_node = "node-1",
+                               .expected = "latency < 100ms",
+                               .actual = "latency = 42ms"};
     }
 
     AssertionResult create_failed_assertion() {
@@ -29,7 +33,11 @@ protected:
                                .failure_message = "Expected 0 lost packets, got 5",
                                .timestamp_ns = 1675000000050000000LL,
                                .duration = std::chrono::milliseconds(28),
-                               .context = {"stack_frame_1", "stack_frame_2"}};
+                               .context = {"stack_frame_1", "stack_frame_2"},
+                               .src_node = "node-1",
+                               .dst_node = "node-2",
+                               .expected = "packet_loss == 0",
+                               .actual = "packet_loss == 5"};
     }
 };
 
@@ -110,7 +118,11 @@ protected:
                                                     .failure_message = "",
                                                     .timestamp_ns = 1675000000000000000LL,
                                                     .duration = std::chrono::milliseconds(100),
-                                                    .context = {}});
+                                                    .context = {},
+                                                    .src_node = "node-1",
+                                                    .dst_node = "node-1",
+                                                    .expected = "value",
+                                                    .actual = "value"});
 
         return result;
     }
@@ -214,7 +226,11 @@ protected:
                                                    .failure_message = "Latency was 75ms",
                                                    .timestamp_ns = 1675000005000000000LL,
                                                    .duration = std::chrono::milliseconds(15),
-                                                   .context = {}});
+                                                   .context = {},
+                                                   .src_node = "node-1",
+                                                   .dst_node = "node-2",
+                                                   .expected = "latency < 50ms",
+                                                   .actual = "latency = 75ms"});
         result.node_results.push_back(node2);
 
         return result;

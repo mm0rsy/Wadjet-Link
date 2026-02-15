@@ -32,6 +32,7 @@ add_library(wadjet_distributed
     
     # Scenario management
     scenario.cpp
+    scenario_adapter.cpp  # T326: ScenarioAdapter for M4 to M14 conversion
     
     # Results aggregation
     result_aggregation.cpp
@@ -116,6 +117,5 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/wadjet/distributed
 
 # Add tests subdirectory if building tests
 if(WADJET_BUILD_TESTS)
-    # TODO: Fix compilation errors in distributed tests
-    # add_subdirectory(${CMAKE_SOURCE_DIR}/tests/distributed tests_distributed_build)
+    add_subdirectory(${CMAKE_SOURCE_DIR}/tests/distributed tests_distributed_build)
 endif()
