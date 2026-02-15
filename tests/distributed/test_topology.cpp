@@ -213,12 +213,9 @@ protected:
      *
      * In real use, these would come from actual PCAP captures
      */
-    static PacketView make_mock_packet(uint64_t timestamp_ns, 
-                                       const std::string& src_ip,
-                                       const std::string& dst_ip,
-                                       uint16_t src_port,
-                                       uint16_t dst_port,
-                                       const std::string& protocol) {
+    static PacketView make_mock_packet(uint64_t timestamp_ns, const std::string& src_ip,
+                                       const std::string& dst_ip, uint16_t src_port,
+                                       uint16_t dst_port, const std::string& protocol) {
         // Create a minimal mock packet
         // Real implementation would have proper Ethernet + IP + L4 headers
         PacketView pkt{};
@@ -239,7 +236,7 @@ protected:
 TEST_F(NetworkTopologyFromCapturesTest, BuildTopologyFromCaptures) {
     // T339: Create mock capture data for two nodes
     std::map<std::string, std::vector<PacketView>> captures;
-    
+
     // Mock captures from node-a and node-b
     captures["node-a"] = std::vector<PacketView>();
     captures["node-b"] = std::vector<PacketView>();
@@ -249,7 +246,7 @@ TEST_F(NetworkTopologyFromCapturesTest, BuildTopologyFromCaptures) {
 
     // T339: Verify both nodes appear in inferred topology
     EXPECT_EQ(2, topology.node_count());
-    
+
     // T339: Check that nodes were added to topology
     const auto& nodes_map = topology.nodes();
     EXPECT_NE(nodes_map.find("node-a"), nodes_map.end());
@@ -268,10 +265,8 @@ TEST_F(NetworkTopologyFromCapturesTest, FromCapturesWithIPMapping) {
     captures["receiver"] = std::vector<PacketView>();
 
     // T339: Provide IP-to-node mapping for flow correlation
-    std::map<std::string, std::string> ip_mapping{
-        {"192.168.1.10", "sender"},
-        {"192.168.1.20", "receiver"}
-    };
+    std::map<std::string, std::string> ip_mapping{{"192.168.1.10", "sender"},
+                                                  {"192.168.1.20", "receiver"}};
 
     // T339: Build topology with IP mapping
     // In real scenario, captured packets would contain these IPs
@@ -320,21 +315,18 @@ TEST_F(NetworkTopologyFromCapturesTest, SingleNodeCapture) {
 TEST_F(NetworkTopologyFromCapturesTest, DuplicateLinkAvoidance) {
     // T339: When multiple packets create flows in same direction,
     // only one directed link should be added per (source, dest) pair
-    
+
     std::map<std::string, std::vector<PacketView>> captures;
     captures["client"] = std::vector<PacketView>();
     captures["server"] = std::vector<PacketView>();
 
-    std::map<std::string, std::string> ip_mapping{
-        {"10.0.0.1", "client"},
-        {"10.0.0.2", "server"}
-    };
+    std::map<std::string, std::string> ip_mapping{{"10.0.0.1", "client"}, {"10.0.0.2", "server"}};
 
     auto topology = NetworkTopology::from_captures(captures, ip_mapping);
 
     // T339: Should not have duplicate links
     const auto& links = topology.links();
-    
+
     // Count occurrences of each link direction
     // (would be populated if packet data contained actual flows)
     // For now, we verify the structure is sound
@@ -356,7 +348,7 @@ TEST_F(NetworkTopologyFromCapturesTest, AnalyzeCapturedTopology) {
 
     // T339: Analyze for issues (isolated nodes, connectivity problems)
     auto issues = topology.analyze();
-    
+
     // Without actual packet data, all nodes appear isolated
     // In real scenario with packet flows, links would be inferred
     EXPECT_EQ(3, topology.node_count());
@@ -370,7 +362,7 @@ TEST_F(NetworkTopologyFromCapturesTest, AnalyzeCapturedTopology) {
  */
 TEST_F(NetworkTopologyFromCapturesTest, CompareScenarioVsObservedTopology) {
     // T339: Build two topologies - one from scenario, one from captures
-    
+
     // Expected topology (from scenario definition)
     NetworkTopology expected;
     expected.add_node("service-a", NodeRole::SERVICE_PROVIDER, "eth0");
@@ -382,10 +374,8 @@ TEST_F(NetworkTopologyFromCapturesTest, CompareScenarioVsObservedTopology) {
     captures["service-a"] = std::vector<PacketView>();
     captures["service-b"] = std::vector<PacketView>();
 
-    std::map<std::string, std::string> ip_mapping{
-        {"192.168.1.1", "service-a"},
-        {"192.168.1.2", "service-b"}
-    };
+    std::map<std::string, std::string> ip_mapping{{"192.168.1.1", "service-a"},
+                                                  {"192.168.1.2", "service-b"}};
 
     auto observed = NetworkTopology::from_captures(captures, ip_mapping);
 

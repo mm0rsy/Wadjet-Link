@@ -219,12 +219,12 @@ TEST_F(ProtocolAwareScenarioTest, ParseSomeIPProtocolAwareAssertion) {
     EXPECT_EQ("protocol-someip-test", scenario->id());
 
     const auto& steps = scenario->steps();
-    
+
     // Find the SOME/IP assertion step
-    auto someip_step = std::find_if(
-        steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.step_id == "expect-someip-service"; });
-    
+    auto someip_step = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.step_id == "expect-someip-service";
+    });
+
     ASSERT_NE(someip_step, steps.end());
     EXPECT_EQ(StepType::EXPECT, someip_step->type);
 
@@ -259,11 +259,11 @@ TEST_F(ProtocolAwareScenarioTest, ParseDoIPProtocolAwareAssertion) {
     EXPECT_EQ("protocol-doip-test", scenario->id());
 
     const auto& steps = scenario->steps();
-    
-    auto doip_step = std::find_if(
-        steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.step_id == "expect-uds-request"; });
-    
+
+    auto doip_step = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.step_id == "expect-uds-request";
+    });
+
     ASSERT_NE(doip_step, steps.end());
 
     const auto& expect_cfg = std::get<ExpectStepConfig>(doip_step->config);
@@ -289,10 +289,10 @@ TEST_F(ProtocolAwareScenarioTest, ParseL4ProtocolAwareAssertion) {
     ASSERT_NE(nullptr, scenario);
 
     const auto& steps = scenario->steps();
-    auto l4_step = std::find_if(
-        steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.step_id == "expect-udp-flow"; });
-    
+    auto l4_step = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.step_id == "expect-udp-flow";
+    });
+
     ASSERT_NE(l4_step, steps.end());
 
     const auto& expect_cfg = std::get<ExpectStepConfig>(l4_step->config);
@@ -318,10 +318,10 @@ TEST_F(ProtocolAwareScenarioTest, LegacyGenericAssertionBackwardCompatibility) {
     ASSERT_NE(nullptr, scenario);
 
     const auto& steps = scenario->steps();
-    auto generic_step = std::find_if(
-        steps.begin(), steps.end(),
-        [](const DistributedStep& s) { return s.step_id == "expect-generic"; });
-    
+    auto generic_step = std::find_if(steps.begin(), steps.end(), [](const DistributedStep& s) {
+        return s.step_id == "expect-generic";
+    });
+
     ASSERT_NE(generic_step, steps.end());
 
     const auto& expect_cfg = std::get<ExpectStepConfig>(generic_step->config);
@@ -383,14 +383,15 @@ steps:
     ASSERT_NE(nullptr, scenario);
 
     const auto& steps = scenario->steps();
-    
+
     // Count different assertion types
     int protocol_aware_count = 0;
     int generic_count = 0;
-    
+
     for (const auto& step : steps) {
-        if (step.type != StepType::EXPECT) continue;
-        
+        if (step.type != StepType::EXPECT)
+            continue;
+
         const auto& cfg = std::get<ExpectStepConfig>(step.config);
         if (uses_protocol_aware_assertions(cfg)) {
             protocol_aware_count++;
@@ -398,7 +399,7 @@ steps:
             generic_count++;
         }
     }
-    
+
     // T336: Verify mixed assertions are handled correctly
     EXPECT_EQ(2, protocol_aware_count);  // SOME/IP + DoIP
     EXPECT_EQ(1, generic_count);         // Generic assertion
@@ -433,7 +434,7 @@ steps:
     ASSERT_FALSE(steps.empty());
 
     const auto& cfg = std::get<ExpectStepConfig>(steps[0].config);
-    
+
     // T336: Unknown protocol type should default to GENERIC
     EXPECT_EQ(ProtocolType::GENERIC, cfg.protocol);
 }

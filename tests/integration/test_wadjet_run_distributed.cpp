@@ -15,12 +15,12 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <string>
-#include <cstdlib>
-#include <memory>
 
 namespace {
 
@@ -28,29 +28,27 @@ namespace {
 class TempFileHelper {
 public:
     explicit TempFileHelper(const std::string& suffix = ".yaml")
-        : path_(std::filesystem::temp_directory_path() / 
-                ("wadjet_test_" + std::to_string(std::time(nullptr)) + "_" + 
+        : path_(std::filesystem::temp_directory_path() /
+                ("wadjet_test_" + std::to_string(std::time(nullptr)) + "_" +
                  std::to_string(random_value()) + suffix)) {}
-    
+
     ~TempFileHelper() {
         if (std::filesystem::exists(path_)) {
             std::filesystem::remove(path_);
         }
     }
-    
+
     const std::filesystem::path& get() const { return path_; }
-    
+
     void write(const std::string& content) {
         std::ofstream file(path_);
         file << content;
         file.close();
     }
-    
+
 private:
-    static int random_value() {
-        return std::rand() % 100000;
-    }
-    
+    static int random_value() { return std::rand() % 100000; }
+
     std::filesystem::path path_;
 };
 
@@ -167,12 +165,12 @@ TEST_F(WadjetRunDistributedTest, DistributedSubcommandRecognized) {
     // T330: Verify that "wadjet-run distributed" is recognized as a subcommand
     // This would require the tool to be built and available in PATH or a test executable
     // For now, this test validates the concept at the code level
-    
+
     // The actual test would invoke:
     // int argc = 2;
     // const char* argv[] = {"wadjet-run", "distributed"};
     // And verify that distributed_mode is set to true
-    
+
     EXPECT_TRUE(true);  // Placeholder - actual execution deferred to system tests
 }
 
@@ -200,12 +198,12 @@ TEST_F(WadjetRunDistributedTest, CoordinatorBindAddressFlags) {
 /// @test YAML scenario file loading
 TEST_F(WadjetRunDistributedTest, LoadYamlScenarioFromFile) {
     // T330: Verify that YAML scenario files are correctly loaded
-    
+
     TempFileHelper scenario_file(".yaml");
     scenario_file.write(MINIMAL_SCENARIO);
-    
+
     EXPECT_TRUE(std::filesystem::exists(scenario_file.get()));
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> --dry-run
     // and verify dry-run succeeds
@@ -214,12 +212,12 @@ TEST_F(WadjetRunDistributedTest, LoadYamlScenarioFromFile) {
 /// @test JSON scenario file loading
 TEST_F(WadjetRunDistributedTest, LoadJsonScenarioFromFile) {
     // T330: Verify that JSON scenario files are correctly loaded
-    
+
     TempFileHelper scenario_file(".json");
     scenario_file.write(COMPLEX_SCENARIO);
-    
+
     EXPECT_TRUE(std::filesystem::exists(scenario_file.get()));
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> --dry-run
     // and verify dry-run succeeds
@@ -228,27 +226,27 @@ TEST_F(WadjetRunDistributedTest, LoadJsonScenarioFromFile) {
 /// @test Node configuration file loading
 TEST_F(WadjetRunDistributedTest, LoadNodeConfigurationFile) {
     // T330: Verify that node configuration files are correctly loaded
-    
+
     TempFileHelper nodes_file(".yaml");
     nodes_file.write(MINIMAL_NODES_CONFIG);
-    
+
     EXPECT_TRUE(std::filesystem::exists(nodes_file.get()));
 }
 
 /// @test Scenario validation in dry-run mode
 TEST_F(WadjetRunDistributedTest, DryRunScenarioValidation) {
     // T330: Verify that --dry-run validates scenario without executing
-    
+
     TempFileHelper scenario_file(".yaml");
     scenario_file.write(MINIMAL_SCENARIO);
-    
+
     TempFileHelper nodes_file(".yaml");
     nodes_file.write(MINIMAL_NODES_CONFIG);
-    
+
     // In actual system test, would invoke:
-    // int exit_code = system("wadjet-run distributed --scenario <file> --nodes <config> --dry-run");
-    // EXPECT_EQ(exit_code, 0);
-    
+    // int exit_code = system("wadjet-run distributed --scenario <file> --nodes <config>
+    // --dry-run"); EXPECT_EQ(exit_code, 0);
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
@@ -256,146 +254,145 @@ TEST_F(WadjetRunDistributedTest, DryRunScenarioValidation) {
 TEST_F(WadjetRunDistributedTest, ReportGenerationOptions) {
     // T330: Verify that report generation flags are accepted
     // --output <file>, --format <fmt>
-    
+
     TempFileHelper scenario_file(".yaml");
     scenario_file.write(MINIMAL_SCENARIO);
-    
+
     TempFileHelper nodes_file(".yaml");
     nodes_file.write(MINIMAL_NODES_CONFIG);
-    
+
     TempFileHelper output_file(".xml");
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config>
     // --output <output> --format junit --dry-run
     // EXPECT_TRUE(std::filesystem::exists(output_file.get()));
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Verbose output mode
 TEST_F(WadjetRunDistributedTest, VerboseOutputMode) {
     // T330: Verify that -v/--verbose flag enables detailed output
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> -v --dry-run
     // and capture stdout, verify it contains detailed progress messages
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Quiet output mode
 TEST_F(WadjetRunDistributedTest, QuietOutputMode) {
     // T330: Verify that -q/--quiet flag suppresses non-error output
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> -q --dry-run
     // and capture stdout, verify it is empty/minimal
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Help message for distributed subcommand
 TEST_F(WadjetRunDistributedTest, DistributedSubcommandHelp) {
     // T330: Verify that "wadjet-run distributed --help" shows appropriate help
-    
+
     // In actual system test, would invoke:
     // int argc = 3;
     // const char* argv[] = {"wadjet-run", "distributed", "--help"};
     // Capture output and verify it mentions distributed-specific options
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Error handling: missing --scenario flag
 TEST_F(WadjetRunDistributedTest, ErrorMissingScenarioFlag) {
     // T330: Verify that missing --scenario flag results in error with helpful message
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --nodes <config>
     // EXPECT_NE(exit_code, 0);
     // Verify stderr contains "Error: --scenario option required"
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Error handling: missing --nodes flag
 TEST_F(WadjetRunDistributedTest, ErrorMissingNodesFlag) {
     // T330: Verify that missing --nodes flag results in error with helpful message
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file>
     // EXPECT_NE(exit_code, 0);
     // Verify stderr contains "Error: --nodes option required"
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Error handling: nonexistent scenario file
 TEST_F(WadjetRunDistributedTest, ErrorNonexistentScenarioFile) {
     // T330: Verify appropriate error when scenario file doesn't exist
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario /nonexistent/file.yaml --nodes <config>
     // EXPECT_NE(exit_code, 0);
     // Verify stderr contains "Error: .*not found"
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Error handling: nonexistent nodes config file
 TEST_F(WadjetRunDistributedTest, ErrorNonexistentNodesFile) {
     // T330: Verify appropriate error when nodes config file doesn't exist
-    
+
     TempFileHelper scenario_file(".yaml");
     scenario_file.write(MINIMAL_SCENARIO);
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes /nonexistent/nodes.yaml
     // EXPECT_NE(exit_code, 0);
     // Verify stderr contains "Error: .*not found"
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Complex scenario execution with multiple nodes
 TEST_F(WadjetRunDistributedTest, ComplexScenarioMultiNode) {
     // T330: Verify that complex scenario with 3+ nodes can be parsed and executed
-    
+
     TempFileHelper scenario_file(".yaml");
     scenario_file.write(COMPLEX_SCENARIO);
-    
+
     TempFileHelper nodes_file(".yaml");
     nodes_file.write(MINIMAL_NODES_CONFIG);
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> --dry-run
     // EXPECT_EQ(exit_code, 0);
     // Verify scenario is parsed correctly: 3 nodes, 3 steps
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Timeout handling for distributed execution
 TEST_F(WadjetRunDistributedTest, TimeoutHandling) {
     // T330: Verify that --timeout <ms> applies to distributed execution
-    
+
     // In actual system test, would invoke:
     // wadjet-run distributed --scenario <file> --nodes <config> --timeout 1000 --dry-run
     // Verify timeout is properly configured
-    
+
     EXPECT_TRUE(true);  // Placeholder
 }
 
 /// @test Distributed testing disabled (WADJET_ENABLE_DISTRIBUTED not set)
 TEST_F(WadjetRunDistributedTest, DistributedDisabledError) {
     // T330: Verify appropriate error when distributed testing not enabled
-    
+
     // If WADJET_ENABLE_DISTRIBUTED is not defined, should show:
     // "Error: Distributed testing not enabled"
-    
-    #ifndef WADJET_ENABLE_DISTRIBUTED
-    EXPECT_TRUE(true);  // Test should verify error message
-    #endif
-}
 
+#ifndef WADJET_ENABLE_DISTRIBUTED
+    EXPECT_TRUE(true);  // Test should verify error message
+#endif
+}

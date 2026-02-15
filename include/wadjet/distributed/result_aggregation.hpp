@@ -186,8 +186,10 @@ struct AggregatedResult {
     int failed_assertion_count = 0;  ///< Failed assertion count
 
     // T323-T324: TSN distributed latency tracking per Phase 13 Category D
-    TsnStreamLatencyMap aggregated_stream_latency;  ///< Aggregated TSN stream latency across all nodes
-    std::map<uint8_t, LatencyStats> aggregated_priority_latency;  ///< Aggregated per-priority latency
+    TsnStreamLatencyMap
+        aggregated_stream_latency;  ///< Aggregated TSN stream latency across all nodes
+    std::map<uint8_t, LatencyStats>
+        aggregated_priority_latency;  ///< Aggregated per-priority latency
 
     /// Convert to JSON representation
     ///

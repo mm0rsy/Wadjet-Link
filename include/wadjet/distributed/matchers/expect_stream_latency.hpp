@@ -35,9 +35,8 @@ class DistributedMatcher;
  *   auto result = matcher->evaluate(capture_contexts);
  *   assert(result.matched);  // Success if stream latency < 5ms
  */
-auto ExpectStreamLatency(std::string src_node, std::string dst_node,
-                         wadjet::protocols::tsn::StreamId stream_id,
-                         std::chrono::nanoseconds max_latency)
-    -> std::unique_ptr<DistributedMatcher>;
+auto ExpectStreamLatency(
+    std::string src_node, std::string dst_node, wadjet::protocols::tsn::StreamId stream_id,
+    std::chrono::nanoseconds max_latency) -> std::unique_ptr<DistributedMatcher>;
 
 }  // namespace wadjet::distributed

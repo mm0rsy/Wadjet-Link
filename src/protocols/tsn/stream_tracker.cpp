@@ -4,8 +4,8 @@ namespace wadjet::protocols::tsn {
 
 StreamTracker::StreamTracker(int idle_timeout_ms) : idle_timeout_ms_(idle_timeout_ms) {}
 
-void StreamTracker::process_packet(const StreamId& stream_id, uint8_t pcp,
-                                   uint64_t byte_count, int64_t timestamp_ns) {
+void StreamTracker::process_packet(const StreamId& stream_id, uint8_t pcp, uint64_t byte_count,
+                                   int64_t timestamp_ns) {
     auto it = stream_map_.find(stream_id);
     if (it == stream_map_.end()) {
         // New stream

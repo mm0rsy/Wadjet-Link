@@ -11,7 +11,7 @@ namespace wadjet::distributed {
 
 /**
  * @brief Concrete implementation of DistributedScenario for adapted scenarios
- * 
+ *
  * Used internally by ScenarioAdapter to build adapted scenarios
  */
 class AdaptedDistributedScenario : public DistributedScenario {
@@ -24,7 +24,9 @@ public:
     auto description() const -> const std::string& override { return description_; }
     auto tags() const -> const std::vector<std::string>& override { return tags_; }
     auto nodes() const -> const std::vector<NodeDefinition>& override { return nodes_; }
-    auto node_assignments() const -> const std::vector<NodeAssignment>& override { return assignments_; }
+    auto node_assignments() const -> const std::vector<NodeAssignment>& override {
+        return assignments_;
+    }
     auto steps() const -> const std::vector<DistributedStep>& override { return steps_; }
 
     auto steps_for_node(const std::string& node_id) const -> std::vector<DistributedStep> override {
@@ -101,7 +103,8 @@ public:
      * @return Converted DistributedScenario or error
      */
     [[nodiscard]] auto adapt(const wadjet::scenario::Scenario& scenario,
-                            const std::string& node_id = "") -> std::unique_ptr<DistributedScenario>;
+                             const std::string& node_id = "")
+        -> std::unique_ptr<DistributedScenario>;
 
     /**
      * @brief Convert M4 Scenario using default node
@@ -109,7 +112,7 @@ public:
      * @param scenario M4 scenario to convert
      * @return Converted DistributedScenario using default node
      */
-    [[nodiscard]] auto adapt(const wadjet::scenario::Scenario& scenario) 
+    [[nodiscard]] auto adapt(const wadjet::scenario::Scenario& scenario)
         -> std::unique_ptr<DistributedScenario>;
 
     /**
@@ -123,7 +126,8 @@ public:
      */
     [[nodiscard]] auto adapt_with_nodes(
         const wadjet::scenario::Scenario& scenario,
-        const std::unordered_map<std::string, std::string>& node_assignments) -> std::unique_ptr<DistributedScenario>;
+        const std::unordered_map<std::string, std::string>& node_assignments)
+        -> std::unique_ptr<DistributedScenario>;
 
 private:
     std::string default_node_id_;
@@ -136,7 +140,8 @@ private:
      * @return Converted DistributedStep or error
      */
     [[nodiscard]] auto convert_step(const wadjet::scenario::Step& m4_step,
-                                   const std::string& target_node) -> std::optional<DistributedStep>;
+                                    const std::string& target_node)
+        -> std::optional<DistributedStep>;
 };
 
 }  // namespace wadjet::distributed

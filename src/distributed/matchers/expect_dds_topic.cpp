@@ -9,6 +9,7 @@
  */
 
 #include "wadjet/distributed/matchers/expect_dds_topic.hpp"
+
 #include "wadjet/distributed/distributed_matcher.hpp"
 
 #include <sstream>
@@ -73,9 +74,8 @@ private:
 
 auto ExpectDdsTopicFlow(std::string publisher_node, std::string subscriber_node,
                         std::string topic_name) -> std::unique_ptr<DistributedMatcher> {
-    return std::make_unique<ExpectDdsTopicFlowImpl>(std::move(publisher_node),
-                                                    std::move(subscriber_node),
-                                                    std::move(topic_name));
+    return std::make_unique<ExpectDdsTopicFlowImpl>(
+        std::move(publisher_node), std::move(subscriber_node), std::move(topic_name));
 }
 
 auto GetActiveDdsTopics(const std::string& node_id) -> std::vector<std::string> {
@@ -89,7 +89,7 @@ auto GetActiveDdsTopics(const std::string& node_id) -> std::vector<std::string> 
     // - "rt/vcan/ego_vehicle_state"
     // - "rt/perception/lidar_points"
     // etc.
-    
+
     (void)node_id;  // Unused in placeholder
     return {};
 }

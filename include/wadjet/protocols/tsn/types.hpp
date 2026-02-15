@@ -45,9 +45,7 @@ struct StreamId {
         return vlan_id < other.vlan_id;
     }
 
-    std::string to_string() const {
-        return source_mac + ":" + std::to_string(vlan_id);
-    }
+    std::string to_string() const { return source_mac + ":" + std::to_string(vlan_id); }
 };
 
 /**
@@ -72,8 +70,8 @@ struct LatencyStats {
  * Per-priority latency thresholds and tracking settings
  */
 struct LatencyConfig {
-    bool enable_per_priority = true;   ///< Track per-priority latency
-    bool enable_per_stream = false;    ///< Track per-stream latency
+    bool enable_per_priority = true;            ///< Track per-priority latency
+    bool enable_per_stream = false;             ///< Track per-stream latency
     uint64_t max_samples_per_priority = 10000;  ///< Max latency samples
 
     // Latency thresholds per priority (nanoseconds)
@@ -95,12 +93,12 @@ struct LatencyConfig {
  * Comprehensive statistics for a single TSN stream
  */
 struct StreamStats {
-    StreamId id;                  ///< Stream identifier
-    uint64_t packet_count = 0;    ///< Total packets
-    uint64_t byte_count = 0;      ///< Total bytes
-    int64_t first_seen_ns = 0;    ///< First packet timestamp
-    int64_t last_seen_ns = 0;     ///< Most recent packet timestamp
-    uint8_t expected_pcp = 0;     ///< Expected priority
+    StreamId id;                ///< Stream identifier
+    uint64_t packet_count = 0;  ///< Total packets
+    uint64_t byte_count = 0;    ///< Total bytes
+    int64_t first_seen_ns = 0;  ///< First packet timestamp
+    int64_t last_seen_ns = 0;   ///< Most recent packet timestamp
+    uint8_t expected_pcp = 0;   ///< Expected priority
 
     // Per-priority PCP distribution seen
     std::map<PriorityCodePoint, uint64_t> pcp_distribution;

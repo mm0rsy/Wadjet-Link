@@ -45,8 +45,8 @@ void LatencyTracker::finalize() {
         stat.sample_count = samples.size();
         stat.min_ns = *std::min_element(samples.begin(), samples.end());
         stat.max_ns = *std::max_element(samples.begin(), samples.end());
-        stat.mean_ns = static_cast<double>(
-            std::accumulate(samples.begin(), samples.end(), int64_t(0)));
+        stat.mean_ns =
+            static_cast<double>(std::accumulate(samples.begin(), samples.end(), int64_t(0)));
         stat.mean_ns /= static_cast<double>(samples.size());
 
         // Compute percentiles
@@ -63,9 +63,8 @@ void LatencyTracker::finalize() {
 
         // Count violations
         int64_t threshold = static_cast<int64_t>(config_.threshold_ns[i]);
-        stat.violations = static_cast<uint64_t>(
-            std::count_if(samples.begin(), samples.end(),
-                         [threshold](int64_t lat) { return lat > threshold; }));
+        stat.violations = static_cast<uint64_t>(std::count_if(
+            samples.begin(), samples.end(), [threshold](int64_t lat) { return lat > threshold; }));
     }
 }
 

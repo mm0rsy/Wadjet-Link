@@ -20,8 +20,8 @@ public:
     ~StreamTracker() = default;
 
     /// Record a packet's stream membership
-    void process_packet(const StreamId& stream_id, uint8_t pcp,
-                       uint64_t byte_count, int64_t timestamp_ns);
+    void process_packet(const StreamId& stream_id, uint8_t pcp, uint64_t byte_count,
+                        int64_t timestamp_ns);
 
     /// Finalize stream tracking
     void finalize();

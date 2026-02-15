@@ -149,7 +149,8 @@ TEST_F(ScenarioAdapterTest, ConvertExpectStep) {
     wadjet::scenario::ExpectStep expect_step;
     expect_step.description = "UDP packets on port 5000";
     expect_step.within = std::chrono::milliseconds(2000);
-    expect_step.count = wadjet::scenario::CountExpression{wadjet::scenario::CompareOp::GreaterEqual, 3};
+    expect_step.count =
+        wadjet::scenario::CountExpression{wadjet::scenario::CompareOp::GreaterEqual, 3};
     expect_step.required = true;
     m4_scenario.steps.push_back(expect_step);
 
@@ -219,10 +220,8 @@ TEST_F(ScenarioAdapterTest, ConvertWithDefaultNode) {
     auto m14_scenario = my_adapter.adapt(m4_scenario, "");
 
     EXPECT_EQ(m14_scenario->steps().size(), 1);
-    EXPECT_EQ(m14_scenario->steps()[0].target_nodes,
-              std::vector<std::string>{"default-node-id"});
-    EXPECT_EQ(m14_scenario->steps()[0].target_nodes,
-              std::vector<std::string>{"default-node-id"});
+    EXPECT_EQ(m14_scenario->steps()[0].target_nodes, std::vector<std::string>{"default-node-id"});
+    EXPECT_EQ(m14_scenario->steps()[0].target_nodes, std::vector<std::string>{"default-node-id"});
 }
 
 // T326: Test scenario with explicit node override
@@ -240,8 +239,7 @@ TEST_F(ScenarioAdapterTest, ConvertWithNodeOverride) {
     auto m14_scenario = my_adapter.adapt(m4_scenario, "override-node");
 
     EXPECT_EQ(m14_scenario->steps().size(), 1);
-    EXPECT_EQ(m14_scenario->steps()[0].target_nodes,
-              std::vector<std::string>{"override-node"});
+    EXPECT_EQ(m14_scenario->steps()[0].target_nodes, std::vector<std::string>{"override-node"});
 }
 
 // T326: Test adapt_with_nodes for multi-node mapping

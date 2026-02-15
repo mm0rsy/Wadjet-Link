@@ -139,7 +139,7 @@ static auto parse_expect_step(const YAML::Node& step_node) -> DistributedStep {
     expect_cfg.assertion_type = get_string(step_node, "assertion_type", "message_flow");
     expect_cfg.timeout_ms = std::chrono::milliseconds(get_int(step_node, "timeout_ms", 5000));
     expect_cfg.should_fail = get_bool(step_node, "should_fail", false);
-    
+
     // T336: Parse node context for distributed assertions
     expect_cfg.src_node = get_string(step_node, "src_node", "");
     expect_cfg.dst_node = get_string(step_node, "dst_node", "");
@@ -147,7 +147,7 @@ static auto parse_expect_step(const YAML::Node& step_node) -> DistributedStep {
     // T336-T337: Check for protocol-aware assertion mode
     if (step_node["protocol"]) {
         std::string protocol_str = get_string(step_node, "protocol", "generic");
-        
+
         // Parse protocol type (T336)
         if (protocol_str == "ethernet") {
             expect_cfg.protocol = ProtocolType::ETHERNET;
@@ -166,13 +166,13 @@ static auto parse_expect_step(const YAML::Node& step_node) -> DistributedStep {
         } else {
             expect_cfg.protocol = ProtocolType::GENERIC;
         }
-        
+
         // T336: Parse match_fields from YAML (T337 will use these for matcher instantiation)
         if (step_node["match_fields"]) {
             const auto& fields_node = step_node["match_fields"];
             for (const auto& kv : fields_node) {
                 if (kv.first.IsScalar() && kv.second.IsScalar()) {
-                    expect_cfg.match_fields[kv.first.as<std::string>()] = 
+                    expect_cfg.match_fields[kv.first.as<std::string>()] =
                         kv.second.as<std::string>();
                 }
             }

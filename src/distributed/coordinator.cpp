@@ -35,9 +35,9 @@ namespace wadjet::distributed {
  * @param merged_timeline Merged PCAP timeline from all nodes
  * @return AssertionResult indicating pass/fail and details
  */
-static auto evaluate_protocol_aware_assertion(
-    const ExpectStepConfig& expect_cfg,
-    const std::vector<PacketView>& merged_timeline) -> AssertionResult {
+static auto evaluate_protocol_aware_assertion(const ExpectStepConfig& expect_cfg,
+                                              const std::vector<PacketView>& merged_timeline)
+    -> AssertionResult {
     AssertionResult result;
     result.assertion_id = expect_cfg.assertion_id;
     result.assertion_type = expect_cfg.assertion_type;
@@ -93,10 +93,10 @@ static auto evaluate_protocol_aware_assertion(
             }
 
             result.passed = found_matching_packet;
-            result.error_message =
-                found_matching_packet ? ""
-                                      : std::string("No SOME/IP packets with service_id=0x") +
-                                            service_id_it->second + " found in timeline";
+            result.error_message = found_matching_packet
+                                       ? ""
+                                       : std::string("No SOME/IP packets with service_id=0x") +
+                                             service_id_it->second + " found in timeline";
             return result;
         }
 
@@ -104,7 +104,8 @@ static auto evaluate_protocol_aware_assertion(
             // T337: DoIP protocol-aware assertion
             // match_fields contains: "target_address"→"0xF1", "message_type"→"0x8001", etc.
             result.passed = true;  // Placeholder - M9 DoIP decoder integration pending
-            result.error_message = "DoIP assertions require M9 UDS/DoIP decoder (not yet available)";
+            result.error_message =
+                "DoIP assertions require M9 UDS/DoIP decoder (not yet available)";
             return result;
         }
 
@@ -131,9 +132,8 @@ static auto evaluate_protocol_aware_assertion(
             }
 
             result.passed = found_matching_packet;
-            result.error_message = found_matching_packet
-                                       ? ""
-                                       : "No packets with matching L4 ports found in timeline";
+            result.error_message =
+                found_matching_packet ? "" : "No packets with matching L4 ports found in timeline";
             return result;
         }
 
@@ -605,7 +605,7 @@ public:
                 const auto& expect_cfg = std::get<ExpectStepConfig>(step.config);
 
                 // T337: Evaluate protocol-aware or generic assertion against merged timeline
-                AssertionResult assertion_result = 
+                AssertionResult assertion_result =
                     evaluate_protocol_aware_assertion(expect_cfg, merged_packets);
 
                 replay_result.assertion_results.push_back(assertion_result);

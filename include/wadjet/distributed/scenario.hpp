@@ -96,7 +96,7 @@ struct ExpectStepConfig {
 
     // Protocol-aware mode (T336 - new)
     ProtocolType protocol{ProtocolType::GENERIC};  ///< Protocol layer to match (M2: Ethernet, IPv4,
-                                                    ///< UDP, TCP, SOME/IP, DoIP; M9: UDS)
+                                                   ///< UDP, TCP, SOME/IP, DoIP; M9: UDS)
 
     // Structured match fields per protocol (replaces generic assertion_params)
     std::unordered_map<std::string, std::string>

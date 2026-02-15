@@ -79,7 +79,8 @@ TEST_F(TsnDistributedTest, LatencyTrackerRecordsLatency) {
     tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 750000);
     tracker.finalize();
 
-    const auto* stats = tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
+    const auto* stats =
+        tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
     EXPECT_NE(stats, nullptr);
     EXPECT_EQ(stats->sample_count, 2);
     EXPECT_EQ(stats->min_ns, 500000);
@@ -93,11 +94,12 @@ TEST_F(TsnDistributedTest, LatencyTrackerComputesPercentiles) {
     // Record 100 samples from 0 to 99
     for (int i = 0; i < 100; ++i) {
         tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Video,
-                              static_cast<int64_t>(i * 1000));
+                               static_cast<int64_t>(i * 1000));
     }
     tracker.finalize();
 
-    const auto* stats = tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Video);
+    const auto* stats =
+        tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Video);
     EXPECT_NE(stats, nullptr);
     EXPECT_EQ(stats->sample_count, 100);
     EXPECT_GT(stats->p95_ns, stats->p50_ns);
@@ -111,27 +113,29 @@ TEST_F(TsnDistributedTest, LatencyTrackerDetectsViolations) {
     wadjet::protocols::tsn::LatencyTracker tracker(config);
 
     // Record latencies above and below threshold
-    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 500000);      // OK
-    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 2'000'000);  // Violation
-    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 800000);      // OK
+    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 500000);  // OK
+    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice,
+                           2'000'000);                                                 // Violation
+    tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 800000);  // OK
     tracker.finalize();
 
-    const auto* stats = tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
+    const auto* stats =
+        tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
     EXPECT_NE(stats, nullptr);
     EXPECT_GE(stats->violations, 1);
 }
 
 // T323: ExpectStreamLatency matcher factory
 TEST_F(TsnDistributedTest, ExpectStreamLatencyMatcherCreated) {
-    auto matcher = ExpectStreamLatency("node-1", "node-2", test_stream_id,
-                                      std::chrono::milliseconds(5));
+    auto matcher =
+        ExpectStreamLatency("node-1", "node-2", test_stream_id, std::chrono::milliseconds(5));
     EXPECT_NE(matcher, nullptr);
 }
 
 // T323: ExpectStreamLatency matcher with empty contexts
 TEST_F(TsnDistributedTest, ExpectStreamLatencyMatcherWithEmptyContexts) {
-    auto matcher = ExpectStreamLatency("node-1", "node-2", test_stream_id,
-                                      std::chrono::milliseconds(5));
+    auto matcher =
+        ExpectStreamLatency("node-1", "node-2", test_stream_id, std::chrono::milliseconds(5));
     std::unordered_map<std::string, DistributedCaptureContext> contexts;  // Empty
 
     auto result = matcher->evaluate(contexts);
@@ -141,8 +145,8 @@ TEST_F(TsnDistributedTest, ExpectStreamLatencyMatcherWithEmptyContexts) {
 
 // T323: ExpectStreamLatency matcher missing source node
 TEST_F(TsnDistributedTest, ExpectStreamLatencyMissingSourceNode) {
-    auto matcher = ExpectStreamLatency("source", "dest", test_stream_id,
-                                      std::chrono::milliseconds(5));
+    auto matcher =
+        ExpectStreamLatency("source", "dest", test_stream_id, std::chrono::milliseconds(5));
     std::unordered_map<std::string, DistributedCaptureContext> contexts;
     // contexts is empty - both nodes missing
 
@@ -219,7 +223,8 @@ TEST_F(TsnDistributedTest, LatencyTrackerReset) {
     tracker.record_latency(wadjet::protocols::tsn::PriorityCodePoint::Voice, 500000);
     tracker.finalize();
 
-    const auto* stats = tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
+    const auto* stats =
+        tracker.get_priority_stats(wadjet::protocols::tsn::PriorityCodePoint::Voice);
     EXPECT_GT(stats->sample_count, 0);
 
     tracker.reset();

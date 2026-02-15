@@ -76,8 +76,7 @@ class DistributedMatcher;
  *
  * T334: Placeholder for M10 DDS decoder integration (Category H)
  */
-auto ExpectDdsTopicFlow(std::string publisher_node,
-                        std::string subscriber_node,
+auto ExpectDdsTopicFlow(std::string publisher_node, std::string subscriber_node,
                         std::string topic_name) -> std::unique_ptr<DistributedMatcher>;
 
 /**
