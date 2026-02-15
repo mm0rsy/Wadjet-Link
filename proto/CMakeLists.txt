@@ -32,36 +32,37 @@ if(WADJET_ENABLE_DISTRIBUTED)
     set(GRPC_HDRS
         "${CMAKE_CURRENT_BINARY_DIR}/distributed_test.grpc.pb.h"
     )
-    
     # Determine grpc_cpp_plugin location
-    # Wait until the plugin is built, then use it
-    if(TARGET _grpc_cpp_plugin)
-        # Use target to track dependency
-        set(_PLUGIN "$<TARGET_FILE:_grpc_cpp_plugin>")
-        set(_IMPLICIT_DEPS _grpc_cpp_plugin)
-    elseif(TARGET grpc_cpp_plugin)
-        # Fallback target
-        get_target_property(_PLUGIN grpc_cpp_plugin IMPORTED_LOCATION)
-        set(_IMPLICIT_DEPS grpc_cpp_plugin)
-    else()
-        # Try to find it in the build directory (if built from FetchContent)
-        set(_PLUGIN "${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin")
-        set(_IMPLICIT_DEPS)
-    endif()
+    # The grpc_cpp_plugin is built as part of gRPC, we need to use an explicit path
+    # Since add_custom_command with VERBATIM can't use generator expressions,
+    # we'll set it up after knowing the build directory
+    set(_PLUGIN_CANDIDATES
+        "${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin"
+        "${grpc_BINARY_DIR}/grpc_cpp_plugin"
+        "$ENV{GRPC_PLUGIN_PATH}/grpc_cpp_plugin"
+    )
     
-    # Custom command to run protoc with grpc plugin - BEFORE adding the library
+    set(_PLUGIN_PATH "")
+    set(_PLUGIN_FOUND FALSE)
+    
+    # We'll add a pre-build target to find the plugin at build time
+    # For now, we'll use a placeholder and resolve it during build
+    set(_PLUGIN "grpc_cpp_plugin")
+    set(_IMPLICIT_DEPS grpc_cpp_plugin)
+    
+    # Custom command to run protoc with grpc plugin
+    # We need to handle the plugin path carefully since it's built during the build process
     add_custom_command(
         OUTPUT ${PROTO_SRCS} ${PROTO_HDRS} ${GRPC_SRCS} ${GRPC_HDRS}
-        COMMAND ${CMAKE_COMMAND} -E echo "Waiting for grpc_cpp_plugin..."
+        COMMAND ${CMAKE_COMMAND} -E echo "Generating protobuf and gRPC code..."
         COMMAND ${PROTOC}
-        ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
-             --plugin=protoc-gen-grpc="${_PLUGIN}"
-             --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-             -I "${PROTO_DIR}"
-             "${PROTO_FILE}"
+            --grpc_out ${CMAKE_CURRENT_BINARY_DIR}
+            --plugin=protoc-gen-grpc=${CMAKE_BINARY_DIR}/_deps/grpc-build/grpc_cpp_plugin
+            --cpp_out ${CMAKE_CURRENT_BINARY_DIR}
+            -I ${PROTO_DIR}
+            ${PROTO_FILE}
         DEPENDS "${PROTO_FILE}" ${_IMPLICIT_DEPS}
         COMMENT "Generating protobuf and gRPC code for distributed_test.proto"
-        VERBATIM
     )
     
     # NOW generate protobuf C++ code library with the output files

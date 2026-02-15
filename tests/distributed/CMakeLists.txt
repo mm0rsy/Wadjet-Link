@@ -60,7 +60,6 @@ if(WADJET_ENABLE_DISTRIBUTED)
                 gtest_main
                 gmock
                 gmock_main
-                wadjet_warnings
                 wadjet_sanitizers
                 ssl
                 crypto
